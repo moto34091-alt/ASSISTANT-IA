@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Assistant Trading Pro</title>
+
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+<style>
+
+body{
+  margin:0;
+  background:#0b1220;
+  color:white;
+  font-family:Arial;
+}
+
+.header{
+  background:#111827;
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
+}
+
+#chart{
+  height:400px;
+}
+
+.container{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:10px;
+  padding:10px;
+}
+
+.box{
+  background:#1f2937;
+  border-radius:10px;
+  padding:15px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
+  cursor:pointer;
+  background:#2563eb;
+  color:white;
+}
+
+input{
+  width:100%;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  margin-top:10px;
+}
+
+.signal-buy{
+  color:#00ff99;
+}
+
+.signal-sell{
+  color:#ff4d4d;
+}
+
+.signal-wait{
+  color:#ffaa00;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+🚀 ASSISTANT TRADING PRO
+
+</div>
+
+<div id="chart"></div>
+
+<div class="container">
+
+<div class="box">
+
+<h2>📊 AI SIGNAL</h2>
+
+<h1 id="signal" class="signal-wait">
+WAIT
+</h1>
+
+<p id="strategy">
+Strategy: Loading...
+</p>
+
+<p id="confidence">
+Confidence: 0%
+</p>
+
+</div>
+
+<div class="box">
+
+<h2>🧠 MARKET ANALYSIS</h2>
+
+<p id="rsi">
+RSI: Loading...
+</p>
+
+<p id="ema">
+EMA: Loading...
+</p>
+
+<p id="momentum">
+Momentum: Loading...
+</p>
+
+</div>
+
+<div class="box">
+
+<h2>📢 ADMIN MESSAGE</h2>
+
+<p id="adminMsg">
+Loading...
+</p>
+
+<input
+id="msg"
+placeholder="New admin message"
+>
+
+<button onclick="updateAdmin()">
+Update Message
+</button>
+
+</div>
+
+<div class="box">
+
+<h2>🔐 ADMIN LOGIN</h2>
+
+<input
+type="password"
+id="pass"
+placeholder="Admin Password"
+>
+
+<button onclick="login()">
+Login
+</button>
+
+<button onclick="openPocket()">
+📈 OPEN POCKET OPTION
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   📊 CHART
+========================= */
+
+const chart =
+LightweightCharts.createChart(
+document.getElementById('chart'),
+{
+  layout:{
+    background:{color:'#0b1220'},
+    textColor:'white'
+  },
+
+  grid:{
+    vertLines:{color:'#222'},
+    horzLines:{color:'#222'}
+  }
+});
+
+const candleSeries =
+chart.addCandlestickSeries();
+
+/* =========================
+   📈 DATA
+========================= */
+
+let closes = [];
+
+/* =========================
+   📊 LOAD CHART
+========================= */
+
+async function loadChart(){
+
+  const res =
+  await fetch(
+'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100'
+  );
+
+  const data = await res.json();
+
+  candleSeries.setData(
+
+    data.map(c => ({
+
+      time:c[0]/1000,
+      open:+c[1],
+      high:+c[2],
+      low:+c[3],
+      close:+c[4]
+
+    }))
+
+  );
+
+}
+
+loadChart();
+
+/* =========================
+   🧠 RSI
+========================= */
+
+function calculateRSI(period = 14){
+
+  if(closes.length < period + 1)
+    return 50;
+
+  let gains = 0;
+  let losses = 0;
+
+  for(
+    let i = closes.length - period;
+    i < closes.length;
+    i++
+  ){
+
+    const diff =
+    closes[i] - closes[i - 1];
+
+    if(diff >= 0)
+      gains += diff;
+    else
+      losses += Math.abs(diff);
+
+  }
+
+  const rs =
+  gains / (losses || 1);
+
+  return (
+    100 - (100 / (1 + rs))
+  ).toFixed(2);
+
+}
+
+/* =========================
+   📈 EMA
+========================= */
+
+function calculateEMA(period = 10){
+
+  if(closes.length < period)
+    return 0;
+
+  let k = 2 / (period + 1);
+
+  let ema = closes[0];
+
+  for(let i = 1; i < closes.length; i++){
+
+    ema =
+    closes[i] * k +
+    ema * (1 - k);
+
+  }
+
+  return ema.toFixed(2);
+
+}
+
+/* =========================
+   🔥 WEBSOCKET LIVE
+========================= */
+
+const socket =
+new WebSocket(
+'wss://stream.binance.com:9443/ws/btcusdt@kline_1m'
+);
+
+socket.onmessage = async(event)=>{
+
+  const msg =
+  JSON.parse(event.data);
+
+  const k = msg.k;
+
+  candleSeries.update({
+
+    time:k.t/1000,
+    open:+k.o,
+    high:+k.h,
+    low:+k.l,
+    close:+k.c
+
+  });
+
+  const price = parseFloat(k.c);
+
+  closes.push(price);
+
+  if(closes.length > 100)
+    closes.shift();
+
+  const rsi =
+  calculateRSI();
+
+  const ema =
+  calculateEMA();
+
+  const momentum =
+  price >
+  closes[closes.length - 2]
+  ? "UP"
+  : "DOWN";
+
+  document.getElementById("rsi")
+  .innerText =
+  "RSI: " + rsi;
+
+  document.getElementById("ema")
+  .innerText =
+  "EMA: " + ema;
+
+  document.getElementById("momentum")
+  .innerText =
+  "Momentum: " + momentum;
+
+  const res =
+  await fetch("/api/signal");
+
+  const signalData =
+  await res.json();
+
+  const signalEl =
+  document.getElementById("signal");
+
+  signalEl.innerText =
+  signalData.signal;
+
+  signalEl.className =
+    signalData.signal === "BUY"
+    ? "signal-buy"
+    : signalData.signal === "SELL"
+    ? "signal-sell"
+    : "signal-wait";
+
+  document.getElementById("strategy")
+  .innerText =
+  "Strategy: " +
+  signalData.strategy;
+
+  document.getElementById("confidence")
+  .innerText =
+  "Confidence: " +
+  signalData.confidence +
+  "%";
+
+};
+
+/* =========================
+   🔐 LOGIN
+========================= */
+
+async function login(){
+
+  const password =
+  document.getElementById("pass").value;
+
+  const res =
+  await fetch("/api/login",{
+
+    method:"POST",
+
+    headers:{
+      "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+      password
+    })
+
+  });
+
+  alert(
+    res.ok
+    ? "✅ Login success"
+    : "❌ Wrong password"
+  );
+
+}
+
+/* =========================
+   📢 LOAD ADMIN MESSAGE
+========================= */
+
+async function loadAdmin(){
+
+  const res =
+  await fetch("/api/admin-message");
+
+  const data =
+  await res.json();
+
+  document.getElementById("adminMsg")
+  .innerText =
+  data.message;
+
+}
+
+loadAdmin();
+
+/* =========================
+   ✏️ UPDATE ADMIN MESSAGE
+========================= */
+
+async function updateAdmin(){
+
+  const msg =
+  document.getElementById("msg").value;
+
+  await fetch("/api/admin-message",{
+
+    method:"POST",
+
+    headers:{
+      "Content-Type":"application/json"
+    },
+
+    body:JSON.stringify({
+      message:msg
+    })
+
+  });
+
+  loadAdmin();
+
+}
+
+/* =========================
+   📈 OPEN POCKET OPTION
+========================= */
+
+function openPocket(){
+
+  window.open(
+    "https://pocketoption.com",
+    "_blank"
+  );
+
+}
+
+</script>
+
+</body>
+</html>
