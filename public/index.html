@@ -20,6 +20,7 @@ body{
   font-family:Arial;
 }
 
+/* ================= HEADER ================= */
 .header{
   padding:15px;
   background:#111827;
@@ -28,16 +29,10 @@ body{
   align-items:center;
 }
 
-.logo{
-  color:#38bdf8;
-  font-weight:bold;
-  font-size:20px;
-}
+.logo{color:#38bdf8;font-weight:bold}
+.status{color:#22c55e}
 
-.status{
-  color:#22c55e;
-}
-
+/* ================= LAYOUT ================= */
 .main{
   display:grid;
   grid-template-columns:280px 1fr;
@@ -58,14 +53,9 @@ body{
   margin:5px 0;
   background:#111827;
   border-radius:8px;
-  cursor:pointer;
 }
 
-.content{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+.content{display:flex;flex-direction:column;gap:10px}
 
 #chart{
   height:420px;
@@ -85,33 +75,96 @@ body{
   border-radius:10px;
 }
 
-.big{
-  font-size:30px;
-  margin-top:10px;
-}
+.big{font-size:28px}
 
-.buy{color:#22c55e;}
-.sell{color:#ef4444;}
-.wait{color:#f59e0b;}
-
-input,button{
+/* ================= BUTTONS ================= */
+button{
   width:100%;
   padding:10px;
   margin-top:10px;
   border:none;
   border-radius:8px;
-}
-
-button{
   background:#2563eb;
   color:white;
   cursor:pointer;
 }
 
+input{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
+  background:#111827;
+  color:white;
+}
+
+/* ================= FLOATING BUTTON ================= */
+.floating{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  background:#22c55e;
+  padding:15px;
+  border-radius:50px;
+  cursor:pointer;
+  font-weight:bold;
+  box-shadow:0 0 10px #22c55e;
+}
+
+.help-btn{
+  position:fixed;
+  left:20px;
+  bottom:20px;
+  background:#f59e0b;
+  padding:12px;
+  border-radius:50px;
+  cursor:pointer;
+}
+
+.settings{
+  position:fixed;
+  top:15px;
+  right:15px;
+  background:#1f2937;
+  padding:10px;
+  border-radius:50%;
+  cursor:pointer;
+}
+
+/* ================= ADMIN PANEL ================= */
+.admin-panel{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:#050816;
+  display:none;
+  flex-direction:column;
+  padding:20px;
+  z-index:999;
+}
+
+.admin-box{
+  background:#111827;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+.close{
+  position:absolute;
+  top:10px;
+  right:10px;
+  cursor:pointer;
+  color:red;
+  font-size:20px;
+}
+
 </style>
 
 </head>
-
 <body>
 
 <div class="header">
@@ -119,19 +172,53 @@ button{
   <div class="status">🟢 LIVE</div>
 </div>
 
-<div class="main">
+<!-- SETTINGS ICON -->
+<div class="settings" onclick="openAdmin()">⚙️</div>
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <h3>📊 MARKETS</h3>
-  <div class="market">EUR/USD OTC</div>
-  <div class="market">USD/JPY OTC</div>
-  <div class="market">GBP/USD OTC</div>
-  <div class="market">BTCUSDT</div>
-  <div class="market">ETHUSDT</div>
+<!-- HELP BUTTON -->
+<div class="help-btn" onclick="help()">❓ Aide</div>
+
+<!-- FLOATING TELEGRAM BUTTON -->
+<div class="floating" onclick="openTelegram()">
+@Mr_dflam 🚀 JOIN SIGNAL
 </div>
 
-<!-- CONTENT -->
+<!-- ADMIN PANEL FULL SCREEN -->
+<div class="admin-panel" id="adminPanel">
+
+<div class="close" onclick="closeAdmin()">✖</div>
+
+<h2>⚙️ ADMIN PANEL PRO</h2>
+
+<div class="admin-box">
+📢 Message Admin
+<input id="msg" placeholder="Update message">
+<button onclick="updateAdmin()">Update</button>
+</div>
+
+<div class="admin-box">
+🔐 Login
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+</div>
+
+<div class="admin-box">
+📊 Strategy Control
+<button onclick="alert('AI MODE: ACTIVE')">Activate AI</button>
+<button onclick="alert('SAFE MODE')">Safe Mode</button>
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="sidebar">
+<h3>MARKETS</h3>
+<div class="market">EUR/USD OTC</div>
+<div class="market">BTCUSDT</div>
+<div class="market">USD/JPY OTC</div>
+</div>
+
 <div class="content">
 
 <div id="chart"></div>
@@ -139,39 +226,23 @@ button{
 <div class="grid">
 
 <div class="card">
-<h3>📈 SIGNAL</h3>
-<div id="signal" class="big wait">WAIT</div>
-<p id="confidence">Confidence: 0%</p>
-<p id="strategy">Strategy: Loading...</p>
+<h3>SIGNAL</h3>
+<div id="signal" class="big">WAIT</div>
 </div>
 
 <div class="card">
-<h3>📊 RSI</h3>
+<h3>RSI</h3>
 <div id="rsi" class="big">0</div>
 </div>
 
 <div class="card">
-<h3>📉 EMA</h3>
+<h3>EMA</h3>
 <div id="ema" class="big">0</div>
 </div>
 
 <div class="card">
-<h3>⚡ MOMENTUM</h3>
-<div id="momentum" class="big">-</div>
-</div>
-
-<div class="card">
-<h3>📢 ADMIN</h3>
+<h3>ADMIN MSG</h3>
 <p id="adminMsg">Loading...</p>
-<input id="msg" placeholder="Message admin">
-<button onclick="updateAdmin()">Update</button>
-</div>
-
-<div class="card">
-<h3>🔐 LOGIN</h3>
-<input id="pass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
-<button onclick="openPocket()">Open Pocket</button>
 </div>
 
 </div>
@@ -182,91 +253,28 @@ button{
 
 <script>
 
-const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-  layout:{ background:{ color:'#050816' }, textColor:'white' }
-});
-
-const candleSeries = chart.addCandlestickSeries();
-
-let closes = [];
-
-async function loadChart(){
-  const res = await fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100");
-  const data = await res.json();
-
-  candleSeries.setData(data.map(c=>({
-    time:c[0]/1000,
-    open:+c[1],
-    high:+c[2],
-    low:+c[3],
-    close:+c[4]
-  })));
+function openAdmin(){
+  document.getElementById('adminPanel').style.display='flex';
 }
 
-loadChart();
-
-function RSI(){
-  if(closes.length<14)return 50;
-  let g=0,l=0;
-  for(let i=1;i<closes.length;i++){
-    let d=closes[i]-closes[i-1];
-    d>=0?g+=d:l+=-d;
-  }
-  let rs=g/(l||1);
-  return (100-(100/(1+rs))).toFixed(2);
+function closeAdmin(){
+  document.getElementById('adminPanel').style.display='none';
 }
 
-function EMA(){
-  let k=2/(10+1);
-  let e=closes[0];
-  for(let i=1;i<closes.length;i++){
-    e=closes[i]*k+e*(1-k);
-  }
-  return e.toFixed(2);
+function help(){
+  alert("📘 Bot IA Trading Pro\n- Analyse marché\n- RSI + EMA\n- Signaux automatiques");
 }
 
-const socket = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@kline_1m");
-
-socket.onmessage=(e)=>{
-  const k=JSON.parse(e.data).k;
-
-  candleSeries.update({
-    time:k.t/1000,
-    open:+k.o,
-    high:+k.h,
-    low:+k.l,
-    close:+k.c
-  });
-
-  let price=+k.c;
-  closes.push(price);
-  if(closes.length>100)closes.shift();
-
-  let r=RSI();
-  let e2=EMA();
-  let m=price>closes[closes.length-2]?"UP":"DOWN";
-
-  document.getElementById("rsi").innerText=r;
-  document.getElementById("ema").innerText=e2;
-  document.getElementById("momentum").innerText=m;
-
-  let signal="WAIT";
-  if(r<35&&m=="UP")signal="BUY";
-  if(r>65&&m=="DOWN")signal="SELL";
-
-  document.getElementById("signal").innerText=signal;
-};
-
-function openPocket(){
-  window.open("https://pocketoption.com","_blank");
-}
-
-async function login(){
-  alert("Login system ready");
+function openTelegram(){
+  window.open("https://t.me/signalstradings_bot","_blank");
 }
 
 async function updateAdmin(){
-  document.getElementById("adminMsg").innerText=document.getElementById("msg").value;
+  document.getElementById("adminMsg").innerText = document.getElementById("msg").value;
+}
+
+async function login(){
+  alert("Login OK (demo)");
 }
 
 </script>
