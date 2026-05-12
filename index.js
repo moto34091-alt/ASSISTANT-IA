@@ -2,129 +2,319 @@ const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
+/* =========================
+   CONFIG
+========================= */
+
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = "TRADING_AI_SECRET";
+const JWT_SECRET = "TRADING_AI_SECRET_2026";
+
+/* =========================
+   MIDDLEWARE
+========================= */
 
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(express.static(path.join(__dirname, "public")));
 
-/* ================= DB ================= */
-mongoose.connect(process.env.MONGO_URL)
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.log(err));
+/* =========================
+   MONGODB CONNECT
+========================= */
 
-/* ================= MODELS ================= */
+mongoose.connect(
+"mongodb://mongo:ScUwShceXYQTtHsRjJQwTyYVZWTTMtVM@yamabiko.proxy.rlwy.net:23435"
+)
+
+.then(() => {
+  console.log("✅ MongoDB Connected");
+})
+
+.catch((err) => {
+  console.log("❌ Mongo Error:", err);
+});
+
+/* =========================
+   MODELS
+========================= */
+
 const Admin = mongoose.model("Admin", {
-  username: String,
-  password: String
+
+  username:String,
+  password:String
+
 });
 
 const Settings = mongoose.model("Settings", {
-  adminMessage: String,
-  mode: String
+
+  adminMessage:{
+    type:String,
+    default:"🚀 Welcome AI Trading Bot"
+  },
+
+  mode:{
+    type:String,
+    default:"SAFE"
+  }
+
 });
 
-/* ================= DEFAULT ADMIN ================= */
-(async () => {
-  const exist = await Admin.findOne({ username: "admin" });
+/* =========================
+   CREATE DEFAULT ADMIN
+========================= */
 
-  if (!exist) {
-    const hash = bcrypt.hashSync("Dj.123@dj", 10);
+async function createAdmin(){
+
+  const exist = await Admin.findOne({
+    username:"admin"
+  });
+
+  if(!exist){
+
+    const hash = bcrypt.hashSync(
+      "Dj.123@dj",
+      10
+    );
 
     await Admin.create({
-      username: "admin",
-      password: hash
+
+      username:"admin",
+      password:hash
+
     });
 
-    console.log("Admin created");
-  }
-})();
+    console.log("✅ Default admin created");
 
-/* ================= LOGIN ================= */
-app.post("/api/login", async (req, res) => {
-
-  const { username, password } = req.body;
-
-  const admin = await Admin.findOne({ username });
-
-  if (!admin) return res.status(401).json({ error: "Not found" });
-
-  const ok = bcrypt.compareSync(password, admin.password);
-
-  if (!ok) return res.status(401).json({ error: "Wrong password" });
-
-  const token = jwt.sign({ id: admin._id }, JWT_SECRET);
-
-  res.cookie("token", token);
-
-  res.json({ success: true });
-});
-
-/* ================= AUTH ================= */
-function auth(req, res, next) {
-
-  const token = req.cookies.token;
-
-  if (!token) return res.status(401).json({ error: "No token" });
-
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
   }
 
 }
 
-/* ================= SETTINGS ================= */
-app.get("/api/settings", async (req, res) => {
+createAdmin();
 
-  let data = await Settings.findOne();
+/* =========================
+   JWT AUTH
+========================= */
 
-  if (!data) data = await Settings.create({
-    adminMessage: "Welcome",
-    mode: "SAFE"
+function auth(req,res,next){
+
+  const token = req.cookies.token;
+
+  if(!token){
+
+    return res.status(401).json({
+      error:"No token"
+    });
+
+  }
+
+  try{
+
+    req.user = jwt.verify(
+      token,
+      JWT_SECRET
+    );
+
+    next();
+
+  }catch(err){
+
+    return res.status(401).json({
+      error:"Invalid token"
+    });
+
+  }
+
+}
+
+/* =========================
+   LOGIN
+========================= */
+
+app.post("/api/login", async (req,res)=>{
+
+  const { username, password } = req.body;
+
+  const admin = await Admin.findOne({
+    username
   });
 
-  res.json(data);
-});
+  if(!admin){
 
-app.post("/api/settings", auth, async (req, res) => {
+    return res.status(401).json({
+      error:"Admin not found"
+    });
 
-  let data = await Settings.findOne();
+  }
 
-  data.adminMessage = req.body.adminMessage;
-  data.mode = req.body.mode;
+  const valid = bcrypt.compareSync(
+    password,
+    admin.password
+  );
 
-  await data.save();
+  if(!valid){
 
-  res.json({ success: true });
-});
+    return res.status(401).json({
+      error:"Wrong password"
+    });
 
-/* ================= SIGNAL ================= */
-app.get("/api/signal", (req, res) => {
+  }
 
-  const signals = ["BUY", "SELL", "WAIT"];
+  const token = jwt.sign({
+
+      id:admin._id,
+      username:admin.username
+
+    },
+
+    JWT_SECRET,
+
+    {
+      expiresIn:"2h"
+    }
+
+  );
+
+  res.cookie("token", token, {
+
+    httpOnly:true
+
+  });
 
   res.json({
-    signal: signals[Math.floor(Math.random() * signals.length)],
-    confidence: Math.floor(Math.random() * 40 + 60)
+    success:true
   });
 
 });
 
-/* ================= FRONT ================= */
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+/* =========================
+   SETTINGS GET
+========================= */
+
+app.get("/api/settings", async (req,res)=>{
+
+  let settings = await Settings.findOne();
+
+  if(!settings){
+
+    settings = await Settings.create({});
+  }
+
+  res.json(settings);
+
 });
 
-/* ================= START ================= */
-app.listen(PORT, () => {
-  console.log("Server running");
+/* =========================
+   SETTINGS UPDATE
+========================= */
+
+app.post("/api/settings", auth, async (req,res)=>{
+
+  let settings = await Settings.findOne();
+
+  if(!settings){
+
+    settings = new Settings();
+  }
+
+  settings.adminMessage =
+    req.body.adminMessage;
+
+  settings.mode =
+    req.body.mode;
+
+  await settings.save();
+
+  res.json({
+
+    success:true,
+    settings
+
+  });
+
+});
+
+/* =========================
+   AI SIGNAL API
+========================= */
+
+app.get("/api/signal",(req,res)=>{
+
+  const signals = [
+    "BUY",
+    "SELL",
+    "WAIT"
+  ];
+
+  const strategies = [
+
+    "Momentum",
+    "Breakout",
+    "Scalping",
+    "Trend Following"
+
+  ];
+
+  const signal =
+    signals[
+      Math.floor(
+        Math.random()*signals.length
+      )
+    ];
+
+  const strategy =
+    strategies[
+      Math.floor(
+        Math.random()*strategies.length
+      )
+    ];
+
+  const confidence =
+    Math.floor(
+      Math.random()*35+65
+    );
+
+  res.json({
+
+    signal,
+    strategy,
+    confidence,
+    timestamp:Date.now()
+
+  });
+
+});
+
+/* =========================
+   FRONTEND
+========================= */
+
+app.get("/",(req,res)=>{
+
+  res.sendFile(
+
+    path.join(
+      __dirname,
+      "public",
+      "index.html"
+    )
+
+  );
+
+});
+
+/* =========================
+   START SERVER
+========================= */
+
+app.listen(PORT,()=>{
+
+  console.log(
+    "🚀 Server running on port "+PORT
+  );
+
 });
