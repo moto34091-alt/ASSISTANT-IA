@@ -12,16 +12,21 @@ const app = express();
 ========================= */
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = "TRADING_AI_SECRET_2026";
+
+const JWT_SECRET =
+"TRADING_AI_SECRET_2026";
 
 /* =========================
    MIDDLEWARE
 ========================= */
 
 app.use(express.json());
+
 app.use(cookieParser());
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(
+  path.join(__dirname,"public")
+));
 
 /* =========================
    MONGODB CONNECT
@@ -31,52 +36,59 @@ mongoose.connect(
 "mongodb://mongo:ScUwShceXYQTtHsRjJQwTyYVZWTTMtVM@yamabiko.proxy.rlwy.net:23435"
 )
 
-.then(() => {
+.then(()=>{
   console.log("✅ MongoDB Connected");
 })
 
-.catch((err) => {
-  console.log("❌ Mongo Error:", err);
+.catch((err)=>{
+  console.log("❌ Mongo Error:",err);
 });
 
 /* =========================
    MODELS
 ========================= */
 
-const Admin = mongoose.model("Admin", {
+const Admin = mongoose.model("Admin",{
 
   username:String,
   password:String
 
 });
 
-const Settings = mongoose.model("Settings", {
+const Settings = mongoose.model("Settings",{
 
   adminMessage:{
     type:String,
-    default:"🚀 Welcome AI Trading Bot"
+    default:"🚀 AI Trading Bot Online"
   },
 
-  mode:{
-    type:String,
-    default:"SAFE"
+  aiMode:{
+    type:Boolean,
+    default:true
+  },
+
+  safeMode:{
+    type:Boolean,
+    default:true
   }
 
 });
 
 /* =========================
-   CREATE DEFAULT ADMIN
+   CREATE ADMIN
 ========================= */
 
 async function createAdmin(){
 
-  const exist = await Admin.findOne({
+  const exist =
+  await Admin.findOne({
     username:"admin"
   });
 
   if(!exist){
 
-    const hash = bcrypt.hashSync(
+    const hash =
+    bcrypt.hashSync(
       "Dj.123@dj",
       10
     );
@@ -88,7 +100,9 @@ async function createAdmin(){
 
     });
 
-    console.log("✅ Default admin created");
+    console.log(
+      "✅ Default admin created"
+    );
 
   }
 
@@ -97,7 +111,7 @@ async function createAdmin(){
 createAdmin();
 
 /* =========================
-   JWT AUTH
+   AUTH
 ========================= */
 
 function auth(req,res,next){
@@ -135,11 +149,13 @@ function auth(req,res,next){
    LOGIN
 ========================= */
 
-app.post("/api/login", async (req,res)=>{
+app.post("/api/login", async(req,res)=>{
 
-  const { username, password } = req.body;
+  const { username,password } =
+  req.body;
 
-  const admin = await Admin.findOne({
+  const admin =
+  await Admin.findOne({
     username
   });
 
@@ -151,7 +167,8 @@ app.post("/api/login", async (req,res)=>{
 
   }
 
-  const valid = bcrypt.compareSync(
+  const valid =
+  bcrypt.compareSync(
     password,
     admin.password
   );
@@ -179,14 +196,17 @@ app.post("/api/login", async (req,res)=>{
 
   );
 
-  res.cookie("token", token, {
+  res.cookie("token",token,{
 
     httpOnly:true
 
   });
 
   res.json({
-    success:true
+
+    success:true,
+    username:admin.username
+
   });
 
 });
@@ -195,13 +215,16 @@ app.post("/api/login", async (req,res)=>{
    SETTINGS GET
 ========================= */
 
-app.get("/api/settings", async (req,res)=>{
+app.get("/api/settings",
+async(req,res)=>{
 
-  let settings = await Settings.findOne();
+  let settings =
+  await Settings.findOne();
 
   if(!settings){
 
-    settings = await Settings.create({});
+    settings =
+    await Settings.create({});
   }
 
   res.json(settings);
@@ -212,20 +235,27 @@ app.get("/api/settings", async (req,res)=>{
    SETTINGS UPDATE
 ========================= */
 
-app.post("/api/settings", auth, async (req,res)=>{
+app.post("/api/settings",
+auth,
+async(req,res)=>{
 
-  let settings = await Settings.findOne();
+  let settings =
+  await Settings.findOne();
 
   if(!settings){
 
-    settings = new Settings();
+    settings =
+    new Settings();
   }
 
   settings.adminMessage =
-    req.body.adminMessage;
+  req.body.adminMessage;
 
-  settings.mode =
-    req.body.mode;
+  settings.aiMode =
+  req.body.aiMode;
+
+  settings.safeMode =
+  req.body.safeMode;
 
   await settings.save();
 
@@ -239,10 +269,11 @@ app.post("/api/settings", auth, async (req,res)=>{
 });
 
 /* =========================
-   AI SIGNAL API
+   AI SIGNAL ENGINE
 ========================= */
 
-app.get("/api/signal",(req,res)=>{
+app.get("/api/signal",
+(req,res)=>{
 
   const signals = [
     "BUY",
@@ -252,37 +283,47 @@ app.get("/api/signal",(req,res)=>{
 
   const strategies = [
 
+    "RSI + EMA",
     "Momentum",
     "Breakout",
-    "Scalping",
-    "Trend Following"
+    "Scalping PRO"
 
   ];
 
   const signal =
-    signals[
-      Math.floor(
-        Math.random()*signals.length
-      )
-    ];
+  signals[
+    Math.floor(
+      Math.random()*signals.length
+    )
+  ];
 
   const strategy =
-    strategies[
-      Math.floor(
-        Math.random()*strategies.length
-      )
-    ];
+  strategies[
+    Math.floor(
+      Math.random()*strategies.length
+    )
+  ];
 
   const confidence =
-    Math.floor(
-      Math.random()*35+65
-    );
+  Math.floor(
+    Math.random()*30+70
+  );
+
+  const rsi =
+  Math.floor(
+    Math.random()*100
+  );
+
+  const ema =
+  (Math.random()*100).toFixed(2);
 
   res.json({
 
     signal,
     strategy,
     confidence,
+    rsi,
+    ema,
     timestamp:Date.now()
 
   });
@@ -293,7 +334,8 @@ app.get("/api/signal",(req,res)=>{
    FRONTEND
 ========================= */
 
-app.get("/",(req,res)=>{
+app.get("/",
+(req,res)=>{
 
   res.sendFile(
 
@@ -314,7 +356,8 @@ app.get("/",(req,res)=>{
 app.listen(PORT,()=>{
 
   console.log(
-    "🚀 Server running on port "+PORT
+    "🚀 Server running on port "+
+    PORT
   );
 
 });
