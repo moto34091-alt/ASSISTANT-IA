@@ -2,123 +2,94 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Assistant Trading Pro</title>
+<title>Trading AI Pro Dashboard</title>
 
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
 <style>
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
 body{
-  background:#050816;
+  margin:0;
+  background:#0b1220;
   color:white;
   font-family:Arial;
 }
 
-/* ================= HEADER ================= */
-.header{
-  padding:15px;
-  background:#111827;
+/* HEADER */
+header{
   display:flex;
   justify-content:space-between;
-  align-items:center;
-}
-
-.logo{color:#38bdf8;font-weight:bold}
-.status{color:#22c55e}
-
-/* ================= LAYOUT ================= */
-.main{
-  display:grid;
-  grid-template-columns:280px 1fr;
-  gap:10px;
   padding:10px;
-}
-
-.sidebar{
-  background:#0f172a;
-  padding:10px;
-  border-radius:10px;
-  height:90vh;
-  overflow:auto;
-}
-
-.market{
-  padding:10px;
-  margin:5px 0;
   background:#111827;
-  border-radius:8px;
 }
 
-.content{display:flex;flex-direction:column;gap:10px}
-
-#chart{
-  height:420px;
-  background:#0f172a;
-  border-radius:10px;
-}
-
-.grid{
+/* LAYOUT */
+#container{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:10px;
+  grid-template-columns:260px 1fr;
+  height:100vh;
 }
 
-.card{
+/* SIDEBAR */
+#left{
   background:#0f172a;
-  padding:15px;
-  border-radius:10px;
+  padding:10px;
 }
 
-.big{font-size:28px}
-
-/* ================= BUTTONS ================= */
 button{
   width:100%;
   padding:10px;
-  margin-top:10px;
+  margin:5px 0;
+  background:#1f2937;
   border:none;
-  border-radius:8px;
-  background:#2563eb;
   color:white;
   cursor:pointer;
 }
 
-input{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border-radius:8px;
-  border:none;
-  background:#111827;
-  color:white;
+/* CHART */
+#chart{
+  height:500px;
 }
 
-/* ================= FLOATING BUTTON ================= */
+/* PANEL */
+#panel{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  background:#111827;
+  padding:10px;
+  gap:10px;
+}
+
+.box{
+  background:#0f172a;
+  padding:10px;
+  text-align:center;
+  border-radius:10px;
+}
+
+.big{
+  font-size:20px;
+  font-weight:bold;
+}
+
+/* FLOATING BUTTONS */
 .floating{
   position:fixed;
   right:20px;
   bottom:20px;
   background:#22c55e;
-  padding:15px;
-  border-radius:50px;
+  padding:12px;
+  border-radius:30px;
   cursor:pointer;
-  font-weight:bold;
-  box-shadow:0 0 10px #22c55e;
 }
 
-.help-btn{
+.help{
   position:fixed;
   left:20px;
   bottom:20px;
   background:#f59e0b;
   padding:12px;
-  border-radius:50px;
+  border-radius:30px;
   cursor:pointer;
 }
 
@@ -132,118 +103,108 @@ input{
   cursor:pointer;
 }
 
-/* ================= ADMIN PANEL ================= */
-.admin-panel{
+/* ADMIN PANEL */
+#adminPanel{
+  display:none;
   position:fixed;
   top:0;
   left:0;
   width:100%;
   height:100%;
   background:#050816;
-  display:none;
-  flex-direction:column;
   padding:20px;
   z-index:999;
 }
 
-.admin-box{
-  background:#111827;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:10px;
-}
-
-.close{
-  position:absolute;
-  top:10px;
-  right:10px;
-  cursor:pointer;
-  color:red;
-  font-size:20px;
+input{
+  width:100%;
+  padding:10px;
+  margin:5px 0;
 }
 
 </style>
 
 </head>
+
 <body>
 
-<div class="header">
-  <div class="logo">🚀 ASSISTANT PRO</div>
-  <div class="status">🟢 LIVE</div>
-</div>
+<header>
+  <div>🚀 AI TRADING PRO</div>
+  <div id="tf">TIMEFRAME: 1m</div>
+</header>
 
-<!-- SETTINGS ICON -->
+<!-- SETTINGS -->
 <div class="settings" onclick="openAdmin()">⚙️</div>
 
-<!-- HELP BUTTON -->
-<div class="help-btn" onclick="help()">❓ Aide</div>
+<!-- HELP -->
+<div class="help" onclick="help()">❓ Aide</div>
 
-<!-- FLOATING TELEGRAM BUTTON -->
+<!-- TELEGRAM -->
 <div class="floating" onclick="openTelegram()">
-@Mr_dflam 🚀 JOIN SIGNAL
+@Mr_dflam 🚀 SIGNAL BOT
 </div>
 
-<!-- ADMIN PANEL FULL SCREEN -->
-<div class="admin-panel" id="adminPanel">
-
-<div class="close" onclick="closeAdmin()">✖</div>
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
 
 <h2>⚙️ ADMIN PANEL PRO</h2>
 
-<div class="admin-box">
-📢 Message Admin
-<input id="msg" placeholder="Update message">
-<button onclick="updateAdmin()">Update</button>
-</div>
+<input id="msg" placeholder="Message admin">
+<button onclick="updateAdmin()">Update message</button>
 
-<div class="admin-box">
-🔐 Login
 <input id="pass" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
-</div>
 
-<div class="admin-box">
-📊 Strategy Control
-<button onclick="alert('AI MODE: ACTIVE')">Activate AI</button>
-<button onclick="alert('SAFE MODE')">Safe Mode</button>
-</div>
+<button onclick="setMode('AI')">🔥 AI MODE</button>
+<button onclick="setMode('SAFE')">🛡 SAFE MODE</button>
+
+<button onclick="closeAdmin()">Close</button>
 
 </div>
 
-<div class="main">
+<div id="container">
 
-<div class="sidebar">
-<h3>MARKETS</h3>
-<div class="market">EUR/USD OTC</div>
-<div class="market">BTCUSDT</div>
-<div class="market">USD/JPY OTC</div>
+<!-- LEFT -->
+<div id="left">
+
+<h3>⏱ Timeframes</h3>
+<button onclick="setTF('15s')">15 sec</button>
+<button onclick="setTF('30s')">30 sec</button>
+<button onclick="setTF('1m')">1 min</button>
+<button onclick="setTF('5m')">5 min</button>
+
+<h3>📊 Markets</h3>
+<button>BTCUSDT</button>
+<button>ETHUSDT</button>
+
 </div>
 
-<div class="content">
+<!-- MAIN -->
+<div>
 
 <div id="chart"></div>
 
-<div class="grid">
+<div id="panel">
 
-<div class="card">
-<h3>SIGNAL</h3>
-<div id="signal" class="big">WAIT</div>
-</div>
+  <div class="box">
+    SIGNAL
+    <div id="signal" class="big">WAIT</div>
+  </div>
 
-<div class="card">
-<h3>RSI</h3>
-<div id="rsi" class="big">0</div>
-</div>
+  <div class="box">
+    RSI
+    <div id="rsi" class="big">0</div>
+  </div>
 
-<div class="card">
-<h3>EMA</h3>
-<div id="ema" class="big">0</div>
-</div>
+  <div class="box">
+    TREND
+    <div id="trend" class="big">-</div>
+  </div>
 
-<div class="card">
-<h3>ADMIN MSG</h3>
-<p id="adminMsg">Loading...</p>
-</div>
+  <div class="box">
+    SCORE
+    <div id="score" class="big">0</div>
+  </div>
 
 </div>
 
@@ -253,28 +214,162 @@ input{
 
 <script>
 
+const chart = LightweightCharts.createChart(document.getElementById("chart"), {
+  layout:{ background:{ color:"#0b1220" }, textColor:"white" }
+});
+
+const candle = chart.addCandlestickSeries();
+
+let closes = [];
+let timeframe = "1m";
+
+/* LOAD DATA */
+async function load(){
+
+  const res = await fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100");
+  const data = await res.json();
+
+  closes = data.map(c => +c[4]);
+
+  candle.setData(data.map(c => ({
+    time:c[0]/1000,
+    open:+c[1],
+    high:+c[2],
+    low:+c[3],
+    close:+c[4]
+  })));
+
+}
+
+load();
+
+/* RSI */
+function RSI(data){
+  if(data.length<14) return 50;
+
+  let g=0,l=0;
+  for(let i=1;i<data.length;i++){
+    let d=data[i]-data[i-1];
+    if(d>=0) g+=d;
+    else l+=-d;
+  }
+
+  let rs=g/(l||1);
+  return 100-(100/(1+rs));
+}
+
+/* EMA */
+function EMA(data,p){
+  let k=2/(p+1);
+  let e=data[0];
+  for(let i=1;i<data.length;i++){
+    e=data[i]*k+e*(1-k);
+  }
+  return e;
+}
+
+/* SUPPORT / RESISTANCE */
+function SR(data){
+  return {
+    support:Math.min(...data.slice(-20)),
+    resistance:Math.max(...data.slice(-20))
+  };
+}
+
+/* AI ENGINE */
+function AI(data){
+
+  let rsi=RSI(data);
+  let ema9=EMA(data,9);
+  let ema21=EMA(data,21);
+  let ema50=EMA(data,50);
+
+  let price=data[data.length-1];
+
+  let score=0;
+
+  if(rsi<30) score+=2;
+  if(rsi>70) score-=2;
+
+  if(ema9>ema21 && ema21>ema50) score+=3;
+  if(ema9<ema21 && ema21<ema50) score-=3;
+
+  if(price>ema9) score+=1;
+  else score-=1;
+
+  let sr=SR(data);
+
+  let signal="WAIT";
+
+  if(score>=4) signal="BUY";
+  if(score<=-4) signal="SELL";
+
+  if(price>sr.resistance) signal="BUY";
+  if(price<sr.support) signal="SELL";
+
+  return {signal,rsi,score};
+}
+
+/* UPDATE */
+function update(){
+
+  if(closes.length<20) return;
+
+  let ai=AI(closes);
+
+  document.getElementById("signal").innerText=ai.signal;
+  document.getElementById("rsi").innerText=ai.rsi.toFixed(2);
+  document.getElementById("score").innerText=ai.score;
+  document.getElementById("trend").innerText=ai.score>0?"UP":"DOWN";
+
+}
+
+/* SIM LIVE */
+setInterval(()=>{
+
+  let last=closes[closes.length-1];
+  let newPrice=last+(Math.random()-0.5)*10;
+
+  closes.push(newPrice);
+  closes.shift();
+
+  update();
+
+},2000);
+
+/* TIMEFRAME */
+function setTF(tf){
+  timeframe=tf;
+  document.getElementById("tf").innerText="TIMEFRAME: "+tf;
+}
+
+/* ADMIN */
 function openAdmin(){
-  document.getElementById('adminPanel').style.display='flex';
+  document.getElementById("adminPanel").style.display="block";
 }
 
 function closeAdmin(){
-  document.getElementById('adminPanel').style.display='none';
+  document.getElementById("adminPanel").style.display="none";
+}
+
+async function updateAdmin(){
+  alert("Admin message updated (backend needed)");
+}
+
+function login(){
+  alert("Login (JWT backend required)");
+}
+
+function setMode(m){
+  alert("Mode: "+m);
 }
 
 function help(){
-  alert("📘 Bot IA Trading Pro\n- Analyse marché\n- RSI + EMA\n- Signaux automatiques");
+  alert("AI Trading Bot Pro - Analysis system");
 }
 
 function openTelegram(){
   window.open("https://t.me/signalstradings_bot","_blank");
-}
-
-async function updateAdmin(){
-  document.getElementById("adminMsg").innerText = document.getElementById("msg").value;
-}
-
-async function login(){
-  alert("Login OK (demo)");
 }
 
 </script>
