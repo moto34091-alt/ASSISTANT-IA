@@ -1,322 +1,130 @@
 const express = require("express");
 const path = require("path");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 
-/* =========================
-   CONFIG
-========================= */
-
 const PORT = process.env.PORT || 3000;
-
-const JWT_SECRET = "SUPER_SECRET_KEY_2026";
-
-/* =========================
-   MIDDLEWARE
-========================= */
+const JWT_SECRET = "TRADING_AI_SECRET";
 
 app.use(express.json());
 app.use(cookieParser());
-
 app.use(express.static(path.join(__dirname, "public")));
 
-/* =========================
-   MONGODB
-========================= */
-
-mongoose.connect("MONGODB_URL_HERE")
-.then(() => console.log("✅ MongoDB connected"))
+/* ================= DB ================= */
+mongoose.connect(process.env.MONGO_URL)
+.then(() => console.log("MongoDB Connected"))
 .catch(err => console.log(err));
 
-/* =========================
-   ADMIN MODEL
-========================= */
-
-const AdminSchema = new mongoose.Schema({
+/* ================= MODELS ================= */
+const Admin = mongoose.model("Admin", {
   username: String,
-  password: String,
-  role: String
+  password: String
 });
 
-const Admin = mongoose.model("Admin", AdminSchema);
-
-/* =========================
-   SETTINGS MODEL
-========================= */
-
-const SettingsSchema = new mongoose.Schema({
-
-  adminMessage:{
-    type:String,
-    default:"🚀 Welcome to AI Trading Pro"
-  },
-
-  mode:{
-    type:String,
-    default:"SAFE"
-  }
-
+const Settings = mongoose.model("Settings", {
+  adminMessage: String,
+  mode: String
 });
 
-const Settings = mongoose.model("Settings", SettingsSchema);
+/* ================= DEFAULT ADMIN ================= */
+(async () => {
+  const exist = await Admin.findOne({ username: "admin" });
 
-/* =========================
-   CREATE DEFAULT ADMIN
-========================= */
-
-async function createDefaultAdmin(){
-
-  const exists = await Admin.findOne({
-    username:"admin"
-  });
-
-  if(!exists){
-
-    const hashed = bcrypt.hashSync(
-      "Dj.123@dj",
-      10
-    );
+  if (!exist) {
+    const hash = bcrypt.hashSync("Dj.123@dj", 10);
 
     await Admin.create({
-      username:"admin",
-      password:hashed,
-      role:"superadmin"
+      username: "admin",
+      password: hash
     });
 
-    console.log("✅ Default admin created");
+    console.log("Admin created");
   }
-}
+})();
 
-createDefaultAdmin();
-
-/* =========================
-   JWT AUTH
-========================= */
-
-function auth(req,res,next){
-
-  const token = req.cookies.token;
-
-  if(!token){
-    return res.status(401).json({
-      error:"No token"
-    });
-  }
-
-  try{
-
-    const decoded = jwt.verify(
-      token,
-      JWT_SECRET
-    );
-
-    req.user = decoded;
-
-    next();
-
-  }catch(err){
-
-    return res.status(401).json({
-      error:"Invalid token"
-    });
-
-  }
-}
-
-/* =========================
-   LOGIN
-========================= */
-
-app.post("/api/admin/login", async (req,res)=>{
+/* ================= LOGIN ================= */
+app.post("/api/login", async (req, res) => {
 
   const { username, password } = req.body;
 
-  const admin = await Admin.findOne({
-    username
-  });
+  const admin = await Admin.findOne({ username });
 
-  if(!admin){
+  if (!admin) return res.status(401).json({ error: "Not found" });
 
-    return res.status(401).json({
-      error:"Admin not found"
-    });
+  const ok = bcrypt.compareSync(password, admin.password);
 
+  if (!ok) return res.status(401).json({ error: "Wrong password" });
+
+  const token = jwt.sign({ id: admin._id }, JWT_SECRET);
+
+  res.cookie("token", token);
+
+  res.json({ success: true });
+});
+
+/* ================= AUTH ================= */
+function auth(req, res, next) {
+
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).json({ error: "No token" });
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
   }
 
-  const valid = bcrypt.compareSync(
-    password,
-    admin.password
-  );
+}
 
-  if(!valid){
+/* ================= SETTINGS ================= */
+app.get("/api/settings", async (req, res) => {
 
-    return res.status(401).json({
-      error:"Wrong password"
-    });
+  let data = await Settings.findOne();
 
-  }
-
-  const token = jwt.sign({
-
-      id:admin._id,
-      username:admin.username,
-      role:admin.role
-
-    },
-
-    JWT_SECRET,
-
-    {
-      expiresIn:"2h"
-    }
-
-  );
-
-  res.cookie("token", token, {
-
-    httpOnly:true,
-    secure:false,
-    sameSite:"lax"
-
+  if (!data) data = await Settings.create({
+    adminMessage: "Welcome",
+    mode: "SAFE"
   });
+
+  res.json(data);
+});
+
+app.post("/api/settings", auth, async (req, res) => {
+
+  let data = await Settings.findOne();
+
+  data.adminMessage = req.body.adminMessage;
+  data.mode = req.body.mode;
+
+  await data.save();
+
+  res.json({ success: true });
+});
+
+/* ================= SIGNAL ================= */
+app.get("/api/signal", (req, res) => {
+
+  const signals = ["BUY", "SELL", "WAIT"];
 
   res.json({
-    success:true,
-    username:admin.username,
-    role:admin.role
+    signal: signals[Math.floor(Math.random() * signals.length)],
+    confidence: Math.floor(Math.random() * 40 + 60)
   });
 
 });
 
-/* =========================
-   LOGOUT
-========================= */
-
-app.post("/api/admin/logout",(req,res)=>{
-
-  res.clearCookie("token");
-
-  res.json({
-    success:true
-  });
-
+/* ================= FRONT ================= */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* =========================
-   CHECK AUTH
-========================= */
-
-app.get("/api/admin/me", auth, (req,res)=>{
-
-  res.json({
-    user:req.user
-  });
-
-});
-
-/* =========================
-   GET SETTINGS
-========================= */
-
-app.get("/api/admin/settings", async (req,res)=>{
-
-  let settings = await Settings.findOne();
-
-  if(!settings){
-
-    settings = await Settings.create({});
-  }
-
-  res.json(settings);
-
-});
-
-/* =========================
-   UPDATE SETTINGS
-========================= */
-
-app.post("/api/admin/settings", auth, async (req,res)=>{
-
-  let settings = await Settings.findOne();
-
-  if(!settings){
-
-    settings = new Settings();
-  }
-
-  settings.adminMessage =
-    req.body.adminMessage;
-
-  settings.mode =
-    req.body.mode;
-
-  await settings.save();
-
-  res.json({
-    success:true,
-    settings
-  });
-
-});
-
-/* =========================
-   SIGNAL API
-========================= */
-
-app.get("/api/signal",(req,res)=>{
-
-  const signals = [
-    "BUY",
-    "SELL",
-    "WAIT"
-  ];
-
-  const signal =
-    signals[
-      Math.floor(
-        Math.random()*signals.length
-      )
-    ];
-
-  const confidence =
-    Math.floor(
-      Math.random()*30+70
-    );
-
-  res.json({
-
-    signal,
-    confidence,
-    timestamp:Date.now()
-
-  });
-
-});
-
-/* =========================
-   FRONTEND
-========================= */
-
-app.get("*",(req,res)=>{
-
-  res.sendFile(
-    path.join(__dirname,"public","index.html")
-  );
-
-});
-
-/* =========================
-   START SERVER
-========================= */
-
-app.listen(PORT,()=>{
-
-  console.log(
-    "🚀 Server running on port "+PORT
-  );
-
+/* ================= START ================= */
+app.listen(PORT, () => {
+  console.log("Server running");
 });
