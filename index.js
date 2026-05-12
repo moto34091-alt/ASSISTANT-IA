@@ -1,136 +1,322 @@
 const express = require("express");
 const path = require("path");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const cookieParser = require("cookie-parser");
+const mongoose = require("mongoose");
 
 const app = express();
 
+/* =========================
+   CONFIG
+========================= */
+
+const PORT = process.env.PORT || 3000;
+
+const JWT_SECRET = "SUPER_SECRET_KEY_2026";
+
+/* =========================
+   MIDDLEWARE
+========================= */
+
 app.use(express.json());
-app.use(express.static("public"));
+app.use(cookieParser());
+
+app.use(express.static(path.join(__dirname, "public")));
 
 /* =========================
-   🔐 ADMIN
+   MONGODB
 ========================= */
 
-const ADMIN_PASSWORD = "Dj.123@dj";
+mongoose.connect("MONGODB_URL_HERE")
+.then(() => console.log("✅ MongoDB connected"))
+.catch(err => console.log(err));
 
 /* =========================
-   📢 ADMIN MESSAGE
+   ADMIN MODEL
 ========================= */
 
-let adminMessage =
-  "🚀 Welcome to Assistant Trading Pro";
+const AdminSchema = new mongoose.Schema({
+  username: String,
+  password: String,
+  role: String
+});
+
+const Admin = mongoose.model("Admin", AdminSchema);
 
 /* =========================
-   🧠 AI SIGNAL ENGINE
+   SETTINGS MODEL
 ========================= */
 
-function generateSignal() {
+const SettingsSchema = new mongoose.Schema({
 
-  const signals = ["BUY", "SELL", "WAIT"];
+  adminMessage:{
+    type:String,
+    default:"🚀 Welcome to AI Trading Pro"
+  },
 
-  const strategies = [
-    "RSI Strategy",
-    "EMA Strategy",
-    "Momentum Strategy",
-    "Breakout Strategy",
-    "AI Multi Confirmation"
-  ];
+  mode:{
+    type:String,
+    default:"SAFE"
+  }
 
-  const signal =
-    signals[Math.floor(Math.random() * signals.length)];
+});
 
-  const strategy =
-    strategies[Math.floor(Math.random() * strategies.length)];
+const Settings = mongoose.model("Settings", SettingsSchema);
 
-  const confidence =
-    Math.floor(Math.random() * 20) + 80;
+/* =========================
+   CREATE DEFAULT ADMIN
+========================= */
 
-  return {
-    signal,
-    strategy,
-    confidence
-  };
+async function createDefaultAdmin(){
+
+  const exists = await Admin.findOne({
+    username:"admin"
+  });
+
+  if(!exists){
+
+    const hashed = bcrypt.hashSync(
+      "Dj.123@dj",
+      10
+    );
+
+    await Admin.create({
+      username:"admin",
+      password:hashed,
+      role:"superadmin"
+    });
+
+    console.log("✅ Default admin created");
+  }
+}
+
+createDefaultAdmin();
+
+/* =========================
+   JWT AUTH
+========================= */
+
+function auth(req,res,next){
+
+  const token = req.cookies.token;
+
+  if(!token){
+    return res.status(401).json({
+      error:"No token"
+    });
+  }
+
+  try{
+
+    const decoded = jwt.verify(
+      token,
+      JWT_SECRET
+    );
+
+    req.user = decoded;
+
+    next();
+
+  }catch(err){
+
+    return res.status(401).json({
+      error:"Invalid token"
+    });
+
+  }
 }
 
 /* =========================
-   📊 SIGNAL API
+   LOGIN
 ========================= */
 
-app.get("/api/signal", (req, res) => {
+app.post("/api/admin/login", async (req,res)=>{
 
-  res.json(generateSignal());
+  const { username, password } = req.body;
 
-});
-
-/* =========================
-   📢 ADMIN MESSAGE
-========================= */
-
-app.get("/api/admin-message", (req, res) => {
-
-  res.json({
-    message: adminMessage
+  const admin = await Admin.findOne({
+    username
   });
 
-});
+  if(!admin){
 
-/* =========================
-   🔐 LOGIN
-========================= */
-
-app.post("/api/login", (req, res) => {
-
-  const { password } = req.body;
-
-  if (password === ADMIN_PASSWORD) {
-
-    return res.json({
-      success: true
+    return res.status(401).json({
+      error:"Admin not found"
     });
 
   }
 
-  res.status(401).json({
-    success: false
+  const valid = bcrypt.compareSync(
+    password,
+    admin.password
+  );
+
+  if(!valid){
+
+    return res.status(401).json({
+      error:"Wrong password"
+    });
+
+  }
+
+  const token = jwt.sign({
+
+      id:admin._id,
+      username:admin.username,
+      role:admin.role
+
+    },
+
+    JWT_SECRET,
+
+    {
+      expiresIn:"2h"
+    }
+
+  );
+
+  res.cookie("token", token, {
+
+    httpOnly:true,
+    secure:false,
+    sameSite:"lax"
+
   });
-
-});
-
-/* =========================
-   ✏️ UPDATE MESSAGE
-========================= */
-
-app.post("/api/admin-message", (req, res) => {
-
-  adminMessage = req.body.message;
 
   res.json({
-    success: true
+    success:true,
+    username:admin.username,
+    role:admin.role
   });
 
 });
 
 /* =========================
-   🚀 FRONTEND
+   LOGOUT
 ========================= */
 
-app.get("/", (req, res) => {
+app.post("/api/admin/logout",(req,res)=>{
+
+  res.clearCookie("token");
+
+  res.json({
+    success:true
+  });
+
+});
+
+/* =========================
+   CHECK AUTH
+========================= */
+
+app.get("/api/admin/me", auth, (req,res)=>{
+
+  res.json({
+    user:req.user
+  });
+
+});
+
+/* =========================
+   GET SETTINGS
+========================= */
+
+app.get("/api/admin/settings", async (req,res)=>{
+
+  let settings = await Settings.findOne();
+
+  if(!settings){
+
+    settings = await Settings.create({});
+  }
+
+  res.json(settings);
+
+});
+
+/* =========================
+   UPDATE SETTINGS
+========================= */
+
+app.post("/api/admin/settings", auth, async (req,res)=>{
+
+  let settings = await Settings.findOne();
+
+  if(!settings){
+
+    settings = new Settings();
+  }
+
+  settings.adminMessage =
+    req.body.adminMessage;
+
+  settings.mode =
+    req.body.mode;
+
+  await settings.save();
+
+  res.json({
+    success:true,
+    settings
+  });
+
+});
+
+/* =========================
+   SIGNAL API
+========================= */
+
+app.get("/api/signal",(req,res)=>{
+
+  const signals = [
+    "BUY",
+    "SELL",
+    "WAIT"
+  ];
+
+  const signal =
+    signals[
+      Math.floor(
+        Math.random()*signals.length
+      )
+    ];
+
+  const confidence =
+    Math.floor(
+      Math.random()*30+70
+    );
+
+  res.json({
+
+    signal,
+    confidence,
+    timestamp:Date.now()
+
+  });
+
+});
+
+/* =========================
+   FRONTEND
+========================= */
+
+app.get("*",(req,res)=>{
 
   res.sendFile(
-    path.join(__dirname, "public", "index.html")
+    path.join(__dirname,"public","index.html")
   );
 
 });
 
 /* =========================
-   🚀 START SERVER
+   START SERVER
 ========================= */
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
+app.listen(PORT,()=>{
 
   console.log(
-    "🚀 Assistant Trading Pro Running On Port " + PORT
+    "🚀 Server running on port "+PORT
   );
 
 });
