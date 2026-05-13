@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>GOD MODE AI TRADER</title>
+<title>NEXT LEVEL TRADING</title>
 
 <style>
 
@@ -13,16 +13,15 @@ color:white;
 font-family:Arial;
 }
 
-/* HEADER */
 header{
 padding:15px;
 text-align:center;
 background:#111827;
 color:#00ff99;
 font-weight:bold;
+letter-spacing:1px;
 }
 
-/* GRID */
 .grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -33,7 +32,7 @@ padding:10px;
 .card{
 background:#111827;
 padding:15px;
-border-radius:10px;
+border-radius:12px;
 text-align:center;
 box-shadow:0 0 10px rgba(0,255,150,0.1);
 }
@@ -42,14 +41,14 @@ box-shadow:0 0 10px rgba(0,255,150,0.1);
 .sell{color:#ff4d6d;}
 .wait{color:#facc15;}
 
-/* CHART */
 canvas{
 width:100%;
-height:260px;
+height:300px;
 background:#0f172a;
+margin-top:10px;
+border-radius:10px;
 }
 
-/* FLOAT BUTTON */
 .float{
 position:fixed;
 bottom:20px;
@@ -62,41 +61,17 @@ text-decoration:none;
 font-weight:bold;
 }
 
-/* LOGIN */
-#login{
-position:fixed;
-width:100%;
-height:100%;
-background:black;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
+#signal{
+font-size:20px;
+font-weight:bold;
 }
-
-input,button{
-padding:10px;
-margin:5px;
-border-radius:8px;
-border:none;
-}
-
-button{background:#2563eb;color:white;cursor:pointer;}
 
 </style>
 </head>
 
 <body>
 
-<div id="login">
-<h2>ADMIN LOGIN</h2>
-<input id="u" placeholder="user">
-<input id="p" type="password" placeholder="pass">
-<button onclick="login()">LOGIN</button>
-<p id="err"></p>
-</div>
-
-<header>🚀 GOD MODE AI TRADER</header>
+<header>🚀 NEXT LEVEL AI TRADER PRO</header>
 
 <canvas id="chart"></canvas>
 
@@ -105,7 +80,8 @@ button{background:#2563eb;color:white;cursor:pointer;}
 <div class="card">SIGNAL <div id="signal">WAIT</div></div>
 <div class="card">PRICE <div id="price">0</div></div>
 <div class="card">RSI <div id="rsi">0</div></div>
-<div class="card">MACD <div id="macd">0</div></div>
+<div class="card">EMA FAST <div id="emaF">0</div></div>
+<div class="card">EMA SLOW <div id="emaS">0</div></div>
 <div class="card">WIN RATE <div id="win">0%</div></div>
 
 </div>
@@ -114,40 +90,52 @@ button{background:#2563eb;color:white;cursor:pointer;}
 
 <script>
 
-/* LOGIN */
-async function login(){
-
-let res = await fetch("/api/login",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-user:document.getElementById("u").value,
-pass:document.getElementById("p").value
-})
-});
-
-let d = await res.json();
-
-if(d.ok){
-localStorage.setItem("token", d.token);
-document.getElementById("login").style.display="none";
-}else{
-document.getElementById("err").innerText="ERROR";
-}
-}
-
-/* WS */
 const ws = new WebSocket("ws://" + location.host);
 
-ws.onmessage=(msg)=>{
+let chartData = [];
+
+ws.onmessage = (msg)=>{
 let d = JSON.parse(msg.data);
 
-document.getElementById("signal").innerText=d.signal;
-document.getElementById("price").innerText=d.price;
-document.getElementById("rsi").innerText=d.rsi;
-document.getElementById("macd").innerText=d.macd;
-document.getElementById("win").innerText=d.winRate;
+document.getElementById("signal").innerText = d.signal;
+document.getElementById("price").innerText = d.price;
+document.getElementById("rsi").innerText = d.rsi;
+document.getElementById("emaF").innerText = d.emaFast;
+document.getElementById("emaS").innerText = d.emaSlow;
+document.getElementById("win").innerText = d.winRate;
+
+/* chart update */
+chartData.push(d.price);
+if(chartData.length > 50) chartData.shift();
+
+drawChart();
 };
+
+/* SIMPLE CHART ENGINE */
+
+const canvas = document.getElementById("chart");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+
+function drawChart(){
+
+ctx.clearRect(0,0,canvas.width,300);
+
+ctx.beginPath();
+
+for(let i=0;i<chartData.length;i++){
+
+let x = i * (canvas.width / chartData.length);
+let y = 300 - chartData[i]*0.002;
+
+ctx.lineTo(x,y);
+}
+
+ctx.strokeStyle = "#00ff99";
+ctx.lineWidth = 2;
+ctx.stroke();
+}
 
 </script>
 
