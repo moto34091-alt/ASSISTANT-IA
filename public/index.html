@@ -1,7 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Trader</title>
+
+<style>
+
+body{
+margin:0;
+padding:0;
+background:#060b14;
+color:white;
+font-family:Arial,sans-serif;
+}
+
+header{
+background:#111827;
+padding:20px;
+text-align:center;
+font-size:24px;
+font-weight:bold;
+color:#00ff99;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+padding:15px;
+}
+
+.card{
+background:#111827;
+padding:20px;
+border-radius:12px;
+text-align:center;
+}
+
+.label{
+font-size:14px;
+color:#999;
+margin-bottom:10px;
+}
+
+.value{
+font-size:24px;
+font-weight:bold;
+}
+
+.buy{
+color:#00ff99;
+}
+
+.sell{
+color:#ff4d6d;
+}
+
+.wait{
+color:#facc15;
+}
+
+#status{
+text-align:center;
+padding:10px;
+color:#00ff99;
+}
+
+canvas{
+width:100%;
+height:300px;
+background:#0f172a;
+display:block;
+}
+
+.telegram{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#00ff99;
+color:black;
+padding:15px;
+border-radius:50px;
+text-decoration:none;
+font-weight:bold;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+🚀 NEVER ZERO FIX PRO
+</header>
+
+<div id="status">
+🔄 Connecting...
+</div>
+
+<canvas id="chart"></canvas>
+
+<div class="grid">
+
+<div class="card">
+<div class="label">SIGNAL</div>
+<div class="value wait" id="signal">WAIT</div>
+</div>
+
+<div class="card">
+<div class="label">PRICE</div>
+<div class="value" id="price">0</div>
+</div>
+
+<div class="card">
+<div class="label">RSI</div>
+<div class="value" id="rsi">0</div>
+</div>
+
+<div class="card">
+<div class="label">EMA FAST</div>
+<div class="value" id="emaF">0</div>
+</div>
+
+<div class="card">
+<div class="label">EMA SLOW</div>
+<div class="value" id="emaS">0</div>
+</div>
+
+<div class="card">
+<div class="label">WIN RATE</div>
+<div class="value" id="win">0%</div>
+</div>
+
+</div>
+
+<a
+class="telegram"
+href="https://t.me/signalstradings_bot"
+target="_blank"
+>
+📡 BOT
+</a>
+
 <script>
 
 /* =========================
-   SAFE WEBSOCKET
+WEBSOCKET
 ========================= */
 
 const protocol =
@@ -9,98 +156,94 @@ location.protocol === "https:"
 ? "wss://"
 : "ws://";
 
-/* FINAL FIX */
-
-const ws = new WebSocket(
-protocol + location.host + "/"
-);
+const ws =
+new WebSocket(protocol + location.host + "/");
 
 /* =========================
-   STATUS
+STATUS
 ========================= */
 
-const statusEl =
+const status =
 document.getElementById("status");
 
 ws.onopen = ()=>{
 
-console.log("✅ WS CONNECTED");
-
-console.log("CONNECTED TO:", ws.url);
-
-statusEl.innerHTML =
+status.innerHTML =
 "🟢 LIVE CONNECTED";
 
 };
 
-ws.onerror = (e)=>{
+ws.onerror = ()=>{
 
-console.log("❌ WS ERROR", e);
-
-statusEl.innerHTML =
-"🔴 CONNECTION ERROR";
+status.innerHTML =
+"🔴 WS ERROR";
 
 };
 
 ws.onclose = ()=>{
 
-console.log("⚠️ WS CLOSED");
-
-statusEl.innerHTML =
+status.innerHTML =
 "🟠 CONNECTION CLOSED";
 
 };
 
 /* =========================
-   CHART DATA
+CHART
 ========================= */
 
 let chartData = [];
 
+const canvas =
+document.getElementById("chart");
+
+const ctx =
+canvas.getContext("2d");
+
+function resize(){
+
+canvas.width =
+window.innerWidth;
+
+canvas.height = 300;
+
+}
+
+resize();
+
+window.addEventListener("resize",resize);
+
 /* =========================
-   LIVE DATA
+LIVE DATA
 ========================= */
 
 ws.onmessage = (msg)=>{
 
-let d = JSON.parse(msg.data);
+const d =
+JSON.parse(msg.data);
 
-console.log("LIVE DATA:", d);
-
-/* STATUS */
-
-statusEl.innerHTML =
-"🟢 LIVE DATA RECEIVED";
-
-/* SAFE CHECK */
+console.log(d);
 
 if(!d || !d.price){
 return;
 }
 
-/* SIGNAL COLOR */
+/* SIGNAL */
 
-let signalClass = "wait";
-
-if(d.signal === "BUY"){
-signalClass = "buy";
-}
-else if(d.signal === "SELL"){
-signalClass = "sell";
-}
-
-/* =========================
-   UPDATE UI
-========================= */
-
-const signalEl =
+const signal =
 document.getElementById("signal");
 
-signalEl.innerText =
-d.signal || "WAIT";
+signal.innerText =
+d.signal;
 
-signalEl.className =
-"value " + signalClass;
+signal.className =
+"value " +
+(d.signal==="BUY"
+? "buy"
+: d.signal==="SELL"
+? "sell"
+: "wait");
+
+/* DATA */
 
 document.getElementById("price")
 .innerText =
@@ -108,22 +251,25 @@ Number(d.price).toFixed(2);
 
 document.getElementById("rsi")
 .innerText =
-d.rsi || 0;
+d.rsi;
 
 document.getElementById("emaF")
 .innerText =
-d.emaFast || 0;
+d.emaFast;
 
 document.getElementById("emaS")
 .innerText =
-d.emaSlow || 0;
+d.emaSlow;
 
 document.getElementById("win")
 .innerText =
-(d.winRate || 0) + "%";
+d.winRate + "%";
+
+status.innerHTML =
+"🟢 LIVE DATA RECEIVED";
 
 /* =========================
-   CHART UPDATE
+CHART UPDATE
 ========================= */
 
 chartData.push(d.price);
@@ -132,41 +278,15 @@ if(chartData.length > 60){
 chartData.shift();
 }
 
-drawChart();
+draw();
 
 };
 
 /* =========================
-   CANVAS
+DRAW
 ========================= */
 
-const canvas =
-document.getElementById("chart");
-
-const ctx =
-canvas.getContext("2d");
-
-function resizeCanvas(){
-
-canvas.width =
-window.innerWidth - 30;
-
-canvas.height = 300;
-
-}
-
-resizeCanvas();
-
-window.addEventListener(
-"resize",
-resizeCanvas
-);
-
-/* =========================
-   DRAW CHART
-========================= */
-
-function drawChart(){
+function draw(){
 
 ctx.clearRect(
 0,
@@ -190,17 +310,17 @@ ctx.beginPath();
 for(let i=0;i<chartData.length;i++){
 
 let x =
-(i / (chartData.length - 1))
+(i/(chartData.length-1))
 * canvas.width;
-
-let normalized =
-(chartData[i] - min)
-/
-(max - min || 1);
 
 let y =
 canvas.height -
-(normalized * canvas.height);
+(
+(chartData[i]-min)
+/
+(max-min || 1)
+)
+* canvas.height;
 
 if(i===0){
 ctx.moveTo(x,y);
@@ -210,10 +330,16 @@ ctx.lineTo(x,y);
 
 }
 
-ctx.strokeStyle = "#00ff99";
+ctx.strokeStyle =
+"#00ff99";
+
 ctx.lineWidth = 3;
+
 ctx.stroke();
 
 }
 
 </script>
+
+</body>
+</html>
