@@ -1,7 +1,7 @@
 <script>
 
 /* =========================
-   SAFE WEBSOCKET FIX
+   SAFE WEBSOCKET
 ========================= */
 
 const protocol =
@@ -9,35 +9,68 @@ location.protocol === "https:"
 ? "wss://"
 : "ws://";
 
+/* FINAL FIX */
+
 const ws = new WebSocket(
-protocol + location.host
+protocol + location.host + "/"
 );
 
-/* DEBUG */
+/* =========================
+   STATUS
+========================= */
+
+const statusEl =
+document.getElementById("status");
 
 ws.onopen = ()=>{
+
 console.log("✅ WS CONNECTED");
+
+console.log("CONNECTED TO:", ws.url);
+
+statusEl.innerHTML =
+"🟢 LIVE CONNECTED";
+
 };
 
 ws.onerror = (e)=>{
+
 console.log("❌ WS ERROR", e);
+
+statusEl.innerHTML =
+"🔴 CONNECTION ERROR";
+
 };
 
 ws.onclose = ()=>{
+
 console.log("⚠️ WS CLOSED");
+
+statusEl.innerHTML =
+"🟠 CONNECTION CLOSED";
+
 };
+
+/* =========================
+   CHART DATA
+========================= */
+
+let chartData = [];
 
 /* =========================
    LIVE DATA
 ========================= */
 
-let chart = [];
-
 ws.onmessage = (msg)=>{
 
 let d = JSON.parse(msg.data);
 
-console.log("LIVE:", d);
+console.log("LIVE DATA:", d);
+
+/* STATUS */
+
+statusEl.innerHTML =
+"🟢 LIVE DATA RECEIVED";
 
 /* SAFE CHECK */
 
@@ -45,34 +78,58 @@ if(!d || !d.price){
 return;
 }
 
-/* UPDATE UI */
+/* SIGNAL COLOR */
 
-document.getElementById("signal").innerText =
-d.signal || "WAIT";
+let signalClass = "wait";
 
-document.getElementById("price").innerText =
-d.price || 0;
-
-document.getElementById("rsi").innerText =
-d.rsi || 0;
-
-document.getElementById("emaF").innerText =
-d.emaFast || 0;
-
-document.getElementById("emaS").innerText =
-d.emaSlow || 0;
-
-document.getElementById("win").innerText =
-d.winRate || 0;
+if(d.signal === "BUY"){
+signalClass = "buy";
+}
+else if(d.signal === "SELL"){
+signalClass = "sell";
+}
 
 /* =========================
-   CHART
+   UPDATE UI
 ========================= */
 
-chart.push(d.price);
+const signalEl =
+document.getElementById("signal");
 
-if(chart.length > 60){
-chart.shift();
+signalEl.innerText =
+d.signal || "WAIT";
+
+signalEl.className =
+"value " + signalClass;
+
+document.getElementById("price")
+.innerText =
+Number(d.price).toFixed(2);
+
+document.getElementById("rsi")
+.innerText =
+d.rsi || 0;
+
+document.getElementById("emaF")
+.innerText =
+d.emaFast || 0;
+
+document.getElementById("emaS")
+.innerText =
+d.emaSlow || 0;
+
+document.getElementById("win")
+.innerText =
+(d.winRate || 0) + "%";
+
+/* =========================
+   CHART UPDATE
+========================= */
+
+chartData.push(d.price);
+
+if(chartData.length > 60){
+chartData.shift();
 }
 
 drawChart();
@@ -80,7 +137,7 @@ drawChart();
 };
 
 /* =========================
-   SIMPLE LIVE CHART
+   CANVAS
 ========================= */
 
 const canvas =
@@ -89,7 +146,25 @@ document.getElementById("chart");
 const ctx =
 canvas.getContext("2d");
 
-canvas.width = window.innerWidth;
+function resizeCanvas(){
+
+canvas.width =
+window.innerWidth - 30;
+
+canvas.height = 300;
+
+}
+
+resizeCanvas();
+
+window.addEventListener(
+"resize",
+resizeCanvas
+);
+
+/* =========================
+   DRAW CHART
+========================= */
 
 function drawChart(){
 
@@ -97,25 +172,46 @@ ctx.clearRect(
 0,
 0,
 canvas.width,
-300
+canvas.height
 );
+
+if(chartData.length < 2){
+return;
+}
+
+let min =
+Math.min(...chartData);
+
+let max =
+Math.max(...chartData);
 
 ctx.beginPath();
 
-for(let i=0;i<chart.length;i++){
+for(let i=0;i<chartData.length;i++){
 
 let x =
-i * (canvas.width / chart.length);
+(i / (chartData.length - 1))
+* canvas.width;
+
+let normalized =
+(chartData[i] - min)
+/
+(max - min || 1);
 
 let y =
-300 - chart[i] * 0.002;
+canvas.height -
+(normalized * canvas.height);
 
+if(i===0){
+ctx.moveTo(x,y);
+}else{
 ctx.lineTo(x,y);
+}
 
 }
 
 ctx.strokeStyle = "#00ff99";
-ctx.lineWidth = 2;
+ctx.lineWidth = 3;
 ctx.stroke();
 
 }
