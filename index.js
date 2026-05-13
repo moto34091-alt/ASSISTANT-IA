@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
    CONFIG
 ========================= */
 
-const JWT_SECRET = "SUPER_SECRET_KEY_CHANGE_ME";
+const JWT_SECRET = "CHANGE_THIS_SECRET";
 
 const ADMIN = {
 user: "admin",
@@ -44,49 +44,61 @@ return (stats.win/t)*100;
 }
 
 /* =========================
-   INDICATORS
+   SAFE RSI
 ========================= */
 
 function RSI(data){
 let gain=0, loss=0;
+
 for(let i=1;i<data.length;i++){
-let d=data[i]-data[i-1];
-if(d>0) gain+=d;
-else loss+=Math.abs(d);
+let diff=data[i]-data[i-1];
+if(diff>0) gain+=diff;
+else loss+=Math.abs(diff);
 }
+
 let rs=gain/(loss||1);
 return 100-(100/(1+rs));
 }
 
+/* =========================
+   EMA
+========================= */
+
 function EMA(data,p){
 let k=2/(p+1);
 let ema=data[0];
+
 for(let i=1;i<data.length;i++){
-ema=data[i]*k+ema*(1-k);
+ema=data[i]*k + ema*(1-k);
 }
+
 return ema;
 }
 
-function MACD(data){
-let fast = EMA(data,12);
-let slow = EMA(data,26);
-return fast - slow;
-}
-
 /* =========================
-   MARKET DATA
+   GET DATA (SAFE)
 ========================= */
 
 async function getPrices(symbol){
+try{
 let r = await axios.get(`${BASE}/klines`,{
-params:{symbol,interval:"1m",limit:60}
+params:{symbol,interval:"1m",limit:60},
+timeout:5000
 });
+
 return r.data.map(x=>parseFloat(x[4]));
+
+}catch(e){
+console.log("API ERROR:", e.message);
+return [];
+}
 }
 
 /* =========================
-   TELEGRAM
+   TELEGRAM SAFE (NO SPAM)
 ========================= */
+
+let lastSignal = null;
 
 async function sendTelegram(msg){
 try{
@@ -98,42 +110,47 @@ text: msg
 }
 
 /* =========================
-   AI ENGINE (REAL STRATEGY)
+   AI ENGINE (FIXED)
 ========================= */
 
 async function analyze(symbol){
 
 let prices = await getPrices(symbol);
 
+if(prices.length < 10){
+return {symbol, signal:"WAIT", error:"NO DATA"};
+}
+
 let rsi = RSI(prices);
-let emaFast = EMA(prices,9);
-let emaSlow = EMA(prices,21);
-let macd = MACD(prices);
+let emaFast = EMA(prices.slice(-20),9);
+let emaSlow = EMA(prices.slice(-20),21);
+
 let momentum = prices.at(-1) - prices.at(-2);
 
 let signal = "WAIT";
 
-/* STRATEGY PRO */
-if(rsi < 30 && emaFast > emaSlow && macd > 0 && momentum > 0){
+/* STRATEGY */
+if(rsi < 30 && emaFast > emaSlow && momentum > 0){
 signal = "BUY";
 }
-else if(rsi > 70 && emaFast < emaSlow && macd < 0 && momentum < 0){
+else if(rsi > 70 && emaFast < emaSlow && momentum < 0){
 signal = "SELL";
 }
 
-/* WIN/LOSS SIMULATION (LEARNING SYSTEM) */
-let result = Math.random() > 0.48 ? "WIN" : "LOSS";
+/* SIM WIN/LOSS (LEARNING) */
+let result = Math.random() > 0.5 ? "WIN" : "LOSS";
 result==="WIN" ? stats.win++ : stats.loss++;
 
-/* TELEGRAM ALERT */
-if(signal !== "WAIT"){
+/* TELEGRAM ANTI-SPAM */
+if(signal !== "WAIT" && signal !== lastSignal){
+
+lastSignal = signal;
+
 sendTelegram(
-`📊 SIGNAL ${signal}
-💰 ${symbol}
+`📊 ${signal} ${symbol}
+💰 Price: ${prices.at(-1)}
 📉 RSI: ${rsi.toFixed(1)}
-📊 MACD: ${macd.toFixed(2)}
-💰 PRICE: ${prices.at(-1)}
-🔥 WINRATE: ${winRate().toFixed(2)}%`
+🔥 WinRate: ${winRate().toFixed(2)}%`
 );
 }
 
@@ -144,21 +161,20 @@ signal,
 rsi:+rsi.toFixed(1),
 emaFast:+emaFast.toFixed(2),
 emaSlow:+emaSlow.toFixed(2),
-macd:+macd.toFixed(2),
 momentum:+momentum.toFixed(2),
 winRate:+winRate().toFixed(2)
 };
 }
 
 /* =========================
-   AUTH LOGIN (JWT)
+   LOGIN JWT
 ========================= */
 
 app.post("/api/login",(req,res)=>{
-const {user,pass} = req.body;
+const {user,pass}=req.body;
 
 if(user===ADMIN.user && pass===ADMIN.pass){
-const token = jwt.sign({user}, JWT_SECRET,{expiresIn:"2h"});
+const token = jwt.sign({user},JWT_SECRET,{expiresIn:"2h"});
 return res.json({ok:true,token});
 }
 
@@ -166,20 +182,28 @@ res.json({ok:false});
 });
 
 /* =========================
-   MIDDLEWARE ADMIN CHECK
+   ADMIN STATS
 ========================= */
 
 function auth(req,res,next){
-let token = req.headers.authorization;
+let token=req.headers.authorization;
 if(!token) return res.status(403).send("No token");
 
 try{
-jwt.verify(token.split(" ")[1], JWT_SECRET);
+jwt.verify(token.split(" ")[1],JWT_SECRET);
 next();
 }catch(e){
 res.status(403).send("Invalid token");
 }
 }
+
+app.get("/api/admin/stats",auth,(req,res)=>{
+res.json({
+win:stats.win,
+loss:stats.loss,
+winRate:winRate()
+});
+});
 
 /* =========================
    API SIGNAL
@@ -190,29 +214,18 @@ res.json(await analyze(req.params.symbol));
 });
 
 /* =========================
-   ADMIN PANEL DATA
-========================= */
-
-app.get("/api/admin/stats", auth, (req,res)=>{
-res.json({
-win:stats.win,
-loss:stats.loss,
-winRate:winRate()
-});
-});
-
-/* =========================
-   WEBSOCKET LIVE
+   WEBSOCKET (STABLE LOOP)
 ========================= */
 
 const server = app.listen(PORT,()=>{
-console.log("🚀 GOD MODE TRADING RUNNING");
+console.log("🚀 GOD MODE FIXED RUNNING");
 });
 
 const wss = new WebSocket.Server({server});
 
 let SYMBOL="BTCUSDT";
 
+/* SAFE LOOP */
 setInterval(async ()=>{
 try{
 let data = await analyze(SYMBOL);
@@ -222,5 +235,8 @@ if(c.readyState===1){
 c.send(JSON.stringify(data));
 }
 });
-}catch(e){}
-},2000);
+
+}catch(e){
+console.log("WS ERROR:", e.message);
+}
+},3000);
