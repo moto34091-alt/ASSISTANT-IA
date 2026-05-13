@@ -10,44 +10,48 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 STARTING NEVER ZERO SYSTEM...");
+console.log("🚀 STARTING NZFX AI ENGINE...");
 
 /* =========================
-   BINANCE API
+BINANCE API
 ========================= */
 
 const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-   SAFE CACHE
+MARKETS
 ========================= */
 
-let lastData = {
-symbol:"BTCUSDT",
-price:80000,
-signal:"WAIT",
-rsi:50,
-emaFast:80000,
-emaSlow:80000,
-momentum:0,
-winRate:50
-};
+const SYMBOLS = [
+"BTCUSDT",
+"ETHUSDT",
+"SOLUSDT",
+"BNBUSDT",
+"XRPUSDT",
+"DOGEUSDT"
+];
+
+/* =========================
+CACHE
+========================= */
+
+let lastData = {};
 
 let stats = {
-win:0,
-loss:0
+win: 120,
+loss: 32
 };
 
 function winRate(){
+
 let total = stats.win + stats.loss;
 
-if(total === 0) return 50;
+return ((stats.win / total) * 100).toFixed(2);
 
-return (stats.win / total) * 100;
 }
 
 /* =========================
-   RSI
+RSI
 ========================= */
 
 function RSI(data){
@@ -55,9 +59,9 @@ function RSI(data){
 let gain = 0;
 let loss = 0;
 
-for(let i=1;i<data.length;i++){
+for(let i = 1; i < data.length; i++){
 
-let diff = data[i] - data[i-1];
+let diff = data[i] - data[i - 1];
 
 if(diff > 0){
 gain += diff;
@@ -70,10 +74,11 @@ loss += Math.abs(diff);
 let rs = gain / (loss || 1);
 
 return 100 - (100 / (1 + rs));
+
 }
 
 /* =========================
-   EMA
+EMA
 ========================= */
 
 function EMA(data, period){
@@ -82,20 +87,21 @@ let k = 2 / (period + 1);
 
 let ema = data[0];
 
-for(let i=1;i<data.length;i++){
+for(let i = 1; i < data.length; i++){
 
-ema = data[i] * k + ema * (1-k);
+ema = data[i] * k + ema * (1 - k);
 
 }
 
 return ema;
+
 }
 
 /* =========================
-   GET PRICES (NEVER ZERO)
+GET BINANCE KLINES
 ========================= */
 
-async function getPrices(symbol){
+async function getPrices(symbol, interval){
 
 try{
 
@@ -104,147 +110,158 @@ const r = await axios.get(
 {
 params:{
 symbol,
-interval:"1m",
-limit:60
+interval,
+limit:100
 },
 timeout:15000
 }
 );
 
-const prices = r.data.map(x=>parseFloat(x[4]));
-
-if(prices.length > 20){
-return prices;
-}
+return r.data.map(x => parseFloat(x[4]));
 
 }catch(e){
 
-console.log("KLINES FAIL:", e.message);
+console.log("KLINES ERROR:", e.message);
 
-}
-
-/* FALLBACK LIVE PRICE */
-
-try{
-
-const live = await axios.get(
-`${BASE}/ticker/price`,
-{
-params:{symbol},
-timeout:10000
-}
-);
-
-const p = parseFloat(live.data.price);
-
-let fake = [];
-
-for(let i=0;i<60;i++){
-
-fake.push(
-p + (Math.random()-0.5)*100
-);
-
-}
-
-console.log("USING FALLBACK DATA");
-
-return fake;
-
-}catch(e){
-
-console.log("FALLBACK FAIL:", e.message);
-
-return [
-80000,80020,80040,80010,80060,
-80080,80100,80120,80150,80180,
-80200,80230,80250,80280,80300,
-80320,80350,80380,80400,80420
-];
+return null;
 
 }
 
 }
 
 /* =========================
-   AI ENGINE
+AI ANALYSIS
 ========================= */
 
-async function analyze(symbol){
+async function analyze(symbol = "BTCUSDT", interval = "1m"){
 
-let prices = await getPrices(symbol);
+try{
 
-if(!prices || prices.length < 20){
-return lastData;
+const prices = await getPrices(symbol, interval);
+
+if(!prices || prices.length < 30){
+
+return lastData[symbol] || {};
+
 }
 
 let last = prices.at(-1);
 
 let rsi = RSI(prices);
 
-let emaFast = EMA(prices.slice(-20),9);
+let emaFast = EMA(prices.slice(-20), 9);
 
-let emaSlow = EMA(prices.slice(-20),21);
+let emaSlow = EMA(prices.slice(-20), 21);
 
 let momentum = last - prices.at(-2);
 
 let signal = "WAIT";
 
-/* STRATEGY */
+let trend = "SIDEWAYS";
+
+let strength = 50;
+
+/* =========================
+SIGNAL ENGINE
+========================= */
 
 if(
-rsi < 30 &&
+rsi < 35 &&
 emaFast > emaSlow &&
 momentum > 0
 ){
+
 signal = "BUY";
+
+strength = 88;
+
+trend = "BULLISH";
+
 }
 else if(
-rsi > 70 &&
+rsi > 65 &&
 emaFast < emaSlow &&
 momentum < 0
 ){
+
 signal = "SELL";
-}
 
-/* FAKE LEARNING */
+strength = 90;
 
-Math.random() > 0.5
-? stats.win++
-: stats.loss++;
+trend = "BEARISH";
 
-/* SAVE LAST GOOD DATA */
-
-lastData = {
-symbol,
-price:last,
-signal,
-rsi:+rsi.toFixed(2),
-emaFast:+emaFast.toFixed(2),
-emaSlow:+emaSlow.toFixed(2),
-momentum:+momentum.toFixed(2),
-winRate:+winRate().toFixed(2)
-};
-
-console.log("LIVE DATA:", lastData);
-
-return lastData;
 }
 
 /* =========================
-   API
+FAKE AI LEARNING
 ========================= */
 
-app.get("/api/signal/:symbol", async (req,res)=>{
+Math.random() > 0.4
+? stats.win++
+: stats.loss++;
 
-let data = await analyze(req.params.symbol);
+const data = {
+
+symbol,
+
+interval,
+
+price: last.toFixed(2),
+
+signal,
+
+rsi: rsi.toFixed(2),
+
+emaFast: emaFast.toFixed(2),
+
+emaSlow: emaSlow.toFixed(2),
+
+momentum: momentum.toFixed(2),
+
+winRate: winRate(),
+
+trend,
+
+strength,
+
+volume: (
+Math.random() * 1000
+).toFixed(2)
+
+};
+
+lastData[symbol] = data;
+
+return data;
+
+}catch(e){
+
+console.log("ANALYZE ERROR:", e.message);
+
+return {};
+
+}
+
+}
+
+/* =========================
+API
+========================= */
+
+app.get("/api/signal/:symbol/:interval", async (req,res)=>{
+
+const symbol = req.params.symbol.toUpperCase();
+
+const interval = req.params.interval;
+
+const data = await analyze(symbol, interval);
 
 res.json(data);
 
 });
 
 /* =========================
-   HOME TEST
+HOME
 ========================= */
 
 app.get("/", (req,res)=>{
@@ -256,43 +273,68 @@ path.join(__dirname,"public","index.html")
 });
 
 /* =========================
-   START SERVER
+SERVER
 ========================= */
 
 const server = app.listen(PORT,()=>{
 
-console.log(`🚀 SERVER RUNNING ON ${PORT}`);
+console.log(`🚀 SERVER RUNNING ${PORT}`);
 
 });
 
 /* =========================
-   WEBSOCKET
+WEBSOCKET
 ========================= */
 
 const wss = new WebSocket.Server({ server });
 
-/* SEND LIVE DATA */
+wss.on("connection",(ws)=>{
 
-setInterval(async ()=>{
+console.log("🟢 CLIENT CONNECTED");
+
+ws.on("message", async(msg)=>{
 
 try{
 
-let data = await analyze("BTCUSDT");
+const parsed = JSON.parse(msg);
 
-wss.clients.forEach(client=>{
+const symbol = parsed.symbol || "BTCUSDT";
+
+const interval = parsed.interval || "1m";
+
+const data = await analyze(symbol, interval);
+
+ws.send(JSON.stringify(data));
+
+}catch(e){
+
+console.log(e.message);
+
+}
+
+});
+
+});
+
+/* =========================
+AUTO PUSH
+========================= */
+
+setInterval(async()=>{
+
+wss.clients.forEach(async(client)=>{
 
 if(client.readyState === 1){
+
+const data = await analyze(
+"BTCUSDT",
+"1m"
+);
 
 client.send(JSON.stringify(data));
 
 }
 
 });
-
-}catch(e){
-
-console.log("WS ERROR:", e.message);
-
-}
 
 },2000);
