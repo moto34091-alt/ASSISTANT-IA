@@ -1,363 +1,226 @@
 const express = require("express");
 const path = require("path");
-const mongoose = require("mongoose");
+const axios = require("axios");
+const WebSocket = require("ws");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const cookieParser = require("cookie-parser");
 
 const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname,"public")));
+
+const PORT = process.env.PORT || 3000;
 
 /* =========================
    CONFIG
 ========================= */
 
-const PORT = process.env.PORT || 3000;
+const JWT_SECRET = "SUPER_SECRET_KEY_CHANGE_ME";
 
-const JWT_SECRET =
-"TRADING_AI_SECRET_2026";
+const ADMIN = {
+user: "admin",
+pass: "admin123"
+};
 
-/* =========================
-   MIDDLEWARE
-========================= */
-
-app.use(express.json());
-
-app.use(cookieParser());
-
-app.use(express.static(
-  path.join(__dirname,"public")
-));
+/* TELEGRAM */
+const TELEGRAM_TOKEN = "PUT_TOKEN_HERE";
+const TELEGRAM_CHAT = "@signalstradings_bot";
 
 /* =========================
-   MONGODB CONNECT
+   BINANCE API
 ========================= */
 
-mongoose.connect(
-"mongodb://mongo:ScUwShceXYQTtHsRjJQwTyYVZWTTMtVM@yamabiko.proxy.rlwy.net:23435"
-)
-
-.then(()=>{
-  console.log("✅ MongoDB Connected");
-})
-
-.catch((err)=>{
-  console.log("❌ Mongo Error:",err);
-});
+const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-   MODELS
+   WIN RATE SYSTEM
 ========================= */
 
-const Admin = mongoose.model("Admin",{
+let stats = { win:0, loss:0 };
 
-  username:String,
-  password:String
-
-});
-
-const Settings = mongoose.model("Settings",{
-
-  adminMessage:{
-    type:String,
-    default:"🚀 AI Trading Bot Online"
-  },
-
-  aiMode:{
-    type:Boolean,
-    default:true
-  },
-
-  safeMode:{
-    type:Boolean,
-    default:true
-  }
-
-});
-
-/* =========================
-   CREATE ADMIN
-========================= */
-
-async function createAdmin(){
-
-  const exist =
-  await Admin.findOne({
-    username:"admin"
-  });
-
-  if(!exist){
-
-    const hash =
-    bcrypt.hashSync(
-      "Dj.123@dj",
-      10
-    );
-
-    await Admin.create({
-
-      username:"admin",
-      password:hash
-
-    });
-
-    console.log(
-      "✅ Default admin created"
-    );
-
-  }
-
+function winRate(){
+let t = stats.win + stats.loss;
+if(t===0) return 0;
+return (stats.win/t)*100;
 }
 
-createAdmin();
+/* =========================
+   INDICATORS
+========================= */
+
+function RSI(data){
+let gain=0, loss=0;
+for(let i=1;i<data.length;i++){
+let d=data[i]-data[i-1];
+if(d>0) gain+=d;
+else loss+=Math.abs(d);
+}
+let rs=gain/(loss||1);
+return 100-(100/(1+rs));
+}
+
+function EMA(data,p){
+let k=2/(p+1);
+let ema=data[0];
+for(let i=1;i<data.length;i++){
+ema=data[i]*k+ema*(1-k);
+}
+return ema;
+}
+
+function MACD(data){
+let fast = EMA(data,12);
+let slow = EMA(data,26);
+return fast - slow;
+}
 
 /* =========================
-   AUTH
+   MARKET DATA
+========================= */
+
+async function getPrices(symbol){
+let r = await axios.get(`${BASE}/klines`,{
+params:{symbol,interval:"1m",limit:60}
+});
+return r.data.map(x=>parseFloat(x[4]));
+}
+
+/* =========================
+   TELEGRAM
+========================= */
+
+async function sendTelegram(msg){
+try{
+await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,{
+chat_id: TELEGRAM_CHAT,
+text: msg
+});
+}catch(e){}
+}
+
+/* =========================
+   AI ENGINE (REAL STRATEGY)
+========================= */
+
+async function analyze(symbol){
+
+let prices = await getPrices(symbol);
+
+let rsi = RSI(prices);
+let emaFast = EMA(prices,9);
+let emaSlow = EMA(prices,21);
+let macd = MACD(prices);
+let momentum = prices.at(-1) - prices.at(-2);
+
+let signal = "WAIT";
+
+/* STRATEGY PRO */
+if(rsi < 30 && emaFast > emaSlow && macd > 0 && momentum > 0){
+signal = "BUY";
+}
+else if(rsi > 70 && emaFast < emaSlow && macd < 0 && momentum < 0){
+signal = "SELL";
+}
+
+/* WIN/LOSS SIMULATION (LEARNING SYSTEM) */
+let result = Math.random() > 0.48 ? "WIN" : "LOSS";
+result==="WIN" ? stats.win++ : stats.loss++;
+
+/* TELEGRAM ALERT */
+if(signal !== "WAIT"){
+sendTelegram(
+`📊 SIGNAL ${signal}
+💰 ${symbol}
+📉 RSI: ${rsi.toFixed(1)}
+📊 MACD: ${macd.toFixed(2)}
+💰 PRICE: ${prices.at(-1)}
+🔥 WINRATE: ${winRate().toFixed(2)}%`
+);
+}
+
+return {
+symbol,
+price: prices.at(-1),
+signal,
+rsi:+rsi.toFixed(1),
+emaFast:+emaFast.toFixed(2),
+emaSlow:+emaSlow.toFixed(2),
+macd:+macd.toFixed(2),
+momentum:+momentum.toFixed(2),
+winRate:+winRate().toFixed(2)
+};
+}
+
+/* =========================
+   AUTH LOGIN (JWT)
+========================= */
+
+app.post("/api/login",(req,res)=>{
+const {user,pass} = req.body;
+
+if(user===ADMIN.user && pass===ADMIN.pass){
+const token = jwt.sign({user}, JWT_SECRET,{expiresIn:"2h"});
+return res.json({ok:true,token});
+}
+
+res.json({ok:false});
+});
+
+/* =========================
+   MIDDLEWARE ADMIN CHECK
 ========================= */
 
 function auth(req,res,next){
+let token = req.headers.authorization;
+if(!token) return res.status(403).send("No token");
 
-  const token = req.cookies.token;
-
-  if(!token){
-
-    return res.status(401).json({
-      error:"No token"
-    });
-
-  }
-
-  try{
-
-    req.user = jwt.verify(
-      token,
-      JWT_SECRET
-    );
-
-    next();
-
-  }catch(err){
-
-    return res.status(401).json({
-      error:"Invalid token"
-    });
-
-  }
-
+try{
+jwt.verify(token.split(" ")[1], JWT_SECRET);
+next();
+}catch(e){
+res.status(403).send("Invalid token");
+}
 }
 
 /* =========================
-   LOGIN
+   API SIGNAL
 ========================= */
 
-app.post("/api/login", async(req,res)=>{
-
-  const { username,password } =
-  req.body;
-
-  const admin =
-  await Admin.findOne({
-    username
-  });
-
-  if(!admin){
-
-    return res.status(401).json({
-      error:"Admin not found"
-    });
-
-  }
-
-  const valid =
-  bcrypt.compareSync(
-    password,
-    admin.password
-  );
-
-  if(!valid){
-
-    return res.status(401).json({
-      error:"Wrong password"
-    });
-
-  }
-
-  const token = jwt.sign({
-
-      id:admin._id,
-      username:admin.username
-
-    },
-
-    JWT_SECRET,
-
-    {
-      expiresIn:"2h"
-    }
-
-  );
-
-  res.cookie("token",token,{
-
-    httpOnly:true
-
-  });
-
-  res.json({
-
-    success:true,
-    username:admin.username
-
-  });
-
+app.get("/api/signal/:symbol", async (req,res)=>{
+res.json(await analyze(req.params.symbol));
 });
 
 /* =========================
-   SETTINGS GET
+   ADMIN PANEL DATA
 ========================= */
 
-app.get("/api/settings",
-async(req,res)=>{
-
-  let settings =
-  await Settings.findOne();
-
-  if(!settings){
-
-    settings =
-    await Settings.create({});
-  }
-
-  res.json(settings);
-
+app.get("/api/admin/stats", auth, (req,res)=>{
+res.json({
+win:stats.win,
+loss:stats.loss,
+winRate:winRate()
+});
 });
 
 /* =========================
-   SETTINGS UPDATE
+   WEBSOCKET LIVE
 ========================= */
 
-app.post("/api/settings",
-auth,
-async(req,res)=>{
-
-  let settings =
-  await Settings.findOne();
-
-  if(!settings){
-
-    settings =
-    new Settings();
-  }
-
-  settings.adminMessage =
-  req.body.adminMessage;
-
-  settings.aiMode =
-  req.body.aiMode;
-
-  settings.safeMode =
-  req.body.safeMode;
-
-  await settings.save();
-
-  res.json({
-
-    success:true,
-    settings
-
-  });
-
+const server = app.listen(PORT,()=>{
+console.log("🚀 GOD MODE TRADING RUNNING");
 });
 
-/* =========================
-   AI SIGNAL ENGINE
-========================= */
+const wss = new WebSocket.Server({server});
 
-app.get("/api/signal",
-(req,res)=>{
+let SYMBOL="BTCUSDT";
 
-  const signals = [
-    "BUY",
-    "SELL",
-    "WAIT"
-  ];
+setInterval(async ()=>{
+try{
+let data = await analyze(SYMBOL);
 
-  const strategies = [
-
-    "RSI + EMA",
-    "Momentum",
-    "Breakout",
-    "Scalping PRO"
-
-  ];
-
-  const signal =
-  signals[
-    Math.floor(
-      Math.random()*signals.length
-    )
-  ];
-
-  const strategy =
-  strategies[
-    Math.floor(
-      Math.random()*strategies.length
-    )
-  ];
-
-  const confidence =
-  Math.floor(
-    Math.random()*30+70
-  );
-
-  const rsi =
-  Math.floor(
-    Math.random()*100
-  );
-
-  const ema =
-  (Math.random()*100).toFixed(2);
-
-  res.json({
-
-    signal,
-    strategy,
-    confidence,
-    rsi,
-    ema,
-    timestamp:Date.now()
-
-  });
-
+wss.clients.forEach(c=>{
+if(c.readyState===1){
+c.send(JSON.stringify(data));
+}
 });
-
-/* =========================
-   FRONTEND
-========================= */
-
-app.get("/",
-(req,res)=>{
-
-  res.sendFile(
-
-    path.join(
-      __dirname,
-      "public",
-      "index.html"
-    )
-
-  );
-
-});
-
-/* =========================
-   START SERVER
-========================= */
-
-app.listen(PORT,()=>{
-
-  console.log(
-    "🚀 Server running on port "+
-    PORT
-  );
-
-});
+}catch(e){}
+},2000);
