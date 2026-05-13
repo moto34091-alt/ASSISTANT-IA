@@ -1,15 +1,33 @@
 {
-  "name": "ai-trading-bot",
+  "name": "ai-trader-god-mode",
   "version": "1.0.0",
+  "description": "AI Trading Bot with Binance API, WebSocket, Telegram signals, Admin JWT",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
+  "keywords": [
+    "trading",
+    "binance",
+    "ai",
+    "bot",
+    "crypto",
+    "websocket",
+    "telegram"
+  ],
+  "author": "ai-trader",
+  "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cookie-parser": "^1.4.6",
-    "express": "^4.18.2",
+    "axios": "^1.6.8",
+    "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.0.0"
+    "ws": "^8.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
