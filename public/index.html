@@ -1,626 +1,153 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-
-<title>AI Trading Bot PRO</title>
-
-<script src="https://cdn.jsdelivr.net/npm/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<title>GOD MODE AI TRADER</title>
 
 <style>
 
-*{
+body{
 margin:0;
-padding:0;
-box-sizing:border-box;
+background:#070b14;
+color:white;
 font-family:Arial;
 }
 
-body{
-background:#0b1220;
-color:white;
-overflow-x:hidden;
-}
-
+/* HEADER */
 header{
 padding:15px;
+text-align:center;
 background:#111827;
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid #222;
+color:#00ff99;
+font-weight:bold;
 }
 
-header h1{
-font-size:20px;
-}
-
-#chart{
-height:320px;
-width:100%;
-}
-
-.container{
-padding:15px;
-}
-
-.cards{
+/* GRID */
+.grid{
 display:grid;
-grid-template-columns:repeat(2,1fr);
+grid-template-columns:repeat(3,1fr);
 gap:10px;
-margin-top:15px;
+padding:10px;
 }
 
 .card{
 background:#111827;
 padding:15px;
-border-radius:12px;
-border:1px solid #222;
-}
-
-.card h3{
-font-size:14px;
-margin-bottom:10px;
-color:#aaa;
-}
-
-.big{
-font-size:22px;
-font-weight:bold;
-}
-
-.buy{
-color:#00ff99;
-}
-
-.sell{
-color:#ff4d6d;
-}
-
-.wait{
-color:#facc15;
-}
-
-button{
-background:#2563eb;
-border:none;
-padding:12px;
 border-radius:10px;
-color:white;
+text-align:center;
+box-shadow:0 0 10px rgba(0,255,150,0.1);
+}
+
+.buy{color:#00ff99;}
+.sell{color:#ff4d6d;}
+.wait{color:#facc15;}
+
+/* CHART */
+canvas{
 width:100%;
-margin-top:10px;
-font-size:15px;
+height:260px;
+background:#0f172a;
 }
 
-input, textarea{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:10px;
-background:#1f2937;
-color:white;
-}
-
-#adminModal{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:#0b1220;
-display:none;
-z-index:999;
-overflow:auto;
-padding:20px;
-}
-
-.closeBtn{
-background:#dc2626;
-}
-
-.floatBtn{
+/* FLOAT BUTTON */
+.float{
 position:fixed;
 bottom:20px;
 right:20px;
-background:#0088cc;
+background:#00ff99;
+color:black;
 padding:15px;
 border-radius:50%;
-font-size:20px;
-z-index:999;
 text-decoration:none;
-color:white;
-box-shadow:0 0 20px rgba(0,0,0,0.5);
+font-weight:bold;
 }
 
-.timeframes{
+/* LOGIN */
+#login{
+position:fixed;
+width:100%;
+height:100%;
+background:black;
 display:flex;
-gap:10px;
-margin-top:15px;
-overflow:auto;
-}
-
-.timeframes button{
-min-width:80px;
-}
-
-.status{
-margin-top:10px;
-color:#00ff99;
-font-size:13px;
-}
-
-.adminTop{
-display:flex;
-justify-content:space-between;
+flex-direction:column;
+justify-content:center;
 align-items:center;
-margin-bottom:20px;
 }
 
-.adminBox{
-background:#111827;
-padding:15px;
-border-radius:15px;
-margin-top:15px;
-border:1px solid #222;
+input,button{
+padding:10px;
+margin:5px;
+border-radius:8px;
+border:none;
 }
+
+button{background:#2563eb;color:white;cursor:pointer;}
 
 </style>
 </head>
 
 <body>
 
-<header>
-<h1>🚀 AI TRADING BOT PRO</h1>
+<div id="login">
+<h2>ADMIN LOGIN</h2>
+<input id="u" placeholder="user">
+<input id="p" type="password" placeholder="pass">
+<button onclick="login()">LOGIN</button>
+<p id="err"></p>
+</div>
 
-<button onclick="openAdmin()">
-⚙️ Admin
-</button>
-</header>
+<header>🚀 GOD MODE AI TRADER</header>
 
-<div id="chart"></div>
+<canvas id="chart"></canvas>
 
-<div class="container">
+<div class="grid">
 
-<div class="timeframes">
-
-<button onclick="changeTF('15s')">15s</button>
-<button onclick="changeTF('30s')">30s</button>
-<button onclick="changeTF('1m')">1m</button>
-<button onclick="changeTF('5m')">5m</button>
+<div class="card">SIGNAL <div id="signal">WAIT</div></div>
+<div class="card">PRICE <div id="price">0</div></div>
+<div class="card">RSI <div id="rsi">0</div></div>
+<div class="card">MACD <div id="macd">0</div></div>
+<div class="card">WIN RATE <div id="win">0%</div></div>
 
 </div>
 
-<div class="cards">
-
-<div class="card">
-<h3>SIGNAL</h3>
-<div id="signal" class="big wait">
-WAIT
-</div>
-</div>
-
-<div class="card">
-<h3>CONFIANCE</h3>
-<div id="confidence" class="big">
-0%
-</div>
-</div>
-
-<div class="card">
-<h3>STRATÉGIE</h3>
-<div id="strategy" class="big">
-Loading...
-</div>
-</div>
-
-<div class="card">
-<h3>RSI</h3>
-<div id="rsi" class="big">
-0
-</div>
-</div>
-
-<div class="card">
-<h3>EMA</h3>
-<div id="ema" class="big">
-0
-</div>
-</div>
-
-<div class="card">
-<h3>STATUS IA</h3>
-<div class="big buy">
-LIVE
-</div>
-</div>
-
-</div>
-
-<div class="card" style="margin-top:15px;">
-<h3>📢 MESSAGE ADMIN</h3>
-
-<div id="adminMessage">
-Chargement...
-</div>
-</div>
-
-</div>
-
-<!-- ================= ADMIN MODAL ================= -->
-
-<div id="adminModal">
-
-<div class="adminTop">
-
-<h2>🔐 PANNEAU ADMIN PRO</h2>
-
-<button class="closeBtn" onclick="closeAdmin()">
-Fermer
-</button>
-
-</div>
-
-<div class="adminBox">
-
-<h3>Connexion administrateur</h3>
-
-<input
-id="username"
-placeholder="Nom d'utilisateur"
-value="admin"
->
-
-<input
-id="password"
-type="password"
-placeholder="Mot de passe"
->
-
-<button onclick="login()">
-Se connecter
-</button>
-
-<div id="loginStatus" class="status"></div>
-
-</div>
-
-<div id="dashboard" style="display:none;">
-
-<div class="adminBox">
-
-<h3>📢 Message admin</h3>
-
-<textarea id="msg">
-🚀 AI Trading Bot Online
-</textarea>
-
-<button onclick="saveSettings()">
-💾 Sauvegarder
-</button>
-
-</div>
-
-<div class="adminBox">
-
-<h3>⚙️ Contrôle IA</h3>
-
-<label>
-<input type="checkbox" id="aiMode" checked>
- IA Activée
-</label>
-
-<br><br>
-
-<label>
-<input type="checkbox" id="safeMode" checked>
- Mode sécurisé
-</label>
-
-</div>
-
-</div>
-
-</div>
-
-<!-- FLOAT BUTTON -->
-
-<a
-class="floatBtn"
-href="https://t.me/signalstradings_bot"
-target="_blank"
->
-💬
-</a>
+<a class="float" href="https://t.me/signalstradings_bot">📡 BOT</a>
 
 <script>
 
-/* ================= CHART ================= */
-
-const chart = LightweightCharts.createChart(
-
-document.getElementById("chart"),
-
-{
-layout:{
-background:{
-color:"#0b1220"
-},
-textColor:"white"
-},
-
-grid:{
-vertLines:{
-color:"#1f2937"
-},
-horzLines:{
-color:"#1f2937"
-}
-}
-
-}
-
-);
-
-const candleSeries =
-chart.addCandlestickSeries();
-
-let currentTF = "1m";
-
-/* ================= LOAD FAKE CHART ================= */
-
-let candles = [];
-
-for(let i=0;i<80;i++){
-
-candles.push({
-
-time:
-Math.floor(Date.now()/1000)-(80-i)*60,
-
-open:100+i,
-high:105+i,
-low:95+i,
-close:100+Math.random()*10
-
-});
-
-}
-
-candleSeries.setData(candles);
-
-/* ================= SIGNAL ================= */
-
-async function loadSignal(){
-
-const res =
-await fetch("/api/signal");
-
-const data =
-await res.json();
-
-const signal =
-document.getElementById("signal");
-
-signal.innerText =
-data.signal;
-
-signal.className =
-"big";
-
-if(data.signal==="BUY"){
-
-signal.classList.add("buy");
-
-}else if(data.signal==="SELL"){
-
-signal.classList.add("sell");
-
-}else{
-
-signal.classList.add("wait");
-
-}
-
-document.getElementById(
-"confidence"
-).innerText =
-data.confidence+"%";
-
-document.getElementById(
-"strategy"
-).innerText =
-data.strategy;
-
-document.getElementById(
-"rsi"
-).innerText =
-data.rsi;
-
-document.getElementById(
-"ema"
-).innerText =
-data.ema;
-
-}
-
-setInterval(loadSignal,3000);
-
-loadSignal();
-
-/* ================= SETTINGS ================= */
-
-async function loadSettings(){
-
-const res =
-await fetch("/api/settings");
-
-const data =
-await res.json();
-
-document.getElementById(
-"adminMessage"
-).innerText =
-data.adminMessage;
-
-document.getElementById(
-"msg"
-).value =
-data.adminMessage;
-
-document.getElementById(
-"aiMode"
-).checked =
-data.aiMode;
-
-document.getElementById(
-"safeMode"
-).checked =
-data.safeMode;
-
-}
-
-loadSettings();
-
-/* ================= LOGIN ================= */
-
+/* LOGIN */
 async function login(){
 
-const username =
-document.getElementById(
-"username"
-).value;
-
-const password =
-document.getElementById(
-"password"
-).value;
-
-const res =
-await fetch("/api/login",{
-
+let res = await fetch("/api/login",{
 method:"POST",
-
-headers:{
-"Content-Type":
-"application/json"
-},
-
+headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
-
-username,
-password
-
+user:document.getElementById("u").value,
+pass:document.getElementById("p").value
 })
-
 });
 
-if(res.ok){
+let d = await res.json();
 
-document.getElementById(
-"loginStatus"
-).innerText =
-"✅ Login OK";
-
-document.getElementById(
-"dashboard"
-).style.display =
-"block";
-
+if(d.ok){
+localStorage.setItem("token", d.token);
+document.getElementById("login").style.display="none";
 }else{
-
-document.getElementById(
-"loginStatus"
-).innerText =
-"❌ Wrong password";
-
+document.getElementById("err").innerText="ERROR";
+}
 }
 
-}
+/* WS */
+const ws = new WebSocket("ws://" + location.host);
 
-/* ================= SAVE ================= */
+ws.onmessage=(msg)=>{
+let d = JSON.parse(msg.data);
 
-async function saveSettings(){
-
-const adminMessage =
-document.getElementById(
-"msg"
-).value;
-
-const aiMode =
-document.getElementById(
-"aiMode"
-).checked;
-
-const safeMode =
-document.getElementById(
-"safeMode"
-).checked;
-
-const res =
-await fetch("/api/settings",{
-
-method:"POST",
-
-headers:{
-"Content-Type":
-"application/json"
-},
-
-body:JSON.stringify({
-
-adminMessage,
-aiMode,
-safeMode
-
-})
-
-});
-
-if(res.ok){
-
-alert("✅ Sauvegardé");
-
-loadSettings();
-
-}else{
-
-alert("❌ Erreur");
-
-}
-
-}
-
-/* ================= ADMIN UI ================= */
-
-function openAdmin(){
-
-document.getElementById(
-"adminModal"
-).style.display =
-"block";
-
-}
-
-function closeAdmin(){
-
-document.getElementById(
-"adminModal"
-).style.display =
-"none";
-
-}
-
-/* ================= TIMEFRAME ================= */
-
-function changeTF(tf){
-
-currentTF = tf;
-
-alert("Timeframe : "+tf);
-
-}
+document.getElementById("signal").innerText=d.signal;
+document.getElementById("price").innerText=d.price;
+document.getElementById("rsi").innerText=d.rsi;
+document.getElementById("macd").innerText=d.macd;
+document.getElementById("win").innerText=d.winRate;
+};
 
 </script>
 
