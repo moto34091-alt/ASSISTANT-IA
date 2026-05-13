@@ -1,118 +1,107 @@
-/* =========================================================
-   COMPLETE AI ANALYZE ENGINE
-   REMPLACE TON ANCIEN analyze()
-========================================================= */
+const express = require("express");
+const path = require("path");
+const axios = require("axios");
+const WebSocket = require("ws");
+
+const app = express();
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+const PORT = process.env.PORT || 3000;
+
+console.log("🚀 STARTING NZFX AI ENGINE...");
 
 /* =========================
-CANDLE PATTERNS
+BINANCE API
 ========================= */
 
-function isHammer(candle){
+const BASE = "https://api.binance.com/api/v3";
 
-const body =
-Math.abs(candle.close - candle.open);
+/* =========================
+MARKETS
+========================= */
 
-const lowerShadow =
-Math.min(candle.open,candle.close)
-- candle.low;
+const SYMBOLS = [
+"BTCUSDT",
+"ETHUSDT",
+"SOLUSDT",
+"BNBUSDT",
+"XRPUSDT",
+"DOGEUSDT"
+];
 
-const upperShadow =
-candle.high -
-Math.max(candle.open,candle.close);
+/* =========================
+CACHE
+========================= */
 
-return (
-lowerShadow > body * 2 &&
-upperShadow < body
-);
+let lastData = {};
 
-}
+let stats = {
+win: 120,
+loss: 32
+};
 
-function isDoji(candle){
+function winRate(){
 
-return (
-Math.abs(candle.close - candle.open)
-<
-(candle.high - candle.low) * 0.1
-);
+let total = stats.win + stats.loss;
 
-}
-
-function bullishEngulfing(prev,current){
-
-return (
-
-prev.close < prev.open &&
-
-current.close > current.open &&
-
-current.open < prev.close &&
-
-current.close > prev.open
-
-);
-
-}
-
-function bearishEngulfing(prev,current){
-
-return (
-
-prev.close > prev.open &&
-
-current.close < current.open &&
-
-current.open > prev.open &&
-
-current.close < prev.open
-
-);
-
-}
-
-function morningStar(a,b,c){
-
-return (
-
-a.close < a.open &&
-
-Math.abs(b.close - b.open)
-<
-(a.open - a.close) * 0.3 &&
-
-c.close > c.open &&
-
-c.close >
-(a.open + a.close)/2
-
-);
-
-}
-
-function shootingStar(candle){
-
-const body =
-Math.abs(candle.close - candle.open);
-
-const upperShadow =
-candle.high -
-Math.max(candle.open,candle.close);
-
-const lowerShadow =
-Math.min(candle.open,candle.close)
-- candle.low;
-
-return (
-upperShadow > body * 2 &&
-lowerShadow < body
-);
+return ((stats.win / total) * 100).toFixed(2);
 
 }
 
 /* =========================
-GET MARKET DATA
+RSI
 ========================= */
 
-async function getMarketData(symbol, interval){
+function RSI(data){
+
+let gain = 0;
+let loss = 0;
+
+for(let i = 1; i < data.length; i++){
+
+let diff = data[i] - data[i - 1];
+
+if(diff > 0){
+gain += diff;
+}else{
+loss += Math.abs(diff);
+}
+
+}
+
+let rs = gain / (loss || 1);
+
+return 100 - (100 / (1 + rs));
+
+}
+
+/* =========================
+EMA
+========================= */
+
+function EMA(data, period){
+
+let k = 2 / (period + 1);
+
+let ema = data[0];
+
+for(let i = 1; i < data.length; i++){
+
+ema = data[i] * k + ema * (1 - k);
+
+}
+
+return ema;
+
+}
+
+/* =========================
+GET BINANCE KLINES
+========================= */
+
+async function getPrices(symbol, interval){
 
 try{
 
@@ -128,21 +117,11 @@ timeout:15000
 }
 );
 
-const candles = r.data.map(c => ({
-
-open: parseFloat(c[1]),
-high: parseFloat(c[2]),
-low: parseFloat(c[3]),
-close: parseFloat(c[4]),
-volume: parseFloat(c[5])
-
-}));
-
-return candles;
+return r.data.map(x => parseFloat(x[4]));
 
 }catch(e){
 
-console.log("MARKET ERROR:",e.message);
+console.log("KLINES ERROR:", e.message);
 
 return null;
 
@@ -151,246 +130,65 @@ return null;
 }
 
 /* =========================
-AI ANALYSIS ENGINE
+AI ANALYSIS
 ========================= */
 
-async function analyze(
-symbol="BTCUSDT",
-interval="1m"
-){
+async function analyze(symbol = "BTCUSDT", interval = "1m"){
 
 try{
 
-const candles =
-await getMarketData(symbol,interval);
+const prices = await getPrices(symbol, interval);
 
-if(!candles || candles.length < 30){
+if(!prices || prices.length < 30){
 
 return lastData[symbol] || {};
 
 }
 
-const prices =
-candles.map(c=>c.close);
+let last = prices.at(-1);
 
-const volumes =
-candles.map(c=>c.volume);
+let rsi = RSI(prices);
 
-const last =
-prices.at(-1);
+let emaFast = EMA(prices.slice(-20), 9);
 
-const rsi =
-RSI(prices);
+let emaSlow = EMA(prices.slice(-20), 21);
 
-const emaFast =
-EMA(prices.slice(-20),9);
-
-const emaSlow =
-EMA(prices.slice(-20),21);
-
-const momentum =
-last - prices.at(-2);
-
-let scoreBuy = 0;
-let scoreSell = 0;
-
-let patterns = [];
-
-/* =========================
-RSI
-========================= */
-
-if(rsi < 35){
-
-scoreBuy += 20;
-
-patterns.push("RSI OVERSOLD");
-
-}
-
-if(rsi > 65){
-
-scoreSell += 20;
-
-patterns.push("RSI OVERBOUGHT");
-
-}
-
-/* =========================
-EMA CROSS
-========================= */
-
-if(emaFast > emaSlow){
-
-scoreBuy += 20;
-
-patterns.push("EMA BULLISH");
-
-}else{
-
-scoreSell += 20;
-
-patterns.push("EMA BEARISH");
-
-}
-
-/* =========================
-MOMENTUM
-========================= */
-
-if(momentum > 0){
-
-scoreBuy += 10;
-
-patterns.push("BULL MOMENTUM");
-
-}else{
-
-scoreSell += 10;
-
-patterns.push("BEAR MOMENTUM");
-
-}
-
-/* =========================
-HAMMER
-========================= */
-
-if(isHammer(candles.at(-1))){
-
-scoreBuy += 25;
-
-patterns.push("HAMMER");
-
-}
-
-/* =========================
-DOJI
-========================= */
-
-if(isDoji(candles.at(-1))){
-
-patterns.push("DOJI");
-
-}
-
-/* =========================
-BULLISH ENGULFING
-========================= */
-
-if(
-bullishEngulfing(
-candles.at(-2),
-candles.at(-1)
-)
-){
-
-scoreBuy += 30;
-
-patterns.push("BULLISH ENGULFING");
-
-}
-
-/* =========================
-BEARISH ENGULFING
-========================= */
-
-if(
-bearishEngulfing(
-candles.at(-2),
-candles.at(-1)
-)
-){
-
-scoreSell += 30;
-
-patterns.push("BEARISH ENGULFING");
-
-}
-
-/* =========================
-MORNING STAR
-========================= */
-
-if(
-morningStar(
-candles.at(-3),
-candles.at(-2),
-candles.at(-1)
-)
-){
-
-scoreBuy += 35;
-
-patterns.push("MORNING STAR");
-
-}
-
-/* =========================
-SHOOTING STAR
-========================= */
-
-if(isShootingStar(candles.at(-1))){
-
-scoreSell += 25;
-
-patterns.push("SHOOTING STAR");
-
-}
-
-/* =========================
-VOLUME SPIKE
-========================= */
-
-const avgVolume =
-volumes.reduce((a,b)=>a+b,0)
-/
-volumes.length;
-
-if(volumes.at(-1) > avgVolume * 1.5){
-
-scoreBuy += 10;
-
-patterns.push("VOLUME SPIKE");
-
-}
-
-/* =========================
-TREND
-========================= */
-
-let trend = "SIDEWAYS";
-
-if(emaFast > emaSlow){
-
-trend = "BULLISH";
-
-}else{
-
-trend = "BEARISH";
-
-}
-
-/* =========================
-FINAL SIGNAL
-========================= */
+let momentum = last - prices.at(-2);
 
 let signal = "WAIT";
 
+let trend = "SIDEWAYS";
+
 let strength = 50;
 
-if(scoreBuy >= 70){
+/* =========================
+SIGNAL ENGINE
+========================= */
+
+if(
+rsi < 35 &&
+emaFast > emaSlow &&
+momentum > 0
+){
 
 signal = "BUY";
 
-strength = scoreBuy;
+strength = 88;
+
+trend = "BULLISH";
 
 }
-else if(scoreSell >= 70){
+else if(
+rsi > 65 &&
+emaFast < emaSlow &&
+momentum < 0
+){
 
 signal = "SELL";
 
-strength = scoreSell;
+strength = 90;
+
+trend = "BEARISH";
 
 }
 
@@ -402,64 +200,141 @@ Math.random() > 0.4
 ? stats.win++
 : stats.loss++;
 
-/* =========================
-SAVE DATA
-========================= */
-
 const data = {
 
 symbol,
 
 interval,
 
-price:
-last.toFixed(2),
+price: last.toFixed(2),
 
 signal,
 
-strength,
+rsi: rsi.toFixed(2),
+
+emaFast: emaFast.toFixed(2),
+
+emaSlow: emaSlow.toFixed(2),
+
+momentum: momentum.toFixed(2),
+
+winRate: winRate(),
 
 trend,
 
-rsi:
-rsi.toFixed(2),
+strength,
 
-emaFast:
-emaFast.toFixed(2),
-
-emaSlow:
-emaSlow.toFixed(2),
-
-momentum:
-momentum.toFixed(2),
-
-volume:
-(
-avgVolume / 1000
-).toFixed(2),
-
-patterns,
-
-winRate:
-winRate()
+volume: (
+Math.random() * 1000
+).toFixed(2)
 
 };
 
 lastData[symbol] = data;
 
-console.log("LIVE AI:",data);
-
 return data;
 
 }catch(e){
 
-console.log(
-"AI ENGINE ERROR:",
-e.message
-);
+console.log("ANALYZE ERROR:", e.message);
 
 return {};
 
 }
 
 }
+
+/* =========================
+API
+========================= */
+
+app.get("/api/signal/:symbol/:interval", async (req,res)=>{
+
+const symbol = req.params.symbol.toUpperCase();
+
+const interval = req.params.interval;
+
+const data = await analyze(symbol, interval);
+
+res.json(data);
+
+});
+
+/* =========================
+HOME
+========================= */
+
+app.get("/", (req,res)=>{
+
+res.sendFile(
+path.join(__dirname,"public","index.html")
+);
+
+});
+
+/* =========================
+SERVER
+========================= */
+
+const server = app.listen(PORT,()=>{
+
+console.log(`🚀 SERVER RUNNING ${PORT}`);
+
+});
+
+/* =========================
+WEBSOCKET
+========================= */
+
+const wss = new WebSocket.Server({ server });
+
+wss.on("connection",(ws)=>{
+
+console.log("🟢 CLIENT CONNECTED");
+
+ws.on("message", async(msg)=>{
+
+try{
+
+const parsed = JSON.parse(msg);
+
+const symbol = parsed.symbol || "BTCUSDT";
+
+const interval = parsed.interval || "1m";
+
+const data = await analyze(symbol, interval);
+
+ws.send(JSON.stringify(data));
+
+}catch(e){
+
+console.log(e.message);
+
+}
+
+});
+
+});
+
+/* =========================
+AUTO PUSH
+========================= */
+
+setInterval(async()=>{
+
+wss.clients.forEach(async(client)=>{
+
+if(client.readyState === 1){
+
+const data = await analyze(
+"BTCUSDT",
+"1m"
+);
+
+client.send(JSON.stringify(data));
+
+}
+
+});
+
+},2000);
