@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>NEXT LEVEL TRADING</title>
+<title>NEVER ZERO AI TRADER</title>
 
 <style>
 
 body{
 margin:0;
-background:#070b14;
+background:#060b14;
 color:white;
 font-family:Arial;
 }
@@ -19,7 +19,6 @@ text-align:center;
 background:#111827;
 color:#00ff99;
 font-weight:bold;
-letter-spacing:1px;
 }
 
 .grid{
@@ -34,31 +33,12 @@ background:#111827;
 padding:15px;
 border-radius:12px;
 text-align:center;
-box-shadow:0 0 10px rgba(0,255,150,0.1);
 }
-
-.buy{color:#00ff99;}
-.sell{color:#ff4d6d;}
-.wait{color:#facc15;}
 
 canvas{
 width:100%;
 height:300px;
 background:#0f172a;
-margin-top:10px;
-border-radius:10px;
-}
-
-.float{
-position:fixed;
-bottom:20px;
-right:20px;
-background:#00ff99;
-color:black;
-padding:15px;
-border-radius:50%;
-text-decoration:none;
-font-weight:bold;
 }
 
 #signal{
@@ -66,19 +46,30 @@ font-size:20px;
 font-weight:bold;
 }
 
+.float{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#00ff99;
+padding:15px;
+border-radius:50%;
+text-decoration:none;
+color:black;
+}
+
 </style>
 </head>
 
 <body>
 
-<header>🚀 NEXT LEVEL AI TRADER PRO</header>
+<header>🚀 NEVER ZERO FIX PRO</header>
 
 <canvas id="chart"></canvas>
 
 <div class="grid">
 
 <div class="card">SIGNAL <div id="signal">WAIT</div></div>
-<div class="card">PRICE <div id="price">0</div></div>
+<div class="card">PRICE <div id="price">loading...</div></div>
 <div class="card">RSI <div id="rsi">0</div></div>
 <div class="card">EMA FAST <div id="emaF">0</div></div>
 <div class="card">EMA SLOW <div id="emaS">0</div></div>
@@ -92,10 +83,13 @@ font-weight:bold;
 
 const ws = new WebSocket("ws://" + location.host);
 
-let chartData = [];
+let chart = [];
 
 ws.onmessage = (msg)=>{
+
 let d = JSON.parse(msg.data);
+
+if(!d || !d.price) return;
 
 document.getElementById("signal").innerText = d.signal;
 document.getElementById("price").innerText = d.price;
@@ -104,36 +98,32 @@ document.getElementById("emaF").innerText = d.emaFast;
 document.getElementById("emaS").innerText = d.emaSlow;
 document.getElementById("win").innerText = d.winRate;
 
-/* chart update */
-chartData.push(d.price);
-if(chartData.length > 50) chartData.shift();
+/* chart */
+chart.push(d.price);
+if(chart.length > 60) chart.shift();
 
-drawChart();
+draw();
 };
 
-/* SIMPLE CHART ENGINE */
-
+const ctx = document.getElementById("chart").getContext("2d");
 const canvas = document.getElementById("chart");
-const ctx = canvas.getContext("2d");
-
 canvas.width = window.innerWidth;
 
-function drawChart(){
+function draw(){
 
 ctx.clearRect(0,0,canvas.width,300);
 
 ctx.beginPath();
 
-for(let i=0;i<chartData.length;i++){
+for(let i=0;i<chart.length;i++){
 
-let x = i * (canvas.width / chartData.length);
-let y = 300 - chartData[i]*0.002;
+let x = i * (canvas.width / chart.length);
+let y = 300 - chart[i]*0.002;
 
 ctx.lineTo(x,y);
 }
 
-ctx.strokeStyle = "#00ff99";
-ctx.lineWidth = 2;
+ctx.strokeStyle="#00ff99";
 ctx.stroke();
 }
 
