@@ -1,42 +1,107 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NZFX AI TERMINAL</title>
+<title>SNIPER PRO v7 REAL</title>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
 
 <style>
-body{margin:0;background:#050816;color:#fff;font-family:Arial}
-header{padding:20px;text-align:center;background:#0b1220;border-bottom:1px solid #00ff9d33}
-h1{color:#00ff9d}
-.topbar{display:flex;gap:10px;padding:15px}
-select{flex:1;padding:12px;background:#0f172a;color:white;border:none;border-radius:10px}
-#status{text-align:center;padding:10px;color:#00ff9d}
-.signal-box{text-align:center;padding:25px;margin:15px;background:#0c1224;border-radius:20px}
-.signal-value{font-size:60px;font-weight:bold}
-.buy{color:#00ff9d}
-.sell{color:#ff3b5c}
-.wait{color:#facc15}
-#tvchart{height:350px;margin:15px;border-radius:20px;overflow:hidden}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:15px}
-.card{background:#0c1224;padding:15px;border-radius:15px}
-.label{color:#888;font-size:12px}
-.value{font-size:22px;font-weight:bold}
-</style>
 
+body{
+margin:0;
+font-family:Arial;
+background:#050816;
+color:white;
+}
+
+header{
+padding:15px;
+text-align:center;
+background:#0b1220;
+border-bottom:1px solid #00ff9d33;
+}
+
+header h1{
+color:#00ff9d;
+font-size:22px;
+}
+
+.container{
+padding:10px;
+}
+
+select{
+width:48%;
+padding:10px;
+margin:5px;
+background:#0f172a;
+color:white;
+border:none;
+border-radius:10px;
+}
+
+#status{
+text-align:center;
+padding:10px;
+color:#00ff9d;
+font-weight:bold;
+}
+
+.signal{
+text-align:center;
+font-size:50px;
+font-weight:bold;
+margin:15px 0;
+}
+
+.buy{ color:#00ff9d; }
+.sell{ color:#ff3b5c; }
+.wait{ color:#facc15; }
+
+.grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+padding:10px;
+}
+
+.card{
+background:#0c1224;
+padding:15px;
+border-radius:12px;
+border:1px solid #00ff9d22;
+text-align:center;
+}
+
+.label{
+font-size:12px;
+color:#888;
+}
+
+.value{
+font-size:20px;
+margin-top:5px;
+}
+
+#chart{
+height:300px;
+margin:10px;
+border-radius:10px;
+overflow:hidden;
+}
+
+</style>
 </head>
 
 <body>
 
 <header>
-<h1>🚀 NZFX AI TERMINAL</h1>
-<p>BINANCE LIVE ENGINE</p>
+<h1>🚀 SNIPER PRO v7</h1>
 </header>
 
-<div class="topbar">
+<div class="container">
 
 <select id="symbol">
 <option value="BTCUSDT">BTC/USDT</option>
@@ -58,93 +123,113 @@ select{flex:1;padding:12px;background:#0f172a;color:white;border:none;border-rad
 
 <div id="status">🟡 CONNECTING...</div>
 
-<div class="signal-box">
-<div>AI SIGNAL</div>
-<div id="signal" class="signal-value wait">WAIT</div>
-</div>
+<div id="signal" class="signal wait">WAIT</div>
 
-<div id="tvchart"></div>
+<div id="chart"></div>
 
 <div class="grid">
 
-<div class="card"><div class="label">PRICE</div><div class="value" id="price">0</div></div>
-<div class="card"><div class="label">RSI</div><div class="value" id="rsi">0</div></div>
-<div class="card"><div class="label">EMA FAST</div><div class="value" id="emaF">0</div></div>
-<div class="card"><div class="label">EMA SLOW</div><div class="value" id="emaS">0</div></div>
-<div class="card"><div class="label">WIN RATE</div><div class="value" id="win">0%</div></div>
-<div class="card"><div class="label">MOMENTUM</div><div class="value" id="momentum">0</div></div>
+<div class="card">
+<div class="label">PRICE</div>
+<div class="value" id="price">0</div>
+</div>
+
+<div class="card">
+<div class="label">RSI</div>
+<div class="value" id="rsi">0</div>
+</div>
+
+<div class="card">
+<div class="label">EMA FAST</div>
+<div class="value" id="emaFast">0</div>
+</div>
+
+<div class="card">
+<div class="label">EMA SLOW</div>
+<div class="value" id="emaSlow">0</div>
+</div>
 
 </div>
 
-<a href="https://t.me/signalstradings_bot" style="position:fixed;bottom:20px;right:20px;background:#00ff9d;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:black;font-size:24px">📡</a>
-
 <script>
 
-const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
+const ws = new WebSocket(
+(location.protocol === "https:" ? "wss://" : "ws://") + location.host
+);
 
-const symbolEl = document.getElementById("symbol");
-const intervalEl = document.getElementById("interval");
-const status = document.getElementById("status");
+const symbol = document.getElementById("symbol");
+const interval = document.getElementById("interval");
+
 const signal = document.getElementById("signal");
-
-let widget;
+const status = document.getElementById("status");
 
 function loadChart(){
-document.getElementById("tvchart").innerHTML = "";
+document.getElementById("chart").innerHTML = "";
 
-widget = new TradingView.widget({
-container_id:"tvchart",
-autosize:true,
-symbol:"BINANCE:" + symbolEl.value,
-interval: intervalEl.value === "1h" ? "60" : intervalEl.value.replace("m",""),
-theme:"dark",
-style:"1"
+new TradingView.widget({
+container_id: "chart",
+symbol: "BINANCE:" + symbol.value,
+interval: interval.value,
+theme: "dark",
+style: "1",
+locale: "fr",
+autosize: true
 });
 }
 
 loadChart();
 
+/* SEND REQUEST */
 function send(){
 ws.send(JSON.stringify({
-symbol: symbolEl.value,
-interval: intervalEl.value
+symbol: symbol.value,
+interval: interval.value
 }));
 }
 
-symbolEl.onchange = ()=>{ loadChart(); send(); };
-intervalEl.onchange = ()=>{ loadChart(); send(); };
+/* CHANGE EVENTS */
+symbol.onchange = () => {
+loadChart();
+send();
+};
 
-ws.onopen = ()=>{
+interval.onchange = () => {
+loadChart();
+send();
+};
+
+/* WS CONNECT */
+ws.onopen = () => {
 status.innerText = "🟢 LIVE CONNECTED";
 send();
 };
 
-ws.onmessage = (msg)=>{
+/* DATA RECEIVE */
+ws.onmessage = (msg) => {
 
 const d = JSON.parse(msg.data);
 
-if(!d || d.ok === false){
-status.innerText = "⚠️ NO DATA";
-return;
-}
-
+/* SIGNAL */
 signal.innerText = d.signal;
 
 signal.className =
-"signal-value " +
-(d.signal === "BUY" ? "buy" :
-d.signal === "SELL" ? "sell" : "wait");
+"signal " +
+(d.signal === "BUY"
+? "buy"
+: d.signal === "SELL"
+? "sell"
+: "wait");
 
-document.getElementById("price").innerText = d.price;
-document.getElementById("rsi").innerText = d.rsi;
-document.getElementById("emaF").innerText = d.emaFast;
-document.getElementById("emaS").innerText = d.emaSlow;
-document.getElementById("win").innerText = d.winRate + "%";
-document.getElementById("momentum").innerText = d.momentum;
+/* DATA */
+document.getElementById("price").innerText = d.price || 0;
+document.getElementById("rsi").innerText = d.rsi || 0;
+document.getElementById("emaFast").innerText = d.emaFast || 0;
+document.getElementById("emaSlow").innerText = d.emaSlow || 0;
 
 };
 
-ws.onerror = ()=>{
+/* ERROR */
+ws.onerror = () => {
 status.innerText = "🔴 CONNECTION ERROR";
 };
 
