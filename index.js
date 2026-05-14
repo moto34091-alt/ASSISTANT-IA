@@ -10,10 +10,10 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 NZFX AI ENGINE STARTED");
+console.log("🚀 NZFX AI ENGINE RUNNING");
 
 /* =========================
-BINANCE API
+BINANCE
 ========================= */
 
 const BASE = "https://api.binance.com/api/v3";
@@ -32,7 +32,7 @@ const SYMBOLS = [
 ];
 
 /* =========================
-WIN STATS
+STATS
 ========================= */
 
 let stats = { win: 120, loss: 32 };
@@ -43,7 +43,7 @@ return total === 0 ? "0.00" : ((stats.win / total) * 100).toFixed(2);
 }
 
 /* =========================
-GET CANDLES (FIX STABLE)
+GET BINANCE CANDLES (FIX IMPORTANT)
 ========================= */
 
 async function getCandles(symbol, interval) {
@@ -56,12 +56,16 @@ symbol,
 interval,
 limit: 100
 },
-timeout: 10000
+timeout: 15000
 });
 
 if (!res.data || !Array.isArray(res.data)) return null;
 
+/* 🔥 IMPORTANT FIX: Binance ARRAY → OBJECT propre */
 return res.data.map(c => ({
+open: Number(c[1]),
+high: Number(c[2]),
+low: Number(c[3]),
 close: Number(c[4]),
 volume: Number(c[5])
 }));
@@ -74,18 +78,18 @@ return null;
 }
 
 /* =========================
-RSI
+RSI (REAL FIXED)
 ========================= */
 
-function calcRSI(data, period = 14) {
+function calcRSI(closes, period = 14) {
 
-if (!data || data.length < period + 1) return 50;
+if (!closes || closes.length < period + 1) return 50;
 
 let gains = 0;
 let losses = 0;
 
-for (let i = data.length - period; i < data.length; i++) {
-let diff = data[i] - data[i - 1];
+for (let i = closes.length - period; i < closes.length; i++) {
+let diff = closes[i] - closes[i - 1];
 if (diff > 0) gains += diff;
 else losses += Math.abs(diff);
 }
@@ -96,7 +100,7 @@ return 100 - (100 / (1 + rs));
 }
 
 /* =========================
-EMA
+EMA (REAL FIXED)
 ========================= */
 
 function calcEMA(data, period) {
@@ -115,7 +119,7 @@ return ema;
 }
 
 /* =========================
-ANALYZE ENGINE (CORE FIX)
+MAIN ANALYSIS ENGINE
 ========================= */
 
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
@@ -127,8 +131,8 @@ if (!SYMBOLS.includes(symbol)) symbol = "BTCUSDT";
 
 const candles = await getCandles(symbol, interval);
 
+/* 🔥 FIX IMPORTANT */
 if (!candles || candles.length < 20) {
-
 return {
 symbol,
 interval,
@@ -143,8 +147,11 @@ strength: 0,
 winRate: winRate(),
 volume: "0"
 };
-
 }
+
+/* =========================
+CLOSES CLEAN
+========================= */
 
 const closes = candles.map(c => c.close);
 
@@ -172,7 +179,7 @@ if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
 /* =========================
-STRENGTH
+STRENGTH ENGINE
 ========================= */
 
 let strength = 50;
@@ -205,23 +212,23 @@ stats.loss++;
 }
 
 /* =========================
-RETURN SAFE DATA
+RETURN CLEAN DATA
 ========================= */
 
-const result = {
+return {
 symbol,
 interval,
 
 signal,
 trend,
 
-price: last.toFixed(4),
+price: last.toFixed(2),
 rsi: rsi.toFixed(2),
 
-emaFast: emaFast.toFixed(4),
-emaSlow: emaSlow.toFixed(4),
+emaFast: emaFast.toFixed(2),
+emaSlow: emaSlow.toFixed(2),
 
-momentum: momentum.toFixed(4),
+momentum: momentum.toFixed(2),
 
 strength: Math.max(0, Math.min(100, strength)),
 
@@ -229,8 +236,6 @@ winRate: winRate(),
 
 volume: candles.at(-1).volume
 };
-
-return result;
 
 } catch (e) {
 
