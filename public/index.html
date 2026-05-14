@@ -1,68 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>SNIPER V9</title>
+<title>SNIPER PRO V9</title>
 
 <style>
-body{
+body {
 margin:0;
-background:#050505;
+font-family: Arial;
+background: radial-gradient(#0a0a0a, #000);
 color:white;
-font-family:Arial;
 }
 
-.screen{display:none;text-align:center;padding:20px;}
-.active{display:block;}
+.screen {
+display:none;
+padding:20px;
+text-align:center;
+}
 
-button{
-padding:15px;
-margin:10px;
-background:#00aaff;
+.active {
+display:block;
+}
+
+h2 {
+margin-bottom:15px;
+}
+
+.list {
+display:grid;
+grid-template-columns: 1fr 1fr;
+gap:10px;
+max-height:60vh;
+overflow:auto;
+}
+
+button {
+padding:12px;
 border:none;
-color:white;
 border-radius:10px;
+background:#1f6feb;
+color:white;
+font-weight:bold;
 }
 
-.card{
+.card {
 background:#111;
 padding:20px;
 border-radius:15px;
 margin-top:20px;
 }
 
-.signal{
-font-size:30px;
+.big {
+font-size:24px;
 font-weight:bold;
 }
+
+.green { color:#00ff99; }
+.red { color:#ff4d4d; }
+.orange { color:#ffaa00; }
 </style>
 </head>
 
 <body>
 
+<!-- SCREEN 1 -->
 <div id="s1" class="screen active">
-<h2>📊 MARKET</h2>
-<button onclick="setS('EURUSD')">EUR/USD</button>
-<button onclick="setS('GBPUSD')">GBP/USD</button>
+<h2>📊 CHOISIS LE MARCHÉ</h2>
+
+<div class="list">
+
+<button onclick="setSymbol('EURUSD')">EUR/USD</button>
+<button onclick="setSymbol('GBPUSD')">GBP/USD</button>
+<button onclick="setSymbol('USDJPY')">USD/JPY</button>
+<button onclick="setSymbol('USDCHF')">USD/CHF</button>
+<button onclick="setSymbol('AUDUSD')">AUD/USD</button>
+<button onclick="setSymbol('USDCAD')">USD/CAD</button>
+<button onclick="setSymbol('NZDUSD')">NZD/USD</button>
+
+<button onclick="setSymbol('EURJPY')">EUR/JPY</button>
+<button onclick="setSymbol('GBPJPY')">GBP/JPY</button>
+<button onclick="setSymbol('EURGBP')">EUR/GBP</button>
+<button onclick="setSymbol('EURCHF')">EUR/CHF</button>
+<button onclick="setSymbol('AUDJPY')">AUD/JPY</button>
+<button onclick="setSymbol('AUDCAD')">AUD/CAD</button>
+<button onclick="setSymbol('CADJPY')">CAD/JPY</button>
+<button onclick="setSymbol('EURCAD')">EUR/CAD</button>
+
+</div>
 </div>
 
+<!-- SCREEN 2 -->
 <div id="s2" class="screen">
-<h2>⏱ TIME</h2>
-<button onclick="setT('1m')">1M</button>
-<button onclick="setT('5m')">5M</button>
+<h2>⏱ CHOISIS LE TIMEFRAME</h2>
+
+<button onclick="setTime('30s')">30 SEC</button>
+<button onclick="setTime('1m')">1 MIN</button>
+<button onclick="setTime('5m')">5 MIN</button>
+<button onclick="setTime('15m')">15 MIN</button>
 </div>
 
+<!-- SCREEN 3 -->
 <div id="s3" class="screen">
-<h2>⚡ ANALYSING...</h2>
+<h2>⚡ ANALYSE EN COURS...</h2>
+<p>Analyse Smart Money + Momentum</p>
 </div>
 
+<!-- SCREEN 4 -->
 <div id="s4" class="screen">
+<h2>📊 RÉSULTAT</h2>
+
 <div class="card">
-<div id="sig" class="signal"></div>
-<div id="info"></div>
+<div id="signal" class="big"></div>
+<div id="price"></div>
+<div id="rsi"></div>
+<div id="trend"></div>
+<div id="strength"></div>
 </div>
 
-<button onclick="reset()">RESET</button>
+<button onclick="reset()">🔁 NOUVELLE ANALYSE</button>
 </div>
 
 <script src="app.js"></script>
