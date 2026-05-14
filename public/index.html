@@ -1,293 +1,71 @@
 <!DOCTYPE html>
-<html lang="fr">
-
+<html>
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>SNIPER PRO V7</title>
-
-<script src="https://s3.tradingview.com/tv.js"></script>
+<title>SNIPER V9</title>
 
 <style>
-
 body{
 margin:0;
-background:#050816;
+background:#050505;
+color:white;
 font-family:Arial;
-color:white;
 }
 
-header{
-padding:20px;
-text-align:center;
-background:#0f172a;
-}
+.screen{display:none;text-align:center;padding:20px;}
+.active{display:block;}
 
-h1{
-margin:0;
-color:#00ff9d;
-}
-
-.top{
-display:flex;
-gap:10px;
+button{
 padding:15px;
-}
-
-select{
-flex:1;
-padding:15px;
+margin:10px;
+background:#00aaff;
 border:none;
-border-radius:10px;
-background:#0f172a;
 color:white;
-font-size:16px;
-}
-
-#chart{
-height:350px;
-margin:15px;
-border-radius:20px;
-overflow:hidden;
-}
-
-.signal{
-margin:15px;
-padding:30px;
-border-radius:20px;
-text-align:center;
-font-size:60px;
-font-weight:bold;
-background:#0f172a;
-}
-
-.buy{color:#00ff9d;}
-.sell{color:#ff3b5c;}
-.wait{color:#facc15;}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:12px;
-padding:15px;
+border-radius:10px;
 }
 
 .card{
-background:#0f172a;
+background:#111;
 padding:20px;
-border-radius:20px;
+border-radius:15px;
+margin-top:20px;
 }
 
-.label{
-font-size:12px;
-color:#999;
-}
-
-.value{
-font-size:24px;
+.signal{
+font-size:30px;
 font-weight:bold;
-margin-top:10px;
 }
-
 </style>
-
 </head>
 
 <body>
 
-<header>
-
-<h1>🚀 SNIPER PRO V7</h1>
-
-</header>
-
-<div class="top">
-
-<select id="symbol">
-
-<option value="EURUSD">EUR/USD</option>
-<option value="GBPUSD">GBP/USD</option>
-<option value="USDJPY">USD/JPY</option>
-<option value="USDCHF">USD/CHF</option>
-<option value="AUDUSD">AUD/USD</option>
-<option value="USDCAD">USD/CAD</option>
-<option value="NZDUSD">NZD/USD</option>
-<option value="EURJPY">EUR/JPY</option>
-<option value="GBPJPY">GBP/JPY</option>
-<option value="EURGBP">EUR/GBP</option>
-
-</select>
-
-<select id="interval">
-
-<option value="30s">30 SEC</option>
-<option value="1m">1 MIN</option>
-<option value="5m">5 MIN</option>
-<option value="15m">15 MIN</option>
-
-</select>
-
+<div id="s1" class="screen active">
+<h2>📊 MARKET</h2>
+<button onclick="setS('EURUSD')">EUR/USD</button>
+<button onclick="setS('GBPUSD')">GBP/USD</button>
 </div>
 
-<div id="chart"></div>
-
-<div id="signal" class="signal wait">
-WAIT
+<div id="s2" class="screen">
+<h2>⏱ TIME</h2>
+<button onclick="setT('1m')">1M</button>
+<button onclick="setT('5m')">5M</button>
 </div>
 
-<div class="grid">
+<div id="s3" class="screen">
+<h2>⚡ ANALYSING...</h2>
+</div>
 
+<div id="s4" class="screen">
 <div class="card">
-<div class="label">PRICE</div>
-<div class="value" id="price">0</div>
+<div id="sig" class="signal"></div>
+<div id="info"></div>
 </div>
 
-<div class="card">
-<div class="label">RSI</div>
-<div class="value" id="rsi">0</div>
+<button onclick="reset()">RESET</button>
 </div>
 
-<div class="card">
-<div class="label">EMA FAST</div>
-<div class="value" id="emaF">0</div>
-</div>
-
-<div class="card">
-<div class="label">EMA SLOW</div>
-<div class="value" id="emaS">0</div>
-</div>
-
-<div class="card">
-<div class="label">TREND</div>
-<div class="value" id="trend">-</div>
-</div>
-
-<div class="card">
-<div class="label">STRENGTH</div>
-<div class="value" id="strength">0%</div>
-</div>
-
-<div class="card">
-<div class="label">SUPPORT</div>
-<div class="value" id="support">0</div>
-</div>
-
-<div class="card">
-<div class="label">RESISTANCE</div>
-<div class="value" id="resistance">0</div>
-</div>
-
-<div class="card">
-<div class="label">BOS</div>
-<div class="value" id="bos">NO BOS</div>
-</div>
-
-</div>
-
-<script>
-
-const ws =
-new WebSocket(
-(location.protocol === "https:" ? "wss://" : "ws://")
-+ location.host
-);
-
-const signal =
-document.getElementById("signal");
-
-const symbol =
-document.getElementById("symbol");
-
-const interval =
-document.getElementById("interval");
-
-/* =========================
-TRADINGVIEW
-========================= */
-function loadChart(){
-
-document.getElementById("chart").innerHTML="";
-
-new TradingView.widget({
-
-container_id:"chart",
-autosize:true,
-symbol:"FX:"+symbol.value,
-interval:
-interval.value === "15m"
-? "15"
-: interval.value === "5m"
-? "5"
-: "1",
-theme:"dark",
-style:"1",
-locale:"fr"
-
-});
-
-}
-
-loadChart();
-
-/* =========================
-REQUEST
-========================= */
-function request(){
-
-ws.send(JSON.stringify({
-symbol:symbol.value,
-interval:interval.value
-}));
-
-}
-
-symbol.onchange=()=>{
-loadChart();
-request();
-};
-
-interval.onchange=()=>{
-loadChart();
-request();
-};
-
-ws.onopen=()=>{
-request();
-};
-
-ws.onmessage=(msg)=>{
-
-const d = JSON.parse(msg.data);
-
-signal.innerText = d.signal;
-
-signal.className =
-"signal " +
-(
-d.signal === "BUY"
-? "buy"
-: d.signal === "SELL"
-? "sell"
-: "wait"
-);
-
-document.getElementById("price").innerText = d.price;
-document.getElementById("rsi").innerText = d.rsi;
-document.getElementById("emaF").innerText = d.emaFast;
-document.getElementById("emaS").innerText = d.emaSlow;
-document.getElementById("trend").innerText = d.trend;
-document.getElementById("strength").innerText = d.strength + "%";
-document.getElementById("support").innerText = d.support;
-document.getElementById("resistance").innerText = d.resistance;
-document.getElementById("bos").innerText = d.bos;
-
-};
-
-setInterval(request,10000);
-
-</script>
+<script src="app.js"></script>
 
 </body>
 </html>
