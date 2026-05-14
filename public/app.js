@@ -20,35 +20,33 @@ async function run(){
 
 show("s3");
 
-/* petit délai UX */
 setTimeout(async ()=>{
 
 const res = await fetch(`/api/${symbol}/${time}`);
 const d = await res.json();
 
-/* signal color */
 let color = "orange";
-if(d.signal === "BUY") color = "green";
-if(d.signal === "SELL") color = "red";
+if(d.signal==="BUY") color="green";
+if(d.signal==="SELL") color="red";
 
 document.getElementById("signal").innerHTML =
 `SIGNAL: <span class="${color}">${d.signal}</span>`;
 
 document.getElementById("price").innerText =
-"PRICE: " + d.price;
+"PRICE: " + (d.price ?? 0);
 
 document.getElementById("rsi").innerText =
-"RSI: " + d.rsi;
+"RSI: " + (d.rsi ?? 50);
 
 document.getElementById("trend").innerText =
-"TREND: " + d.trend;
+"TREND: " + (d.trend || "NO DATA");
 
 document.getElementById("strength").innerText =
-"STRENGTH: " + (d.strength || 0);
+"STRENGTH: " + (d.strength ?? 0);
 
 show("s4");
 
-}, 12000);
+},10000);
 }
 
 function reset(){
