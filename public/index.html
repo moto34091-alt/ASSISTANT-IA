@@ -2,14 +2,8 @@
 <html lang="fr">
 
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0"
-/>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>NZFX AI TERMINAL</title>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
@@ -29,272 +23,137 @@ color:white;
 overflow-x:hidden;
 }
 
-/* =========================
-HEADER
-========================= */
-
+/* HEADER */
 header{
-
 padding:20px;
-
 background:#0b1220;
-
 border-bottom:1px solid #00ff9d33;
-
 text-align:center;
-
 }
 
 header h1{
-
 font-size:28px;
-
 color:#00ff9d;
-
-margin-bottom:5px;
-
 }
 
 header p{
-
 color:#999;
-
 font-size:14px;
-
 }
 
-/* =========================
-TOP BAR
-========================= */
-
+/* TOPBAR */
 .topbar{
-
 display:flex;
-
 gap:10px;
-
 padding:15px;
-
 }
 
 select{
-
 flex:1;
-
 background:#0f172a;
-
 color:white;
-
 border:none;
-
 padding:12px;
-
 border-radius:10px;
-
 font-size:16px;
-
 }
 
-/* =========================
-STATUS
-========================= */
-
+/* STATUS */
 #status{
-
 text-align:center;
-
 padding:10px;
-
 color:#00ff9d;
-
 font-weight:bold;
-
 }
 
-/* =========================
-SIGNAL BOX
-========================= */
-
+/* SIGNAL */
 .signal-box{
-
 margin:15px;
-
 padding:25px;
-
 border-radius:20px;
-
 text-align:center;
-
 background:#0c1224;
-
 border:1px solid #00ff9d22;
-
-box-shadow:0 0 25px #00ff2222;
-
 }
 
 .signal-label{
-
 font-size:16px;
-
 color:#999;
-
 margin-bottom:10px;
-
 }
 
 .signal-value{
-
 font-size:60px;
-
 font-weight:900;
-
 }
 
-.buy{
-color:#00ff9d;
-text-shadow:0 0 20px #00ff9d;
-}
+.buy{ color:#00ff9d; }
+.sell{ color:#ff3b5c; }
+.wait{ color:#facc15; }
 
-.sell{
-color:#ff3b5c;
-text-shadow:0 0 20px #ff3b5c;
-}
-
-.wait{
-color:#facc15;
-}
-
-/* =========================
-TRADINGVIEW
-========================= */
-
+/* CHART */
 #tvchart{
-
 height:350px;
-
 margin:15px;
-
 border-radius:20px;
-
 overflow:hidden;
-
 }
 
-/* =========================
-GRID
-========================= */
-
+/* GRID */
 .grid{
-
 display:grid;
-
 grid-template-columns:repeat(2,1fr);
-
 gap:12px;
-
 padding:15px;
-
 }
 
 .card{
-
 background:#0c1224;
-
 padding:20px;
-
 border-radius:20px;
-
 border:1px solid #00ff9d22;
-
-backdrop-filter:blur(10px);
-
-box-shadow:0 0 20px rgba(0,255,157,0.05);
-
 }
 
 .label{
-
 font-size:13px;
-
 color:#888;
-
-margin-bottom:12px;
-
 }
 
 .value{
-
 font-size:28px;
-
 font-weight:bold;
-
 }
 
-/* =========================
-MARKET
-========================= */
-
+/* MARKET */
 .market{
-
 margin:15px;
-
 padding:20px;
-
 background:#0c1224;
-
 border-radius:20px;
-
-border:1px solid #00ff9d22;
-
 }
 
 .market-row{
-
 display:flex;
-
 justify-content:space-between;
-
-margin-bottom:15px;
-
+margin-bottom:10px;
 }
 
-/* =========================
-BOT
-========================= */
-
+/* TELEGRAM BUTTON */
 .telegram{
-
 position:fixed;
-
 right:20px;
-
 bottom:20px;
-
 width:70px;
-
 height:70px;
-
 display:flex;
-
 align-items:center;
-
 justify-content:center;
-
 border-radius:50%;
-
 background:#00ff9d;
-
 color:black;
-
 font-size:28px;
-
 text-decoration:none;
-
 font-weight:bold;
-
-box-shadow:0 0 25px #00ff9d;
-
 }
 
 </style>
@@ -304,53 +163,37 @@ box-shadow:0 0 25px #00ff9d;
 <body>
 
 <header>
-
 <h1>🚀 NZFX AI TERMINAL</h1>
-
 <p>BINANCE LIVE FUTURES ENGINE</p>
-
 </header>
 
 <div class="topbar">
 
 <select id="symbol">
-
 <option value="BTCUSDT">BTC/USDT</option>
 <option value="ETHUSDT">ETH/USDT</option>
 <option value="SOLUSDT">SOL/USDT</option>
 <option value="BNBUSDT">BNB/USDT</option>
 <option value="XRPUSDT">XRP/USDT</option>
 <option value="DOGEUSDT">DOGE/USDT</option>
-
 </select>
 
 <select id="interval">
-
 <option value="1m">1 MIN</option>
 <option value="5m">5 MIN</option>
 <option value="15m">15 MIN</option>
 <option value="1h">1 HOUR</option>
-
 </select>
 
 </div>
 
-<div id="status">
-🟢 CONNECTED TO BINANCE
-</div>
+<div id="status">🟡 CONNECTING...</div>
 
 <div class="signal-box">
 
-<div class="signal-label">
-AI SIGNAL
-</div>
+<div class="signal-label">AI SIGNAL</div>
 
-<div
-id="signal"
-class="signal-value wait"
->
-WAIT
-</div>
+<div id="signal" class="signal-value wait">WAIT</div>
 
 </div>
 
@@ -409,81 +252,41 @@ WAIT
 
 </div>
 
-<a
-class="telegram"
-href="https://t.me/signalstradings_bot"
-target="_blank"
->
-📡
-</a>
+<a class="telegram" href="https://t.me/signalstradings_bot">📡</a>
 
 <script>
-
-/* =========================
-WEBSOCKET
-========================= */
 
 const protocol =
 location.protocol === "https:"
 ? "wss://"
 : "ws://";
 
-const ws =
-new WebSocket(
-protocol + location.host
-);
+const ws = new WebSocket(protocol + location.host);
 
-/* =========================
-ELEMENTS
-========================= */
+/* ELEMENTS */
+const signalEl = document.getElementById("signal");
+const statusBox = document.getElementById("status");
+const symbolSelect = document.getElementById("symbol");
+const intervalSelect = document.getElementById("interval");
 
-const signal =
-document.getElementById("signal");
-
-const statusBox =
-document.getElementById("status");
-
-const symbolSelect =
-document.getElementById("symbol");
-
-const intervalSelect =
-document.getElementById("interval");
-
-/* =========================
-TRADINGVIEW
-========================= */
-
+/* CHART */
 let widget;
 
 function loadChart(){
 
-document.getElementById(
-"tvchart"
-).innerHTML = "";
+document.getElementById("tvchart").innerHTML = "";
 
 widget = new TradingView.widget({
 
 container_id:"tvchart",
-
 autosize:true,
-
-symbol:
-"BINANCE:" +
-symbolSelect.value,
-
-interval:
-intervalSelect.value.replace("m",""),
-
+symbol:"BINANCE:" + symbolSelect.value,
+interval: intervalSelect.value === "1h" ? "60" : intervalSelect.value.replace("m",""),
 theme:"dark",
-
 style:"1",
-
 locale:"fr",
-
 toolbar_bg:"#050816",
-
 hide_top_toolbar:false,
-
 enable_publishing:false
 
 });
@@ -492,48 +295,32 @@ enable_publishing:false
 
 loadChart();
 
-/* =========================
-SEND REQUEST
-========================= */
-
+/* SEND REQUEST */
 function requestData(){
 
+statusBox.innerHTML = "🟡 REQUESTING...";
+
 ws.send(JSON.stringify({
-
-symbol:
-symbolSelect.value,
-
-interval:
-intervalSelect.value
-
+symbol: symbolSelect.value,
+interval: intervalSelect.value
 }));
 
 }
 
 symbolSelect.onchange = ()=>{
-
 loadChart();
-
 requestData();
-
 };
 
 intervalSelect.onchange = ()=>{
-
 loadChart();
-
 requestData();
-
 };
 
-/* =========================
-SOCKET
-========================= */
-
+/* WS CONNECT */
 ws.onopen = ()=>{
 
-statusBox.innerHTML =
-"🟢 LIVE CONNECTED";
+statusBox.innerHTML = "🟢 LIVE CONNECTED";
 
 requestData();
 
@@ -541,57 +328,49 @@ requestData();
 
 ws.onmessage = (msg)=>{
 
-const d =
-JSON.parse(msg.data);
+const d = JSON.parse(msg.data);
+
+/* SAFE DATA */
+const data = {
+signal: d.signal || "WAIT",
+price: d.price || "0",
+rsi: d.rsi || "0",
+emaFast: d.emaFast || "0",
+emaSlow: d.emaSlow || "0",
+winRate: d.winRate || "0",
+momentum: d.momentum || "0",
+trend: d.trend || "SIDEWAYS",
+strength: d.strength || 0,
+volume: d.volume || "0"
+};
 
 /* SIGNAL */
+signalEl.innerText = data.signal;
 
-signal.innerText =
-d.signal;
-
-signal.className =
+signalEl.className =
 "signal-value " +
-(d.signal === "BUY"
+(data.signal === "BUY"
 ? "buy"
-: d.signal === "SELL"
+: data.signal === "SELL"
 ? "sell"
 : "wait");
 
-/* DATA */
-
-document.getElementById("price")
-.innerText = d.price;
-
-document.getElementById("rsi")
-.innerText = d.rsi;
-
-document.getElementById("emaF")
-.innerText = d.emaFast;
-
-document.getElementById("emaS")
-.innerText = d.emaSlow;
-
-document.getElementById("win")
-.innerText = d.winRate + "%";
-
-document.getElementById("momentum")
-.innerText = d.momentum;
-
-document.getElementById("trend")
-.innerText = d.trend;
-
-document.getElementById("strength")
-.innerText = d.strength + "%";
-
-document.getElementById("volume")
-.innerText = d.volume + "M";
+/* UI */
+document.getElementById("price").innerText = data.price;
+document.getElementById("rsi").innerText = data.rsi;
+document.getElementById("emaF").innerText = data.emaFast;
+document.getElementById("emaS").innerText = data.emaSlow;
+document.getElementById("win").innerText = data.winRate + "%";
+document.getElementById("momentum").innerText = data.momentum;
+document.getElementById("trend").innerText = data.trend;
+document.getElementById("strength").innerText = data.strength + "%";
+document.getElementById("volume").innerText = data.volume + "M";
 
 };
 
 ws.onerror = ()=>{
 
-statusBox.innerHTML =
-"🔴 CONNECTION ERROR";
+statusBox.innerHTML = "🔴 CONNECTION ERROR";
 
 };
 
