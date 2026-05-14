@@ -10,7 +10,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 STARTING NZFX AI ENGINE...");
+console.log("🚀 NZFX AI ENGINE STARTED");
 
 /* =========================
 BINANCE API
@@ -19,42 +19,16 @@ BINANCE API
 const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-TELEGRAM CONFIG
-========================= */
-
-const TELEGRAM_TOKEN = "PUT_YOUR_TOKEN";
-const TELEGRAM_CHAT_ID = "PUT_YOUR_CHAT_ID";
-
-/* =========================
 MARKETS
 ========================= */
 
 const SYMBOLS = [
-
 "BTCUSDT",
 "ETHUSDT",
 "SOLUSDT",
 "BNBUSDT",
 "XRPUSDT",
-"DOGEUSDT",
-"ADAUSDT",
-"AVAXUSDT",
-"LINKUSDT",
-"MATICUSDT",
-"LTCUSDT",
-"TRXUSDT",
-"DOTUSDT",
-"ATOMUSDT",
-"NEARUSDT",
-"ARBUSDT",
-"OPUSDT",
-"APTUSDT",
-"SUIUSDT",
-"FILUSDT",
-"ETCUSDT",
-"AAVEUSDT",
-"UNIUSDT"
-
+"DOGEUSDT"
 ];
 
 /* =========================
@@ -64,21 +38,41 @@ CACHE
 let lastData = {};
 
 let stats = {
-
 win: 120,
 loss: 32
-
 };
 
 function winRate(){
-
 let total = stats.win + stats.loss;
+return total === 0 ? "0.00" : ((stats.win / total) * 100).toFixed(2);
+}
 
-if(total === 0) return "0";
+/* =========================
+GET CANDLES
+========================= */
 
-return (
-(stats.win / total) * 100
-).toFixed(2);
+async function getCandles(symbol, interval) {
+
+try {
+
+const res = await axios.get(`${BASE}/klines`, {
+params: {
+symbol,
+interval,
+limit: 100
+},
+timeout: 15000
+});
+
+return res.data.map(c => ({
+close: parseFloat(c[4]),
+volume: parseFloat(c[5])
+}));
+
+} catch (e) {
+console.log("BINANCE ERROR:", e.message);
+return null;
+}
 
 }
 
@@ -86,25 +80,23 @@ return (
 RSI
 ========================= */
 
-function RSI(data){
+function calcRSI(data, period = 14) {
 
-let gain = 0;
-let loss = 0;
+if (data.length < period + 1) return 50;
 
-for(let i = 1; i < data.length; i++){
+let gains = 0;
+let losses = 0;
+
+for (let i = data.length - period; i < data.length; i++) {
 
 let diff = data[i] - data[i - 1];
 
-if(diff > 0){
-gain += diff;
-}else{
-loss += Math.abs(diff);
-}
+if (diff > 0) gains += diff;
+else losses += Math.abs(diff);
 
 }
 
-let rs = gain / (loss || 1);
-
+let rs = gains / (losses || 1);
 return 100 - (100 / (1 + rs));
 
 }
@@ -113,16 +105,15 @@ return 100 - (100 / (1 + rs));
 EMA
 ========================= */
 
-function EMA(data, period){
+function calcEMA(data, period) {
+
+if (!data.length) return 0;
 
 let k = 2 / (period + 1);
-
 let ema = data[0];
 
-for(let i = 1; i < data.length; i++){
-
+for (let i = 1; i < data.length; i++) {
 ema = data[i] * k + ema * (1 - k);
-
 }
 
 return ema;
@@ -130,343 +121,56 @@ return ema;
 }
 
 /* =========================
-GET BINANCE CANDLES
-========================= */
-
-async function getCandles(symbol, interval){
-
-try{
-
-const r = await axios.get(
-`${BASE}/klines`,
-{
-params:{
-symbol:symbol,
-interval:interval,
-limit:100
-},
-timeout:15000,
-headers:{
-"User-Agent":"Mozilla/5.0"
-}
-}
-);
-
-if(!r.data || !Array.isArray(r.data)){
-return null;
-}
-
-return r.data.map(x => ({
-
-open: parseFloat(x[1]),
-high: parseFloat(x[2]),
-low: parseFloat(x[3]),
-close: parseFloat(x[4]),
-volume: parseFloat(x[5])
-
-}));
-
-}catch(e){
-
-console.log(
-"❌ BINANCE ERROR:",
-e.response?.data || e.message
-);
-
-return null;
-
-}
-
-}
-
-/* =========================
-PATTERN DETECTION
-========================= */
-
-function detectPattern(candles){
-
-const last = candles[candles.length - 1];
-
-const body =
-Math.abs(last.close - last.open);
-
-const lowerShadow =
-Math.min(last.open, last.close)
-- last.low;
-
-if(lowerShadow > body * 2){
-
-return "HAMMER";
-
-}
-
-return "NONE";
-
-}
-
-/* =========================
-SUPPORT / RESISTANCE
-========================= */
-
-function getSR(candles){
-
-let supports = [];
-let resistances = [];
-
-for(let i = 1; i < candles.length - 1; i++){
-
-if(
-candles[i].low <
-candles[i - 1].low &&
-candles[i].low <
-candles[i + 1].low
-){
-
-supports.push(candles[i].low);
-
-}
-
-if(
-candles[i].high >
-candles[i - 1].high &&
-candles[i].high >
-candles[i + 1].high
-){
-
-resistances.push(candles[i].high);
-
-}
-
-}
-
-return {
-
-support:
-supports.length
-? supports[supports.length - 1]
-: null,
-
-resistance:
-resistances.length
-? resistances[resistances.length - 1]
-: null
-
-};
-
-}
-
-/* =========================
-ANTI FAKE FILTER
-========================= */
-
-function antiFake(data){
-
-let score = 0;
-
-// volume
-if(
-data.currentVolume >
-data.avgVolume * 1.3
-){
-score += 20;
-}else{
-score -= 10;
-}
-
-// ema trend
-if(data.emaFast > data.emaSlow){
-score += 15;
-}
-
-if(data.emaFast < data.emaSlow){
-score += 15;
-}
-
-// rsi
-if(data.rsi > 20 && data.rsi < 80){
-score += 10;
-}else{
-score -= 15;
-}
-
-// sideways
-if(data.trend === "SIDEWAYS"){
-score -= 20;
-}
-
-return score;
-
-}
-
-/* =========================
-TELEGRAM ALERT
-========================= */
-
-async function sendTelegramAlert(data){
-
-try{
-
-if(
-!TELEGRAM_TOKEN ||
-!TELEGRAM_CHAT_ID
-){
-return;
-}
-
-if(data.signal === "WAIT"){
-return;
-}
-
-const emoji =
-data.signal === "BUY"
-? "🟢"
-: "🔴";
-
-const msg = `
-🚀 NZFX AI SIGNAL
-
-${emoji} SIGNAL: ${data.signal}
-
-📊 PAIR: ${data.symbol}
-
-💰 PRICE: ${data.price}
-
-📈 STRENGTH: ${data.strength}%
-
-📉 RSI: ${data.rsi}
-
-📊 TREND: ${data.trend}
-
-⚡ ANTI-FAKE: ${data.antiFakeScore}
-
-🎯 TP: ${data.takeProfit}
-
-🛑 SL: ${data.stopLoss}
-`;
-
-await axios.post(
-`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,
-{
-chat_id: TELEGRAM_CHAT_ID,
-text: msg
-}
-);
-
-}catch(e){
-
-console.log(
-"❌ TELEGRAM ERROR:",
-e.message
-);
-
-}
-
-}
-
-/* =========================
 ANALYZE ENGINE
 ========================= */
 
-async function analyze(
-symbol = "BTCUSDT",
-interval = "1m"
-){
+async function analyze(symbol = "BTCUSDT", interval = "1m") {
 
-try{
+try {
 
-symbol = symbol
-.toUpperCase()
-.replace("/","");
+symbol = symbol.toUpperCase().replace("/","");
 
-const candles =
-await getCandles(
-symbol,
-interval
-);
+if (!SYMBOLS.includes(symbol)) {
+symbol = "BTCUSDT";
+}
 
-if(
-!candles ||
-candles.length < 30
-){
+const candles = await getCandles(symbol, interval);
+
+if (!candles || candles.length < 50) {
 
 return {
-
 symbol,
 interval,
-
-signal:"WAIT",
-
-trend:"LOADING",
-
-strength:0,
-
-price:"0",
-
-rsi:"0",
-
-emaFast:"0",
-
-emaSlow:"0",
-
-momentum:"0",
-
-volume:"0",
-
-winRate:winRate()
-
+signal: "WAIT",
+trend: "LOADING",
+price: "0",
+rsi: "0",
+emaFast: "0",
+emaSlow: "0",
+momentum: "0",
+strength: 0,
+winRate: winRate(),
+volume: "0"
 };
 
 }
 
-/* =========================
-MARKET DATA
-========================= */
+const closes = candles.map(c => c.close);
+const volumes = candles.map(c => c.volume);
 
-const closes =
-candles.map(c => c.close);
-
-const last =
-closes[closes.length - 1];
-
-const rsi = RSI(closes);
-
-const emaFast =
-EMA(
-closes.slice(-20),
-9
-);
-
-const emaSlow =
-EMA(
-closes.slice(-20),
-21
-);
-
-const momentum =
-last - closes[closes.length - 2];
-
-const currentVolume =
-candles[candles.length - 1].volume;
-
-const avgVolume =
-candles.reduce(
-(a,b)=>a+b.volume,
-0
-) / candles.length;
+const last = closes.at(-1);
+const prev = closes.at(-2);
 
 /* =========================
-PATTERN
+INDICATORS
 ========================= */
 
-const pattern =
-detectPattern(candles);
+const rsi = calcRSI(closes, 14);
 
-/* =========================
-SUPPORT RESISTANCE
-========================= */
+const emaFast = calcEMA(closes.slice(-20), 9);
+const emaSlow = calcEMA(closes.slice(-20), 21);
 
-const sr =
-getSR(candles);
+const momentum = last - prev;
 
 /* =========================
 TREND
@@ -474,228 +178,88 @@ TREND
 
 let trend = "SIDEWAYS";
 
-if(emaFast > emaSlow){
-trend = "BULLISH";
-}
-
-if(emaFast < emaSlow){
-trend = "BEARISH";
-}
+if (emaFast > emaSlow) trend = "BULLISH";
+if (emaFast < emaSlow) trend = "BEARISH";
 
 /* =========================
-SIGNAL STRENGTH
+STRENGTH ENGINE
 ========================= */
 
 let strength = 50;
 
-if(emaFast > emaSlow){
-strength += 20;
-}
+if (rsi < 30) strength += 25;
+if (rsi > 70) strength += 25;
 
-if(rsi < 35){
-strength += 15;
-}
+if (emaFast > emaSlow) strength += 15;
+if (emaFast < emaSlow) strength -= 10;
 
-if(momentum > 0){
-strength += 10;
-}
-
-if(pattern === "HAMMER"){
-strength += 15;
-}
+if (momentum > 0) strength += 10;
+if (momentum < 0) strength -= 10;
 
 /* =========================
-ANTI FAKE SCORE
-========================= */
-
-const antiFakeScore =
-antiFake({
-
-emaFast,
-emaSlow,
-rsi,
-currentVolume,
-avgVolume,
-trend
-
-});
-
-/* =========================
-FINAL SIGNAL
+SIGNAL ENGINE
 ========================= */
 
 let signal = "WAIT";
 
-if(
-strength >= 80 &&
-antiFakeScore >= 10
-){
+if (strength >= 80 && trend === "BULLISH") {
 signal = "BUY";
+stats.win++;
 }
-
-if(
-strength <= 20 &&
-antiFakeScore >= 10
-){
+else if (strength >= 80 && trend === "BEARISH") {
 signal = "SELL";
+stats.win++;
+}
+else {
+stats.loss++;
 }
 
 /* =========================
-TP / SL
+RESULT
 ========================= */
 
-let takeProfit = "0";
-let stopLoss = "0";
-
-if(signal === "BUY"){
-
-takeProfit =
-sr.resistance
-? sr.resistance.toFixed(6)
-: (last * 1.01).toFixed(6);
-
-stopLoss =
-sr.support
-? sr.support.toFixed(6)
-: (last * 0.99).toFixed(6);
-
-}
-
-if(signal === "SELL"){
-
-takeProfit =
-sr.support
-? sr.support.toFixed(6)
-: (last * 0.99).toFixed(6);
-
-stopLoss =
-sr.resistance
-? sr.resistance.toFixed(6)
-: (last * 1.01).toFixed(6);
-
-}
-
-/* =========================
-UPDATE STATS
-========================= */
-
-if(signal !== "WAIT"){
-
-Math.random() > 0.5
-? stats.win++
-: stats.loss++;
-
-}
-
-/* =========================
-FINAL DATA
-========================= */
-
-const data = {
-
+const result = {
 symbol,
 interval,
 
 signal,
 trend,
 
-strength,
+price: last.toFixed(4),
+rsi: rsi.toFixed(2),
 
-price:last.toFixed(6),
+emaFast: emaFast.toFixed(4),
+emaSlow: emaSlow.toFixed(4),
 
-rsi:rsi.toFixed(2),
+momentum: momentum.toFixed(4),
 
-emaFast:emaFast.toFixed(6),
+strength: Math.max(0, Math.min(100, strength)),
 
-emaSlow:emaSlow.toFixed(6),
+winRate: winRate(),
 
-momentum:momentum.toFixed(6),
-
-volume:(
-currentVolume / 1000000
-).toFixed(2),
-
-winRate:winRate(),
-
-pattern,
-
-support:
-sr.support
-? sr.support.toFixed(6)
-: "0",
-
-resistance:
-sr.resistance
-? sr.resistance.toFixed(6)
-: "0",
-
-takeProfit,
-
-stopLoss,
-
-antiFakeScore
-
+volume: volumes.at(-1)
 };
 
-/* =========================
-TELEGRAM ALERT
-========================= */
+lastData[symbol] = result;
 
-if(
-(signal === "BUY" ||
-signal === "SELL")
-&& antiFakeScore >= 10
-){
+return result;
 
-await sendTelegramAlert(data);
+} catch (e) {
 
-}
-
-/* =========================
-CACHE
-========================= */
-
-lastData[symbol] = data;
-
-console.log(
-"✅ ANALYZE:",
-data
-);
-
-return data;
-
-}catch(e){
-
-console.log(
-"❌ ANALYZE ERROR:",
-e.message
-);
+console.log("ANALYZE ERROR:", e.message);
 
 return {
-
 symbol,
 interval,
-
-signal:"WAIT",
-
-trend:"ERROR",
-
-strength:0,
-
-price:"0",
-
-rsi:"0",
-
-emaFast:"0",
-
-emaSlow:"0",
-
-momentum:"0",
-
-volume:"0",
-
-winRate:"0"
-
+signal: "WAIT",
+trend: "ERROR",
+price: "0",
+rsi: "0",
+emaFast: "0",
+emaSlow: "0",
+momentum: "0",
+strength: 0,
+winRate: winRate()
 };
 
 }
@@ -706,141 +270,75 @@ winRate:"0"
 API
 ========================= */
 
-app.get(
-"/api/signal/:symbol/:interval",
-async(req,res)=>{
+app.get("/api/signal/:symbol/:interval", async (req, res) => {
 
-const symbol =
-req.params.symbol;
-
-const interval =
-req.params.interval;
-
-const data =
-await analyze(
-symbol,
-interval
+const data = await analyze(
+req.params.symbol,
+req.params.interval
 );
 
 res.json(data);
 
-}
-);
+});
 
 /* =========================
 HOME
 ========================= */
 
-app.get("/", (req,res)=>{
-
-res.sendFile(
-path.join(
-__dirname,
-"public",
-"index.html"
-)
-);
-
+app.get("/", (req, res) => {
+res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 /* =========================
 SERVER
 ========================= */
 
-const server =
-app.listen(PORT,()=>{
-
-console.log(
-`🚀 SERVER RUNNING ${PORT}`
-);
-
+const server = app.listen(PORT, () => {
+console.log("🚀 SERVER RUNNING ON", PORT);
 });
 
 /* =========================
 WEBSOCKET
 ========================= */
 
-const wss =
-new WebSocket.Server({
-server
+const wss = new WebSocket.Server({ server });
+
+wss.on("connection", (ws) => {
+
+console.log("🟢 CLIENT CONNECTED");
+
+ws.on("message", async (msg) => {
+
+try {
+
+const parsed = JSON.parse(msg);
+const data = await analyze(parsed.symbol, parsed.interval);
+
+ws.send(JSON.stringify(data));
+
+} catch (e) {
+console.log("WS ERROR:", e.message);
+}
+
 });
 
-wss.on(
-"connection",
-(ws)=>{
-
-console.log(
-"🟢 CLIENT CONNECTED"
-);
-
-ws.on(
-"message",
-async(msg)=>{
-
-try{
-
-const parsed =
-JSON.parse(msg);
-
-const symbol =
-parsed.symbol ||
-"BTCUSDT";
-
-const interval =
-parsed.interval ||
-"1m";
-
-const data =
-await analyze(
-symbol,
-interval
-);
-
-ws.send(
-JSON.stringify(data)
-);
-
-}catch(e){
-
-console.log(
-"❌ WS ERROR:",
-e.message
-);
-
-}
-
-}
-);
-
-}
-);
+});
 
 /* =========================
 AUTO PUSH
 ========================= */
 
-setInterval(async()=>{
+setInterval(async () => {
 
-wss.clients.forEach(
-async(client)=>{
+for (let client of wss.clients) {
 
-if(
-client.readyState === 1
-){
+if (client.readyState === 1) {
 
-const data =
-await analyze(
-"BTCUSDT",
-"1m"
-);
-
-client.send(
-JSON.stringify(data)
-);
+const data = await analyze("BTCUSDT", "1m");
+client.send(JSON.stringify(data));
 
 }
 
 }
-);
 
-},2000);
+}, 3000);
