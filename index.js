@@ -10,16 +10,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 STABLE BINANCE PIPELINE STARTED");
+console.log("🚀 FULL SYNC TRADING ENGINE STARTED");
 
-/* =========================
-BINANCE ENDPOINTS (FALLBACK SAFE)
-========================= */
-
-const ENDPOINTS = [
-"https://api.binance.com/api/v3/klines",
-"https://api1.binance.com/api/v3/klines"
-];
+const BASE = "https://api.binance.com/api/v3";
 
 const SYMBOLS = [
 "BTCUSDT",
@@ -30,10 +23,6 @@ const SYMBOLS = [
 "DOGEUSDT"
 ];
 
-/* =========================
-STATS
-========================= */
-
 let stats = { win: 120, loss: 32 };
 
 function winRate() {
@@ -42,71 +31,38 @@ return total ? ((stats.win / total) * 100).toFixed(2) : "0.00";
 }
 
 /* =========================
-SAFE FETCH (ANTI-FAIL)
-========================= */
-
-async function fetchKlines(symbol, interval) {
-
-for (let url of ENDPOINTS) {
-try {
-const res = await axios.get(url, {
-params: {
-symbol,
-interval,
-limit: 100
-},
-timeout: 8000
-});
-
-if (res.data && Array.isArray(res.data)) {
-return res.data;
-}
-
-} catch (e) {
-console.log("Endpoint failed:", url);
-}
-}
-
-return null;
-}
-
-/* =========================
-CLEAN CLOSE PRICES
+FETCH BINANCE SAFE
 ========================= */
 
 async function getCloses(symbol, interval) {
+try {
+const res = await axios.get(`${BASE}/klines`, {
+params: { symbol, interval, limit: 100 },
+timeout: 10000
+});
 
-const data = await fetchKlines(symbol, interval);
+if (!res.data) return null;
 
-if (!data) {
-console.log("NO DATA FROM ALL ENDPOINTS");
-return null;
-}
-
-const closes = data
+return res.data
 .map(c => Number(c[4]))
 .filter(n => Number.isFinite(n));
 
-if (closes.length < 30) {
-console.log("INSUFFICIENT CLOSES:", closes.length);
+} catch (e) {
+console.log("BINANCE ERROR:", e.message);
 return null;
 }
-
-return closes;
 }
 
 /* =========================
-RSI WILDER (REAL TRADINGVIEW STYLE)
+RSI WILDER
 ========================= */
 
-function RSI_Wilder(closes, period = 14) {
-
+function RSI(closes, period = 14) {
 if (!closes || closes.length < period + 1) return null;
 
 let gains = 0;
 let losses = 0;
 
-// initial average
 for (let i = 1; i <= period; i++) {
 const diff = closes[i] - closes[i - 1];
 if (diff > 0) gains += diff;
@@ -116,30 +72,28 @@ else losses += Math.abs(diff);
 gains /= period;
 losses /= period;
 
-let rsi = 100 - (100 / (1 + (gains / (losses || 1))));
+let rsi = 100 - (100 / (1 + gains / (losses || 1)));
 
-// smoothing
 for (let i = period + 1; i < closes.length; i++) {
 const diff = closes[i] - closes[i - 1];
 
 const gain = diff > 0 ? diff : 0;
 const loss = diff < 0 ? Math.abs(diff) : 0;
 
-gains = (gains * (period - 1) + gain) / period;
-losses = (losses * (period - 1) + loss) / period;
+gains = (gains * 13 + gain) / 14;
+losses = (losses * 13 + loss) / 14;
 
-rsi = 100 - (100 / (1 + (gains / (losses || 1))));
+rsi = 100 - (100 / (1 + gains / (losses || 1)));
 }
 
 return rsi;
 }
 
 /* =========================
-EMA SAFE
+EMA
 ========================= */
 
 function EMA(data, period) {
-
 if (!data || data.length < period) return null;
 
 const k = 2 / (period + 1);
@@ -154,7 +108,7 @@ return ema;
 }
 
 /* =========================
-ANALYZE ENGINE (CLEAN + SAFE)
+ANALYZE CORE
 ========================= */
 
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
@@ -164,36 +118,25 @@ if (!SYMBOLS.includes(symbol)) symbol = "BTCUSDT";
 
 const closes = await getCloses(symbol, interval);
 
-if (!closes) {
+if (!closes || closes.length < 30) {
 return {
-symbol,
-interval,
-error: "NO_MARKET_DATA",
-message: "Binance data unavailable"
+ok: false,
+error: "NO_DATA"
 };
 }
 
-const last = closes.at(-1);
+const price = closes.at(-1);
 const prev = closes.at(-2);
 
-/* =========================
-INDICATORS SAFE
-========================= */
-
-const rsi = RSI_Wilder(closes, 14);
+const rsi = RSI(closes);
 const emaFast = EMA(closes.slice(-20), 9);
 const emaSlow = EMA(closes.slice(-20), 21);
 
-if (!rsi || !emaFast || !emaSlow) {
-return {
-symbol,
-interval,
-error: "CALC_ERROR",
-message: "Indicator failed"
-};
+if (rsi === null || emaFast === null || emaSlow === null) {
+return { ok: false, error: "CALC_FAIL" };
 }
 
-const momentum = last - prev;
+const momentum = price - prev;
 
 /* =========================
 TREND
@@ -211,10 +154,8 @@ let strength = 50;
 
 if (rsi < 30) strength += 20;
 if (rsi > 70) strength += 20;
-
 if (emaFast > emaSlow) strength += 10;
 if (emaFast < emaSlow) strength -= 10;
-
 if (momentum > 0) strength += 10;
 if (momentum < 0) strength -= 10;
 
@@ -239,31 +180,28 @@ stats.loss++;
 }
 
 /* =========================
-FINAL OUTPUT
+FINAL OUTPUT (SYNC CLEAN)
 ========================= */
 
 return {
+ok: true,
 symbol,
 interval,
-
 signal,
 trend,
-
-price: last,
-rsi: rsi.toFixed(2),
-emaFast: emaFast.toFixed(2),
-emaSlow: emaSlow.toFixed(2),
-
-momentum: momentum.toFixed(2),
+price,
+rsi: Number(rsi.toFixed(2)),
+emaFast: Number(emaFast.toFixed(2)),
+emaSlow: Number(emaSlow.toFixed(2)),
+momentum: Number(momentum.toFixed(2)),
 strength,
 winRate: winRate(),
 volume: "LIVE"
 };
-
 }
 
 /* =========================
-API
+HTTP API
 ========================= */
 
 app.get("/api/signal/:symbol/:interval", async (req, res) => {
@@ -272,16 +210,12 @@ res.json(data);
 });
 
 /* =========================
-SERVER
+SERVER + WS
 ========================= */
 
 const server = app.listen(PORT, () => {
-console.log("🚀 SERVER RUNNING:", PORT);
+console.log("🚀 RUNNING ON PORT:", PORT);
 });
-
-/* =========================
-WEBSOCKET
-========================= */
 
 const wss = new WebSocket.Server({ server });
 
@@ -293,18 +227,18 @@ const { symbol, interval } = JSON.parse(msg);
 const data = await analyze(symbol, interval);
 ws.send(JSON.stringify(data));
 } catch (e) {
-console.log("WS ERROR:", e.message);
+ws.send(JSON.stringify({ ok: false, error: "WS_ERROR" }));
 }
 });
 
 });
 
 /* =========================
-AUTO PUSH SAFE
+AUTO PUSH
 ========================= */
 
 setInterval(async () => {
-for (let client of wss.clients) {
+for (const client of wss.clients) {
 if (client.readyState === 1) {
 const data = await analyze("BTCUSDT", "1m");
 client.send(JSON.stringify(data));
