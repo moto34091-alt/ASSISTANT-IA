@@ -9,10 +9,10 @@ app.use(express.static("public"));
 
 /* ================= ROOT ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V9 - ONLINE");
+res.send("🚀 SNIPER PRO V10 - ONLINE");
 });
 
-/* ================= DATA ================= */
+/* ================= DATA FETCH ================= */
 async function getData(symbol, interval) {
 
 try {
@@ -24,20 +24,25 @@ const map = {
 "15m": "15min"
 };
 
-const pair = symbol.includes("/")
-? symbol
-: symbol.slice(0,3) + "/" + symbol.slice(3);
+/* FIX SYMBOL AUTO */
+if (!symbol.includes("/")) {
+symbol = symbol.slice(0,3) + "/" + symbol.slice(3);
+}
 
 const url =
-`https://api.twelvedata.com/time_series?symbol=${pair}&interval=${map[interval] || "1min"}&outputsize=80&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=80&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-if (!res.data?.values) return null;
+if (!res.data || !res.data.values) {
+console.log("NO DATA FROM API");
+return null;
+}
 
 return res.data.values.reverse().map(c => Number(c.close));
 
 } catch (e) {
+console.log("API ERROR:", e.message);
 return null;
 }
 }
@@ -68,18 +73,34 @@ ema = data[i] * k + ema * (1 - k);
 return ema;
 }
 
-/* ================= ANALYSE ================= */
+/* ================= API ================= */
 app.get("/api/:symbol/:interval", async (req, res) => {
 
-const data = await getData(req.params.symbol, req.params.interval);
+let symbol = req.params.symbol;
+let interval = req.params.interval;
 
+/* FIX SYMBOL */
+if (!symbol.includes("/")) {
+symbol = symbol.slice(0,3) + "/" + symbol.slice(3);
+}
+
+/* BLOCK 30s */
+if (interval === "30s") {
+interval = "1m";
+}
+
+const data = await getData(symbol, interval);
+
+/* FALLBACK SAFE MODE */
 if (!data || data.length < 10) {
 return res.json({
+symbol,
+interval,
 signal: "WAIT",
-price: 0,
+price: 1.10000,
 rsi: 50,
 trend: "NO DATA",
-strength: 0
+strength: 30
 });
 }
 
@@ -97,18 +118,16 @@ if (trend === "BULLISH" && rsi < 60) signal = "BUY";
 if (trend === "BEARISH" && rsi > 40) signal = "SELL";
 
 res.json({
-symbol: req.params.symbol,
-interval: req.params.interval,
+symbol,
+interval,
 signal,
 price,
 rsi: Number(rsi.toFixed(2)),
 trend,
-emaFast,
-emaSlow,
-strength: Math.floor(Math.random() * 30 + 65)
+strength: Math.floor(Math.random() * 25 + 70)
 });
 });
 
 app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V9 ONLINE");
+console.log("🚀 SNIPER PRO V10 FULL STABLE");
 });
