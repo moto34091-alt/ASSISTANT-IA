@@ -10,7 +10,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 NZFX PRO CLEAN ENGINE STARTED");
+console.log("🚀 TRADINGVIEW-LIKE ENGINE STARTED");
 
 /* =========================
 BINANCE
@@ -39,7 +39,7 @@ return total ? ((stats.win / total) * 100).toFixed(2) : "0.00";
 }
 
 /* =========================
-FETCH BINANCE (NO FAKE)
+GET CANDLES (CLEAN)
 ========================= */
 
 async function getCandles(symbol, interval) {
@@ -51,7 +51,8 @@ timeout: 10000
 
 if (!res.data || !Array.isArray(res.data)) return null;
 
-return res.data.map(c => Number(c[4])); // ONLY CLOSES
+// ONLY CLOSE PRICES (IMPORTANT)
+return res.data.map(c => Number(c[4]));
 
 } catch (e) {
 console.log("BINANCE ERROR:", e.message);
@@ -60,35 +61,53 @@ return null;
 }
 
 /* =========================
-RSI REAL
+RSI WILDER (TRADINGVIEW STYLE)
 ========================= */
 
-function RSI(closes, period = 14) {
-
+function RSI_Wilder(closes, period = 14) {
 if (!closes || closes.length < period + 1) return null;
 
 let gains = 0;
 let losses = 0;
 
-for (let i = closes.length - period; i < closes.length; i++) {
+// first average
+for (let i = 1; i <= period; i++) {
 const diff = closes[i] - closes[i - 1];
 if (diff > 0) gains += diff;
 else losses += Math.abs(diff);
 }
 
-const rs = gains / (losses || 1);
-return 100 - (100 / (1 + rs));
+gains /= period;
+losses /= period;
+
+let rs = gains / (losses || 1);
+let rsi = 100 - (100 / (1 + rs));
+
+// smoothing loop (Wilder)
+for (let i = period + 1; i < closes.length; i++) {
+const diff = closes[i] - closes[i - 1];
+
+const gain = diff > 0 ? diff : 0;
+const loss = diff < 0 ? Math.abs(diff) : 0;
+
+gains = (gains * (period - 1) + gain) / period;
+losses = (losses * (period - 1) + loss) / period;
+
+rs = gains / (losses || 1);
+rsi = 100 - (100 / (1 + rs));
+}
+
+return rsi;
 }
 
 /* =========================
-EMA REAL
+EMA (TRADINGVIEW STYLE)
 ========================= */
 
 function EMA(data, period) {
-
 if (!data || data.length < period) return null;
 
-let k = 2 / (period + 1);
+const k = 2 / (period + 1);
 let ema = data[0];
 
 for (let i = 1; i < data.length; i++) {
@@ -99,7 +118,7 @@ return ema;
 }
 
 /* =========================
-ANALYZE ENGINE (NO FAKE DATA)
+ANALYZE ENGINE
 ========================= */
 
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
@@ -111,10 +130,10 @@ const closes = await getCandles(symbol, interval);
 
 if (!closes || closes.length < 30) {
 return {
-error: "NO_DATA",
-message: "Insufficient market data from Binance",
 symbol,
-interval
+interval,
+error: "NO_DATA",
+message: "Not enough market data"
 };
 }
 
@@ -122,19 +141,18 @@ const last = closes.at(-1);
 const prev = closes.at(-2);
 
 /* =========================
-INDICATORS (REAL ONLY)
+INDICATORS
 ========================= */
 
-const rsi = RSI(closes);
+const rsi = RSI_Wilder(closes, 14);
 const emaFast = EMA(closes.slice(-20), 9);
 const emaSlow = EMA(closes.slice(-20), 21);
 
 if (rsi === null || emaFast === null || emaSlow === null) {
 return {
-error: "CALC_ERROR",
-message: "Indicator calculation failed",
 symbol,
-interval
+interval,
+error: "CALC_ERROR"
 };
 }
 
@@ -149,7 +167,7 @@ if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
 /* =========================
-STRENGTH (REAL ONLY)
+STRENGTH
 ========================= */
 
 let strength = 50;
@@ -166,16 +184,16 @@ if (momentum < 0) strength -= 10;
 strength = Math.max(0, Math.min(100, strength));
 
 /* =========================
-SIGNAL (STRICT)
+SIGNAL (TRADINGVIEW STYLE)
 ========================= */
 
 let signal = "WAIT";
 
-if (strength >= 80 && trend === "BULLISH") {
+if (rsi < 30 && emaFast > emaSlow) {
 signal = "BUY";
 stats.win++;
 }
-else if (strength >= 80 && trend === "BEARISH") {
+else if (rsi > 70 && emaFast < emaSlow) {
 signal = "SELL";
 stats.win++;
 }
@@ -184,12 +202,13 @@ stats.loss++;
 }
 
 /* =========================
-RESULT (NO FAKE VALUES)
+RESULT
 ========================= */
 
 return {
 symbol,
 interval,
+
 signal,
 trend,
 
@@ -198,9 +217,10 @@ rsi: rsi.toFixed(2),
 emaFast: emaFast.toFixed(2),
 emaSlow: emaSlow.toFixed(2),
 
-momentum: momentum.toFixed(4),
+momentum: momentum.toFixed(2),
 strength,
 winRate: winRate(),
+
 volume: "LIVE"
 };
 
