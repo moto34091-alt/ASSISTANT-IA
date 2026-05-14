@@ -9,14 +9,20 @@ app.use(express.static("public"));
 
 /* ================= ROOT ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V11 - ONLINE");
+res.send("🚀 SNIPER PRO V13 - ONLINE");
 });
 
-/* ================= FETCH DATA ================= */
+/* ================= FETCH MARKET DATA ================= */
 async function getData(symbol, interval) {
 
 try {
 
+/* FORCE CLEAN SYMBOL */
+if (!symbol.includes("/")) {
+symbol = symbol.slice(0,3) + "/" + symbol.slice(3);
+}
+
+/* SAFE INTERVAL */
 const map = {
 "30s": "1min",
 "1m": "1min",
@@ -24,25 +30,35 @@ const map = {
 "15m": "15min"
 };
 
-if (!symbol.includes("/")) {
-symbol = symbol.slice(0,3) + "/" + symbol.slice(3);
-}
-
 const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=120&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-const values = res.data?.values;
+/* DEBUG */
+console.log("SYMBOL:", symbol);
+console.log("STATUS:", res.data.status || "ok");
+console.log("DATA LENGTH:", res.data?.values?.length);
 
-if (!values || values.length < 15) {
+/* ERROR CHECK */
+if (!res.data || res.data.status === "error") {
+console.log("❌ API ERROR");
 return null;
 }
 
+/* VALUES CHECK */
+const values = res.data.values;
+
+if (!values || values.length < 20) {
+console.log("❌ NOT ENOUGH DATA");
+return null;
+}
+
+/* CLEAN CLOSE PRICES */
 return values.reverse().map(c => Number(c.close));
 
-} catch (e) {
-console.log("API ERROR:", e.message);
+} catch (err) {
+console.log("❌ API ERROR:", err.message);
 return null;
 }
 }
@@ -51,7 +67,8 @@ return null;
 function RSI(data) {
 if (!data || data.length < 14) return 50;
 
-let gain = 0, loss = 0;
+let gain = 0;
+let loss = 0;
 
 for (let i = 1; i < 14; i++) {
 const diff = data[i] - data[i - 1];
@@ -80,37 +97,38 @@ app.get("/api/:symbol/:interval", async (req, res) => {
 let symbol = req.params.symbol;
 let interval = req.params.interval;
 
+/* CLEAN SYMBOL */
 if (!symbol.includes("/")) {
 symbol = symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
+/* FIX INTERVAL */
 if (interval === "30s") interval = "1m";
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK INTELLIGENT ================= */
+/* ================= FALLBACK CLEAN ================= */
 if (!data) {
-
-const fakePrice = 1.1000;
-
 return res.json({
 symbol,
 interval,
 signal: "WAIT",
-price: fakePrice,
+price: 1.1000,
 rsi: 50,
-trend: "MARKET LOADING",
-strength: 35
+trend: "NO DATA",
+strength: 30
 });
 }
 
+/* ================= CALCULATIONS ================= */
 const price = data.at(-1);
 const rsi = RSI(data);
-const emaFast = EMA(data.slice(-20), 9);
-const emaSlow = EMA(data.slice(-20), 21);
+const emaFast = EMA(data.slice(-25), 9);
+const emaSlow = EMA(data.slice(-25), 21);
 
 /* ================= TREND ================= */
 let trend = "SIDEWAYS";
+
 if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
@@ -123,8 +141,11 @@ if (trend === "BEARISH" && rsi > 35) signal = "SELL";
 /* ================= STRENGTH ================= */
 let strength = 50;
 
-if (signal !== "WAIT") strength += 25;
-if (rsi > 50 && rsi < 70) strength += 10;
+if (signal !== "WAIT") strength += 30;
+if (rsi > 45 && rsi < 70) strength += 10;
+if (trend !== "SIDEWAYS") strength += 10;
+
+strength = Math.min(100, strength);
 
 /* ================= RESPONSE ================= */
 res.json({
@@ -134,10 +155,11 @@ signal,
 price,
 rsi: Number(rsi.toFixed(2)),
 trend,
-strength: Math.min(100, strength)
+strength
 });
+
 });
 
 app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V11 ONLINE");
+console.log("🚀 SNIPER PRO V13 STABLE ONLINE");
 });
