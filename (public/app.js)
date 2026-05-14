@@ -1,18 +1,18 @@
-let symbol="";
-let time="";
+let symbol = "";
+let time = "";
 
 function show(id){
 document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
 }
 
-function setS(s){
-symbol=s;
+function setSymbol(s){
+symbol = s;
 show("s2");
 }
 
-function setT(t){
-time=t;
+function setTime(t){
+time = t;
 run();
 }
 
@@ -20,23 +20,35 @@ async function run(){
 
 show("s3");
 
+/* petit délai UX */
 setTimeout(async ()=>{
 
-const r=await fetch(`/api/${symbol}/${time}`);
-const d=await r.json();
+const res = await fetch(`/api/${symbol}/${time}`);
+const d = await res.json();
 
-document.getElementById("sig").innerText=d.signal;
-document.getElementById("info").innerText=
-`PRICE: ${d.price}
-RSI: ${d.rsi}
-TREND: ${d.trend}
-BOS: ${d.bos}
-SWEEP: ${d.sweep}
-STRENGTH: ${d.strength}`;
+/* signal color */
+let color = "orange";
+if(d.signal === "BUY") color = "green";
+if(d.signal === "SELL") color = "red";
+
+document.getElementById("signal").innerHTML =
+`SIGNAL: <span class="${color}">${d.signal}</span>`;
+
+document.getElementById("price").innerText =
+"PRICE: " + d.price;
+
+document.getElementById("rsi").innerText =
+"RSI: " + d.rsi;
+
+document.getElementById("trend").innerText =
+"TREND: " + d.trend;
+
+document.getElementById("strength").innerText =
+"STRENGTH: " + (d.strength || 0);
 
 show("s4");
 
-},10000);
+}, 12000);
 }
 
 function reset(){
