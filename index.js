@@ -4,16 +4,18 @@ const axios = require("axios");
 const WebSocket = require("ws");
 
 const app = express();
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
-console.log("🚀 NZFX STABLE ENGINE STARTED");
+
+console.log("🚀 NZFX AI ENGINE STABLE STARTED");
 
 const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-SAFE WINRATE
+STATS
 ========================= */
 let stats = { win: 120, loss: 32 };
 
@@ -23,7 +25,7 @@ return total ? ((stats.win / total) * 100).toFixed(2) : "0.00";
 }
 
 /* =========================
-RETRY BINANCE SAFE
+BINANCE SAFE FETCH
 ========================= */
 async function getCloses(symbol, interval, retry = 3) {
 try {
@@ -43,7 +45,7 @@ if (closes.length < 20) throw new Error("NOT_ENOUGH_DATA");
 return closes;
 
 } catch (e) {
-console.log("BINANCE FAIL:", e.message);
+console.log("BINANCE ERROR:", e.message);
 
 if (retry > 0) {
 return getCloses(symbol, interval, retry - 1);
@@ -54,12 +56,13 @@ return null;
 }
 
 /* =========================
-RSI (REAL WILDER)
+RSI (WILDER)
 ========================= */
 function RSI(values, period = 14) {
-if (!values || values.length < period + 1) return 50;
+if (!Array.isArray(values) || values.length < period + 1) return 50;
 
-let gains = 0, losses = 0;
+let gains = 0;
+let losses = 0;
 
 for (let i = 1; i <= period; i++) {
 const diff = values[i] - values[i - 1];
@@ -88,23 +91,27 @@ return rsi;
 }
 
 /* =========================
-EMA
+EMA FIXED
 ========================= */
 function EMA(data, period) {
-if (!data || data.length < period) return data?.at(-1) || 0;
+if (!Array.isArray(data) || data.length < period) return null;
 
 const k = 2 / (period + 1);
-let ema = data[0];
+
+let ema = Number(data[0]);
 
 for (let i = 1; i < data.length; i++) {
-ema = data[i] * k + ema * (1 - k);
+const val = Number(data[i]);
+if (!Number.isFinite(val)) continue;
+
+ema = val * k + ema * (1 - k);
 }
 
 return ema;
 }
 
 /* =========================
-ANALYZE ENGINE (SAFE)
+ANALYZE ENGINE (FULL FIX)
 ========================= */
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
 
@@ -130,13 +137,34 @@ volume: "0"
 };
 }
 
-const price = closes.at(-1);
-const prev = closes.at(-2) || price;
+const clean = closes.filter(n => Number.isFinite(n));
 
-const rsi = RSI(closes);
-const emaFast = EMA(closes.slice(-20), 9);
-const emaSlow = EMA(closes.slice(-20), 21);
+const price = clean.at(-1);
+const prev = clean.at(-2) || price;
+
+const rsi = RSI(clean);
+const emaFast = EMA(clean.slice(-20), 9);
+const emaSlow = EMA(clean.slice(-20), 21);
 const momentum = price - prev;
+
+/* fallback safety */
+if (!price || !emaFast || !emaSlow) {
+return {
+ok: true,
+symbol,
+interval,
+signal: "WAIT",
+trend: "LOADING",
+price: price || 0,
+rsi: rsi || 50,
+emaFast: emaFast || 0,
+emaSlow: emaSlow || 0,
+momentum: momentum || 0,
+strength: 0,
+winRate: winRate(),
+volume: "0"
+};
+}
 
 /* TREND */
 let trend = "SIDEWAYS";
@@ -145,6 +173,7 @@ if (emaFast < emaSlow) trend = "BEARISH";
 
 /* STRENGTH */
 let strength = 50;
+
 if (rsi < 30) strength += 20;
 if (rsi > 70) strength += 20;
 if (momentum > 0) strength += 10;
@@ -196,7 +225,7 @@ res.json(data);
 SERVER
 ========================= */
 const server = app.listen(PORT, () => {
-console.log("🚀 RUNNING:", PORT);
+console.log("🚀 SERVER RUNNING:", PORT);
 });
 
 /* =========================
@@ -230,7 +259,9 @@ volume: "0"
 
 });
 
-/* AUTO PUSH */
+/* =========================
+AUTO PUSH
+========================= */
 setInterval(async () => {
 for (const client of wss.clients) {
 if (client.readyState === 1) {
