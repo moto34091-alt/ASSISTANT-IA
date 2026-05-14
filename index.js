@@ -8,21 +8,21 @@ const app = express();
 app.use(express.json());
 
 /* =========================
-CRASH PROTECTION
+SAFE CRASH HANDLING
 ========================= */
 process.on("uncaughtException", (err) => {
-console.log("CRASH:", err);
+console.log("CRASH:", err.message);
 });
 
 process.on("unhandledRejection", (err) => {
-console.log("PROMISE ERROR:", err);
+console.log("PROMISE ERROR:", err.message);
 });
 
 /* =========================
-HEALTH CHECK (RAILWAY)
+HOME PAGE (RAILWAY CHECK)
 ========================= */
 app.get("/", (req, res) => {
-res.status(200).send(`
+res.send(`
 <!DOCTYPE html>
 <html>
 <head>
@@ -35,18 +35,11 @@ height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-background:#ffffff;
+background:white;
 font-family:Arial;
 }
-
-h1{
-color:#111;
-font-size:28px;
-}
-
-p{
-color:#666;
-}
+h1{color:#111;font-size:28px;}
+p{color:#666;}
 </style>
 </head>
 <body>
@@ -60,25 +53,27 @@ color:#666;
 });
 
 /* =========================
-BINANCE API
+TEST ROUTE
+========================= */
+app.get("/test", (req, res) => {
+res.json({ status: "OK", message: "SERVER WORKING" });
+});
+
+/* =========================
+BINANCE DATA
 ========================= */
 const BASE = "https://api.binance.com/api/v3";
 
-/* =========================
-GET DATA
-========================= */
 async function getCloses(symbol, interval) {
 try {
 const res = await axios.get(`${BASE}/klines`, {
 params: { symbol, interval, limit: 100 }
 });
 
-if (!Array.isArray(res.data)) return null;
-
 return res.data.map(c => Number(c[4]));
 
-} catch (err) {
-console.log("BINANCE ERROR:", err.message);
+} catch (e) {
+console.log("BINANCE ERROR:", e.message);
 return null;
 }
 }
@@ -117,8 +112,6 @@ return 100 - (100 / (1 + avgGain / (avgLoss || 1)));
 EMA
 ========================= */
 function EMA(data, period) {
-if (!data || data.length === 0) return 0;
-
 const k = 2 / (period + 1);
 let ema = data[0];
 
@@ -136,7 +129,6 @@ async function analyze(symbol, interval) {
 
 const data = await getCloses(symbol, interval);
 
-/* SAFE MODE */
 if (!data || data.length < 50) {
 return {
 symbol,
@@ -160,10 +152,7 @@ const emaFast = EMA(data.slice(-20), 9);
 const emaSlow = EMA(data.slice(-20), 21);
 const momentum = price - prev;
 
-/* =========================
-SIGNAL LOGIC
-========================= */
-let signal = "WAIT";
+/* SIGNAL */
 let strength = 50;
 
 if (emaFast > emaSlow) strength += 25;
@@ -177,12 +166,10 @@ if (momentum < 0) strength -= 10;
 
 strength = Math.max(0, Math.min(100, strength));
 
+let signal = "WAIT";
 if (strength >= 75 && rsi < 45) signal = "BUY";
 else if (strength >= 75 && rsi > 55) signal = "SELL";
 
-/* =========================
-RETURN DATA
-========================= */
 return {
 symbol,
 interval,
@@ -193,24 +180,29 @@ emaFast: Number(emaFast.toFixed(2)),
 emaSlow: Number(emaSlow.toFixed(2)),
 momentum: Number(momentum.toFixed(2)),
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH",
-strength: Number(strength.toFixed(0))
+strength
 };
 }
 
 /* =========================
-API ROUTE
+API ROUTE (IMPORTANT)
 ========================= */
 app.get("/api/:symbol/:interval", async (req, res) => {
-res.json(await analyze(req.params.symbol, req.params.interval));
+try {
+const result = await analyze(req.params.symbol, req.params.interval);
+res.json(result);
+} catch (e) {
+res.status(500).json({ error: "SERVER ERROR" });
+}
 });
 
 /* =========================
-PORT (RAILWAY FIX)
+PORT RAILWAY FIX
 ========================= */
 const PORT = process.env.PORT || 3000;
 
 /* =========================
-SERVER START
+START SERVER
 ========================= */
 const server = app.listen(PORT, () => {
 console.log("🚀 SNIPER PRO V7 RUNNING ON PORT", PORT);
@@ -226,8 +218,8 @@ wss.on("connection", (ws) => {
 ws.on("message", async (msg) => {
 try {
 const { symbol, interval } = JSON.parse(msg.toString());
-const result = await analyze(symbol, interval);
-ws.send(JSON.stringify(result));
+const data = await analyze(symbol, interval);
+ws.send(JSON.stringify(data));
 } catch (e) {
 ws.send(JSON.stringify({ signal: "WAIT" }));
 }
@@ -236,13 +228,13 @@ ws.send(JSON.stringify({ signal: "WAIT" }));
 });
 
 /* =========================
-LIVE LOOP
+LIVE UPDATE LOOP
 ========================= */
 setInterval(async () => {
 for (const client of wss.clients) {
 if (client.readyState === 1) {
-const result = await analyze("BTCUSDT", "5m");
-client.send(JSON.stringify(result));
+const data = await analyze("BTCUSDT", "5m");
+client.send(JSON.stringify(data));
 }
 }
 }, 10000);
