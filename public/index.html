@@ -2,60 +2,114 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>SNIPER PRO V10</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<title>SNIPER PRO V14</title>
 
 <style>
 body{
 margin:0;
+padding:0;
 font-family: Arial Black;
-background: radial-gradient(#0a0a0a,#000);
+background:#000;
 color:white;
+overflow:hidden;
 }
 
-.screen{display:none;padding:20px;text-align:center;}
-.active{display:block;}
+/* ================= SCREENS ================= */
+.screen{
+display:none;
+height:100vh;
+width:100vw;
+padding:20px;
+box-sizing:border-box;
+text-align:center;
+}
 
-h2{font-size:28px;}
+.active{
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+animation:fade 0.4s ease-in-out;
+}
 
+/* ================= ANIMATION ================= */
+@keyframes fade{
+from{opacity:0; transform:scale(0.95);}
+to{opacity:1; transform:scale(1);}
+}
+
+/* ================= TITLE ================= */
+h2{
+font-size:22px;
+margin-bottom:15px;
+}
+
+/* ================= BUTTONS ================= */
 button{
-padding:14px;
+width:90%;
+padding:15px;
 margin:6px;
 border:none;
-border-radius:12px;
-background:#1f6feb;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:hover{transform:scale(1.05);}
-
-.card{
-background:rgba(255,255,255,0.05);
-padding:20px;
 border-radius:15px;
-margin-top:20px;
+background:linear-gradient(135deg,#1f6feb,#00aaff);
+color:white;
+font-size:16px;
+font-weight:bold;
+box-shadow:0 5px 15px rgba(0,0,0,0.5);
+transition:0.2s;
 }
 
-.big{font-size:30px;font-weight:bold;}
+button:active{
+transform:scale(0.96);
+}
 
+/* ================= LIST GRID ================= */
+.list{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+width:100%;
+}
+
+/* ================= CARD RESULT ================= */
+.card{
+width:90%;
+background:rgba(255,255,255,0.05);
+padding:15px;
+border-radius:15px;
+margin-top:15px;
+backdrop-filter: blur(10px);
+}
+
+/* ================= BIG SIGNAL ================= */
+.big{
+font-size:30px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+/* ================= COLORS ================= */
 .green{color:#00ff99;}
 .red{color:#ff4d4d;}
 .orange{color:#ffaa00;}
 
-.list{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
+/* ================= SMALL TEXT ================= */
+p{
+margin:5px;
+font-size:14px;
+opacity:0.9;
 }
 </style>
 </head>
 
 <body>
 
-<!-- MARKET -->
+<!-- ================= SCREEN 1 : MARKET ================= -->
 <div id="s1" class="screen active">
-<h2>📊 CHOISIS MARCHÉ</h2>
+
+<h2>📊 CHOISIS LE MARCHÉ</h2>
 
 <div class="list">
 
@@ -77,36 +131,48 @@ gap:10px;
 <button onclick="setSymbol('EURCAD')">EUR/CAD</button>
 
 </div>
+
+<p>⚡ Smart Trading Engine Active</p>
+
 </div>
 
-<!-- TIME -->
+<!-- ================= SCREEN 2 : TIME ================= -->
 <div id="s2" class="screen">
-<h2>⏱ TIMEFRAME</h2>
 
-<button onclick="setTime('30s')">30 SEC</button>
+<h2>⏱ CHOISIS LE TIMEFRAME</h2>
+
+<button onclick="setTime('30s')">30 SEC (FAST)</button>
 <button onclick="setTime('1m')">1 MIN</button>
 <button onclick="setTime('5m')">5 MIN</button>
 <button onclick="setTime('15m')">15 MIN</button>
+
 </div>
 
-<!-- LOADING -->
+<!-- ================= SCREEN 3 : LOADING ================= -->
 <div id="s3" class="screen">
-<h2>⚡ ANALYSE EN COURS...</h2>
+
+<h2>⚡ ANALYSE EN COURS</h2>
+<p>Smart Money Engine Running...</p>
+
 </div>
 
-<!-- RESULT -->
+<!-- ================= SCREEN 4 : RESULT ================= -->
 <div id="s4" class="screen">
+
 <h2>📊 RÉSULTAT</h2>
 
 <div class="card">
+
 <div id="signal" class="big"></div>
 <div id="price"></div>
 <div id="rsi"></div>
 <div id="trend"></div>
 <div id="strength"></div>
+
 </div>
 
 <button onclick="reset()">🔁 NOUVELLE ANALYSE</button>
+
 </div>
 
 <script src="app.js"></script>
