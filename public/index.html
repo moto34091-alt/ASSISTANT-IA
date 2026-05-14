@@ -5,67 +5,57 @@
 <title>SNIPER PRO V9</title>
 
 <style>
-body {
+body{
 margin:0;
-font-family: Arial;
-background: radial-gradient(#0a0a0a, #000);
+font-family: Arial Black;
+background: radial-gradient(#0a0a0a,#000);
 color:white;
 }
 
-.screen {
-display:none;
-padding:20px;
-text-align:center;
-}
+.screen{display:none;padding:20px;text-align:center;}
+.active{display:block;}
 
-.active {
-display:block;
-}
+h2{font-size:28px;}
 
-h2 {
-margin-bottom:15px;
-}
-
-.list {
-display:grid;
-grid-template-columns: 1fr 1fr;
-gap:10px;
-max-height:60vh;
-overflow:auto;
-}
-
-button {
-padding:12px;
+button{
+padding:14px;
+margin:6px;
 border:none;
-border-radius:10px;
+border-radius:12px;
 background:#1f6feb;
 color:white;
 font-weight:bold;
+cursor:pointer;
 }
 
-.card {
-background:#111;
+button:hover{transform:scale(1.05);}
+
+.card{
+background:rgba(255,255,255,0.05);
 padding:20px;
 border-radius:15px;
 margin-top:20px;
 }
 
-.big {
-font-size:24px;
-font-weight:bold;
-}
+.big{font-size:28px;font-weight:bold;}
 
-.green { color:#00ff99; }
-.red { color:#ff4d4d; }
-.orange { color:#ffaa00; }
+.green{color:#00ff99;}
+.red{color:#ff4d4d;}
+.orange{color:#ffaa00;}
+
+.list{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
 </style>
 </head>
 
 <body>
 
-<!-- SCREEN 1 -->
+<!-- MARKET -->
 <div id="s1" class="screen active">
-<h2>📊 CHOISIS LE MARCHÉ</h2>
+<h2>📊 CHOISIS MARCHÉ</h2>
 
 <div class="list">
 
@@ -87,11 +77,20 @@ font-weight:bold;
 <button onclick="setSymbol('EURCAD')">EUR/CAD</button>
 
 </div>
+
+<div class="card">
+<h3>📈 STRATÉGIES</h3>
+<p>✔ Trend EMA</p>
+<p>✔ RSI Momentum</p>
+<p>✔ Structure BOS</p>
+<p>✔ Smart Filter</p>
 </div>
 
-<!-- SCREEN 2 -->
+</div>
+
+<!-- TIME -->
 <div id="s2" class="screen">
-<h2>⏱ CHOISIS LE TIMEFRAME</h2>
+<h2>⏱ TIMEFRAME</h2>
 
 <button onclick="setTime('30s')">30 SEC</button>
 <button onclick="setTime('1m')">1 MIN</button>
@@ -99,13 +98,12 @@ font-weight:bold;
 <button onclick="setTime('15m')">15 MIN</button>
 </div>
 
-<!-- SCREEN 3 -->
+<!-- LOADING -->
 <div id="s3" class="screen">
 <h2>⚡ ANALYSE EN COURS...</h2>
-<p>Analyse Smart Money + Momentum</p>
 </div>
 
-<!-- SCREEN 4 -->
+<!-- RESULT -->
 <div id="s4" class="screen">
 <h2>📊 RÉSULTAT</h2>
 
