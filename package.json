@@ -1,5 +1,5 @@
 {
-"name":"sniper-pro-v9",
+"name":"sniper-pro-v10",
 "version":"1.0.0",
 "main":"index.js",
 "scripts":{"start":"node index.js"},
