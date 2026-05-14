@@ -4,25 +4,17 @@ const axios = require("axios");
 const WebSocket = require("ws");
 
 const app = express();
-
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
-
-console.log("🚀 FULL SYNC TRADING ENGINE STARTED");
+console.log("🚀 NZFX STABLE ENGINE STARTED");
 
 const BASE = "https://api.binance.com/api/v3";
 
-const SYMBOLS = [
-"BTCUSDT",
-"ETHUSDT",
-"SOLUSDT",
-"BNBUSDT",
-"XRPUSDT",
-"DOGEUSDT"
-];
-
+/* =========================
+SAFE WINRATE
+========================= */
 let stats = { win: 120, loss: 32 };
 
 function winRate() {
@@ -31,40 +23,46 @@ return total ? ((stats.win / total) * 100).toFixed(2) : "0.00";
 }
 
 /* =========================
-FETCH BINANCE SAFE
+RETRY BINANCE SAFE
 ========================= */
-
-async function getCloses(symbol, interval) {
+async function getCloses(symbol, interval, retry = 3) {
 try {
 const res = await axios.get(`${BASE}/klines`, {
 params: { symbol, interval, limit: 100 },
-timeout: 10000
+timeout: 12000
 });
 
-if (!res.data) return null;
+if (!Array.isArray(res.data)) throw new Error("BAD_DATA");
 
-return res.data
+const closes = res.data
 .map(c => Number(c[4]))
 .filter(n => Number.isFinite(n));
 
+if (closes.length < 20) throw new Error("NOT_ENOUGH_DATA");
+
+return closes;
+
 } catch (e) {
-console.log("BINANCE ERROR:", e.message);
+console.log("BINANCE FAIL:", e.message);
+
+if (retry > 0) {
+return getCloses(symbol, interval, retry - 1);
+}
+
 return null;
 }
 }
 
 /* =========================
-RSI WILDER
+RSI (REAL WILDER)
 ========================= */
+function RSI(values, period = 14) {
+if (!values || values.length < period + 1) return 50;
 
-function RSI(closes, period = 14) {
-if (!closes || closes.length < period + 1) return null;
-
-let gains = 0;
-let losses = 0;
+let gains = 0, losses = 0;
 
 for (let i = 1; i <= period; i++) {
-const diff = closes[i] - closes[i - 1];
+const diff = values[i] - values[i - 1];
 if (diff > 0) gains += diff;
 else losses += Math.abs(diff);
 }
@@ -74,8 +72,8 @@ losses /= period;
 
 let rsi = 100 - (100 / (1 + gains / (losses || 1)));
 
-for (let i = period + 1; i < closes.length; i++) {
-const diff = closes[i] - closes[i - 1];
+for (let i = period + 1; i < values.length; i++) {
+const diff = values[i] - values[i - 1];
 
 const gain = diff > 0 ? diff : 0;
 const loss = diff < 0 ? Math.abs(diff) : 0;
@@ -92,12 +90,10 @@ return rsi;
 /* =========================
 EMA
 ========================= */
-
 function EMA(data, period) {
-if (!data || data.length < period) return null;
+if (!data || data.length < period) return data?.at(-1) || 0;
 
 const k = 2 / (period + 1);
-
 let ema = data[0];
 
 for (let i = 1; i < data.length; i++) {
@@ -108,63 +104,55 @@ return ema;
 }
 
 /* =========================
-ANALYZE CORE
+ANALYZE ENGINE (SAFE)
 ========================= */
-
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
 
 symbol = symbol.toUpperCase().replace("/", "");
-if (!SYMBOLS.includes(symbol)) symbol = "BTCUSDT";
 
 const closes = await getCloses(symbol, interval);
 
-if (!closes || closes.length < 30) {
+if (!closes) {
 return {
-ok: false,
-error: "NO_DATA"
+ok: true,
+symbol,
+interval,
+signal: "WAIT",
+trend: "LOADING",
+price: 0,
+rsi: 50,
+emaFast: 0,
+emaSlow: 0,
+momentum: 0,
+strength: 0,
+winRate: winRate(),
+volume: "0"
 };
 }
 
 const price = closes.at(-1);
-const prev = closes.at(-2);
+const prev = closes.at(-2) || price;
 
 const rsi = RSI(closes);
 const emaFast = EMA(closes.slice(-20), 9);
 const emaSlow = EMA(closes.slice(-20), 21);
-
-if (rsi === null || emaFast === null || emaSlow === null) {
-return { ok: false, error: "CALC_FAIL" };
-}
-
 const momentum = price - prev;
 
-/* =========================
-TREND
-========================= */
-
+/* TREND */
 let trend = "SIDEWAYS";
 if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
-/* =========================
-STRENGTH
-========================= */
-
+/* STRENGTH */
 let strength = 50;
-
 if (rsi < 30) strength += 20;
 if (rsi > 70) strength += 20;
-if (emaFast > emaSlow) strength += 10;
-if (emaFast < emaSlow) strength -= 10;
 if (momentum > 0) strength += 10;
 if (momentum < 0) strength -= 10;
 
 strength = Math.max(0, Math.min(100, strength));
 
-/* =========================
-SIGNAL
-========================= */
-
+/* SIGNAL */
 let signal = "WAIT";
 
 if (rsi < 30 && emaFast > emaSlow) {
@@ -178,10 +166,6 @@ stats.win++;
 else {
 stats.loss++;
 }
-
-/* =========================
-FINAL OUTPUT (SYNC CLEAN)
-========================= */
 
 return {
 ok: true,
@@ -201,22 +185,23 @@ volume: "LIVE"
 }
 
 /* =========================
-HTTP API
+API
 ========================= */
-
 app.get("/api/signal/:symbol/:interval", async (req, res) => {
 const data = await analyze(req.params.symbol, req.params.interval);
 res.json(data);
 });
 
 /* =========================
-SERVER + WS
+SERVER
 ========================= */
-
 const server = app.listen(PORT, () => {
-console.log("🚀 RUNNING ON PORT:", PORT);
+console.log("🚀 RUNNING:", PORT);
 });
 
+/* =========================
+WEBSOCKET
+========================= */
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
@@ -227,16 +212,25 @@ const { symbol, interval } = JSON.parse(msg);
 const data = await analyze(symbol, interval);
 ws.send(JSON.stringify(data));
 } catch (e) {
-ws.send(JSON.stringify({ ok: false, error: "WS_ERROR" }));
+ws.send(JSON.stringify({
+ok: true,
+signal: "WAIT",
+trend: "ERROR",
+price: 0,
+rsi: 50,
+emaFast: 0,
+emaSlow: 0,
+momentum: 0,
+strength: 0,
+winRate: winRate(),
+volume: "0"
+}));
 }
 });
 
 });
 
-/* =========================
-AUTO PUSH
-========================= */
-
+/* AUTO PUSH */
 setInterval(async () => {
 for (const client of wss.clients) {
 if (client.readyState === 1) {
