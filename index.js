@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 /* =========================
-DEBUG CRASH PREVENTION
+CRASH PROTECTION
 ========================= */
 process.on("uncaughtException", (err) => {
 console.log("CRASH:", err);
@@ -19,19 +19,53 @@ console.log("PROMISE ERROR:", err);
 });
 
 /* =========================
-HEALTH CHECK (IMPORTANT RAILWAY)
+HEALTH CHECK (RAILWAY)
 ========================= */
 app.get("/", (req, res) => {
-res.status(200).send("🚀 SNIPER PRO V7 - ONLINE");
+res.status(200).send(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>SNIPER PRO V7</title>
+<style>
+body{
+margin:0;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:#ffffff;
+font-family:Arial;
+}
+
+h1{
+color:#111;
+font-size:28px;
+}
+
+p{
+color:#666;
+}
+</style>
+</head>
+<body>
+<div style="text-align:center">
+<h1>🚀 SNIPER PRO V7 - ONLINE</h1>
+<p>System running on Railway</p>
+</div>
+</body>
+</html>
+`);
 });
 
 /* =========================
-BINANCE BASE
+BINANCE API
 ========================= */
 const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-SAFE DATA FETCH
+GET DATA
 ========================= */
 async function getCloses(symbol, interval) {
 try {
@@ -102,6 +136,7 @@ async function analyze(symbol, interval) {
 
 const data = await getCloses(symbol, interval);
 
+/* SAFE MODE */
 if (!data || data.length < 50) {
 return {
 symbol,
@@ -125,7 +160,9 @@ const emaFast = EMA(data.slice(-20), 9);
 const emaSlow = EMA(data.slice(-20), 21);
 const momentum = price - prev;
 
-/* SIGNAL LOGIC */
+/* =========================
+SIGNAL LOGIC
+========================= */
 let signal = "WAIT";
 let strength = 50;
 
@@ -143,6 +180,9 @@ strength = Math.max(0, Math.min(100, strength));
 if (strength >= 75 && rsi < 45) signal = "BUY";
 else if (strength >= 75 && rsi > 55) signal = "SELL";
 
+/* =========================
+RETURN DATA
+========================= */
 return {
 symbol,
 interval,
@@ -153,7 +193,7 @@ emaFast: Number(emaFast.toFixed(2)),
 emaSlow: Number(emaSlow.toFixed(2)),
 momentum: Number(momentum.toFixed(2)),
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH",
-strength
+strength: Number(strength.toFixed(0))
 };
 }
 
@@ -165,7 +205,7 @@ res.json(await analyze(req.params.symbol, req.params.interval));
 });
 
 /* =========================
-PORT RAILWAY FIX (IMPORTANT)
+PORT (RAILWAY FIX)
 ========================= */
 const PORT = process.env.PORT || 3000;
 
@@ -173,11 +213,11 @@ const PORT = process.env.PORT || 3000;
 SERVER START
 ========================= */
 const server = app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO RUNNING ON PORT", PORT);
+console.log("🚀 SNIPER PRO V7 RUNNING ON PORT", PORT);
 });
 
 /* =========================
-WEBSOCKET SAFE
+WEBSOCKET
 ========================= */
 const wss = new WebSocket.Server({ server });
 
