@@ -10,13 +10,16 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const PORT = process.env.PORT || 3000;
 
-console.log("🚀 TRADINGVIEW-LIKE ENGINE STARTED");
+console.log("🚀 STABLE BINANCE PIPELINE STARTED");
 
 /* =========================
-BINANCE
+BINANCE ENDPOINTS (FALLBACK SAFE)
 ========================= */
 
-const BASE = "https://api.binance.com/api/v3";
+const ENDPOINTS = [
+"https://api.binance.com/api/v3/klines",
+"https://api1.binance.com/api/v3/klines"
+];
 
 const SYMBOLS = [
 "BTCUSDT",
@@ -39,38 +42,71 @@ return total ? ((stats.win / total) * 100).toFixed(2) : "0.00";
 }
 
 /* =========================
-GET CANDLES (CLEAN)
+SAFE FETCH (ANTI-FAIL)
 ========================= */
 
-async function getCandles(symbol, interval) {
+async function fetchKlines(symbol, interval) {
+
+for (let url of ENDPOINTS) {
 try {
-const res = await axios.get(`${BASE}/klines`, {
-params: { symbol, interval, limit: 100 },
-timeout: 10000
+const res = await axios.get(url, {
+params: {
+symbol,
+interval,
+limit: 100
+},
+timeout: 8000
 });
 
-if (!res.data || !Array.isArray(res.data)) return null;
-
-// ONLY CLOSE PRICES (IMPORTANT)
-return res.data.map(c => Number(c[4]));
+if (res.data && Array.isArray(res.data)) {
+return res.data;
+}
 
 } catch (e) {
-console.log("BINANCE ERROR:", e.message);
-return null;
+console.log("Endpoint failed:", url);
 }
+}
+
+return null;
 }
 
 /* =========================
-RSI WILDER (TRADINGVIEW STYLE)
+CLEAN CLOSE PRICES
+========================= */
+
+async function getCloses(symbol, interval) {
+
+const data = await fetchKlines(symbol, interval);
+
+if (!data) {
+console.log("NO DATA FROM ALL ENDPOINTS");
+return null;
+}
+
+const closes = data
+.map(c => Number(c[4]))
+.filter(n => Number.isFinite(n));
+
+if (closes.length < 30) {
+console.log("INSUFFICIENT CLOSES:", closes.length);
+return null;
+}
+
+return closes;
+}
+
+/* =========================
+RSI WILDER (REAL TRADINGVIEW STYLE)
 ========================= */
 
 function RSI_Wilder(closes, period = 14) {
+
 if (!closes || closes.length < period + 1) return null;
 
 let gains = 0;
 let losses = 0;
 
-// first average
+// initial average
 for (let i = 1; i <= period; i++) {
 const diff = closes[i] - closes[i - 1];
 if (diff > 0) gains += diff;
@@ -80,10 +116,9 @@ else losses += Math.abs(diff);
 gains /= period;
 losses /= period;
 
-let rs = gains / (losses || 1);
-let rsi = 100 - (100 / (1 + rs));
+let rsi = 100 - (100 / (1 + (gains / (losses || 1))));
 
-// smoothing loop (Wilder)
+// smoothing
 for (let i = period + 1; i < closes.length; i++) {
 const diff = closes[i] - closes[i - 1];
 
@@ -93,21 +128,22 @@ const loss = diff < 0 ? Math.abs(diff) : 0;
 gains = (gains * (period - 1) + gain) / period;
 losses = (losses * (period - 1) + loss) / period;
 
-rs = gains / (losses || 1);
-rsi = 100 - (100 / (1 + rs));
+rsi = 100 - (100 / (1 + (gains / (losses || 1))));
 }
 
 return rsi;
 }
 
 /* =========================
-EMA (TRADINGVIEW STYLE)
+EMA SAFE
 ========================= */
 
 function EMA(data, period) {
+
 if (!data || data.length < period) return null;
 
 const k = 2 / (period + 1);
+
 let ema = data[0];
 
 for (let i = 1; i < data.length; i++) {
@@ -118,7 +154,7 @@ return ema;
 }
 
 /* =========================
-ANALYZE ENGINE
+ANALYZE ENGINE (CLEAN + SAFE)
 ========================= */
 
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
@@ -126,14 +162,14 @@ async function analyze(symbol = "BTCUSDT", interval = "1m") {
 symbol = symbol.toUpperCase().replace("/", "");
 if (!SYMBOLS.includes(symbol)) symbol = "BTCUSDT";
 
-const closes = await getCandles(symbol, interval);
+const closes = await getCloses(symbol, interval);
 
-if (!closes || closes.length < 30) {
+if (!closes) {
 return {
 symbol,
 interval,
-error: "NO_DATA",
-message: "Not enough market data"
+error: "NO_MARKET_DATA",
+message: "Binance data unavailable"
 };
 }
 
@@ -141,18 +177,19 @@ const last = closes.at(-1);
 const prev = closes.at(-2);
 
 /* =========================
-INDICATORS
+INDICATORS SAFE
 ========================= */
 
 const rsi = RSI_Wilder(closes, 14);
 const emaFast = EMA(closes.slice(-20), 9);
 const emaSlow = EMA(closes.slice(-20), 21);
 
-if (rsi === null || emaFast === null || emaSlow === null) {
+if (!rsi || !emaFast || !emaSlow) {
 return {
 symbol,
 interval,
-error: "CALC_ERROR"
+error: "CALC_ERROR",
+message: "Indicator failed"
 };
 }
 
@@ -175,7 +212,7 @@ let strength = 50;
 if (rsi < 30) strength += 20;
 if (rsi > 70) strength += 20;
 
-if (emaFast > emaSlow) strength += 15;
+if (emaFast > emaSlow) strength += 10;
 if (emaFast < emaSlow) strength -= 10;
 
 if (momentum > 0) strength += 10;
@@ -184,7 +221,7 @@ if (momentum < 0) strength -= 10;
 strength = Math.max(0, Math.min(100, strength));
 
 /* =========================
-SIGNAL (TRADINGVIEW STYLE)
+SIGNAL
 ========================= */
 
 let signal = "WAIT";
@@ -202,7 +239,7 @@ stats.loss++;
 }
 
 /* =========================
-RESULT
+FINAL OUTPUT
 ========================= */
 
 return {
@@ -220,7 +257,6 @@ emaSlow: emaSlow.toFixed(2),
 momentum: momentum.toFixed(2),
 strength,
 winRate: winRate(),
-
 volume: "LIVE"
 };
 
@@ -264,7 +300,7 @@ console.log("WS ERROR:", e.message);
 });
 
 /* =========================
-AUTO PUSH
+AUTO PUSH SAFE
 ========================= */
 
 setInterval(async () => {
