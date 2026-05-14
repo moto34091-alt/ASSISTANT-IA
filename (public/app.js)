@@ -1,0 +1,44 @@
+let symbol="";
+let time="";
+
+function show(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+function setS(s){
+symbol=s;
+show("s2");
+}
+
+function setT(t){
+time=t;
+run();
+}
+
+async function run(){
+
+show("s3");
+
+setTimeout(async ()=>{
+
+const r=await fetch(`/api/${symbol}/${time}`);
+const d=await r.json();
+
+document.getElementById("sig").innerText=d.signal;
+document.getElementById("info").innerText=
+`PRICE: ${d.price}
+RSI: ${d.rsi}
+TREND: ${d.trend}
+BOS: ${d.bos}
+SWEEP: ${d.sweep}
+STRENGTH: ${d.strength}`;
+
+show("s4");
+
+},10000);
+}
+
+function reset(){
+show("s1");
+}
