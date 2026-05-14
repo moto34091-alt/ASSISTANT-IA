@@ -167,6 +167,7 @@ font-weight:bold;
 <p>BINANCE LIVE FUTURES ENGINE</p>
 </header>
 
+<!-- MARCHÉS CORRIGÉS -->
 <div class="topbar">
 
 <select id="symbol">
@@ -192,7 +193,6 @@ font-weight:bold;
 <div class="signal-box">
 
 <div class="signal-label">AI SIGNAL</div>
-
 <div id="signal" class="signal-value wait">WAIT</div>
 
 </div>
@@ -295,7 +295,7 @@ enable_publishing:false
 
 loadChart();
 
-/* SEND REQUEST */
+/* REQUEST */
 function requestData(){
 
 statusBox.innerHTML = "🟡 REQUESTING...";
@@ -317,13 +317,10 @@ loadChart();
 requestData();
 };
 
-/* WS CONNECT */
+/* WS */
 ws.onopen = ()=>{
-
 statusBox.innerHTML = "🟢 LIVE CONNECTED";
-
 requestData();
-
 };
 
 ws.onmessage = (msg)=>{
@@ -369,9 +366,7 @@ document.getElementById("volume").innerText = data.volume + "M";
 };
 
 ws.onerror = ()=>{
-
 statusBox.innerHTML = "🔴 CONNECTION ERROR";
-
 };
 
 </script>
