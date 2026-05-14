@@ -7,10 +7,31 @@ const WebSocket = require("ws");
 const app = express();
 app.use(express.json());
 
+/* =========================
+DEBUG CRASH PREVENTION
+========================= */
+process.on("uncaughtException", (err) => {
+console.log("CRASH:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+console.log("PROMISE ERROR:", err);
+});
+
+/* =========================
+HEALTH CHECK (IMPORTANT RAILWAY)
+========================= */
+app.get("/", (req, res) => {
+res.status(200).send("🚀 SNIPER PRO V7 - ONLINE");
+});
+
+/* =========================
+BINANCE BASE
+========================= */
 const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-GET MARKET DATA
+SAFE DATA FETCH
 ========================= */
 async function getCloses(symbol, interval) {
 try {
@@ -104,9 +125,7 @@ const emaFast = EMA(data.slice(-20), 9);
 const emaSlow = EMA(data.slice(-20), 21);
 const momentum = price - prev;
 
-/* =========================
-SIGNAL LOGIC
-========================= */
+/* SIGNAL LOGIC */
 let signal = "WAIT";
 let strength = 50;
 
@@ -124,9 +143,6 @@ strength = Math.max(0, Math.min(100, strength));
 if (strength >= 75 && rsi < 45) signal = "BUY";
 else if (strength >= 75 && rsi > 55) signal = "SELL";
 
-/* =========================
-RETURN DATA
-========================= */
 return {
 symbol,
 interval,
@@ -137,26 +153,31 @@ emaFast: Number(emaFast.toFixed(2)),
 emaSlow: Number(emaSlow.toFixed(2)),
 momentum: Number(momentum.toFixed(2)),
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH",
-strength: Number(strength.toFixed(0))
+strength
 };
 }
 
 /* =========================
-API
+API ROUTE
 ========================= */
 app.get("/api/:symbol/:interval", async (req, res) => {
 res.json(await analyze(req.params.symbol, req.params.interval));
 });
 
 /* =========================
+PORT RAILWAY FIX (IMPORTANT)
+========================= */
+const PORT = process.env.PORT || 3000;
+
+/* =========================
 SERVER START
 ========================= */
-const server = app.listen(3000, () => {
-console.log("🚀 SNIPER PRO V7 RUNNING");
+const server = app.listen(PORT, () => {
+console.log("🚀 SNIPER PRO RUNNING ON PORT", PORT);
 });
 
 /* =========================
-WEB SOCKET
+WEBSOCKET SAFE
 ========================= */
 const wss = new WebSocket.Server({ server });
 
