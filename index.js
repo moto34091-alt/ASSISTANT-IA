@@ -6,22 +6,11 @@ const WebSocket = require("ws");
 
 const app = express();
 app.use(express.json());
-app.use(express.static("public"));
 
 const BASE = "https://api.binance.com/api/v3";
 
 /* =========================
-SAFE WIN RATE
-========================= */
-let stats = { win: 120, loss: 32 };
-
-function winRate() {
-const total = stats.win + stats.loss;
-return total ? ((stats.win / total) * 100).toFixed(2) : "0.00";
-}
-
-/* =========================
-SAFE BINANCE DATA
+GET MARKET DATA
 ========================= */
 async function getCloses(symbol, interval) {
 try {
@@ -29,7 +18,7 @@ const res = await axios.get(`${BASE}/klines`, {
 params: { symbol, interval, limit: 100 }
 });
 
-if (!res.data || !Array.isArray(res.data)) return null;
+if (!Array.isArray(res.data)) return null;
 
 return res.data.map(c => Number(c[4]));
 
@@ -40,7 +29,7 @@ return null;
 }
 
 /* =========================
-RSI SAFE
+RSI
 ========================= */
 function RSI(data, period = 14) {
 if (!data || data.length < period + 1) return 50;
@@ -70,7 +59,7 @@ return 100 - (100 / (1 + avgGain / (avgLoss || 1)));
 }
 
 /* =========================
-EMA SAFE
+EMA
 ========================= */
 function EMA(data, period) {
 if (!data || data.length === 0) return 0;
@@ -86,13 +75,12 @@ return ema;
 }
 
 /* =========================
-MAIN ANALYSIS (NO CRASH)
+ANALYZE ENGINE
 ========================= */
 async function analyze(symbol, interval) {
 
 const data = await getCloses(symbol, interval);
 
-/* SAFE FALLBACK */
 if (!data || data.length < 50) {
 return {
 symbol,
@@ -104,8 +92,7 @@ emaFast: 0,
 emaSlow: 0,
 momentum: 0,
 trend: "LOADING",
-strength: 0,
-winRate: winRate()
+strength: 0
 };
 }
 
@@ -120,37 +107,26 @@ const momentum = price - prev;
 /* =========================
 SIGNAL LOGIC
 ========================= */
-
 let signal = "WAIT";
 let strength = 50;
 
-if (emaFast > emaSlow) strength += 20;
-if (emaFast < emaSlow) strength -= 20;
+if (emaFast > emaSlow) strength += 25;
+if (emaFast < emaSlow) strength -= 25;
 
-if (rsi < 30) strength += 15;
-if (rsi > 70) strength += 15;
+if (rsi < 30) strength += 20;
+if (rsi > 70) strength += 20;
 
 if (momentum > 0) strength += 10;
 if (momentum < 0) strength -= 10;
 
 strength = Math.max(0, Math.min(100, strength));
 
-if (strength >= 75 && rsi < 40) {
-signal = "BUY";
-stats.win++;
-}
-else if (strength >= 75 && rsi > 60) {
-signal = "SELL";
-stats.win++;
-}
-else {
-stats.loss++;
-}
+if (strength >= 75 && rsi < 45) signal = "BUY";
+else if (strength >= 75 && rsi > 55) signal = "SELL";
 
 /* =========================
-RETURN SAFE
+RETURN DATA
 ========================= */
-
 return {
 symbol,
 interval,
@@ -161,27 +137,26 @@ emaFast: Number(emaFast.toFixed(2)),
 emaSlow: Number(emaSlow.toFixed(2)),
 momentum: Number(momentum.toFixed(2)),
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH",
-strength,
-winRate: winRate()
+strength: Number(strength.toFixed(0))
 };
 }
 
 /* =========================
-HTTP API
+API
 ========================= */
 app.get("/api/:symbol/:interval", async (req, res) => {
 res.json(await analyze(req.params.symbol, req.params.interval));
 });
 
 /* =========================
-SERVER
+SERVER START
 ========================= */
 const server = app.listen(3000, () => {
-console.log("🚀 BOT RUNNING SAFE VERSION");
+console.log("🚀 SNIPER PRO V7 RUNNING");
 });
 
 /* =========================
-WEBSOCKET SAFE
+WEB SOCKET
 ========================= */
 const wss = new WebSocket.Server({ server });
 
