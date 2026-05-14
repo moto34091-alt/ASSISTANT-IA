@@ -32,23 +32,18 @@ const SYMBOLS = [
 ];
 
 /* =========================
-CACHE
+WIN STATS
 ========================= */
 
-let lastData = {};
+let stats = { win: 120, loss: 32 };
 
-let stats = {
-win: 120,
-loss: 32
-};
-
-function winRate(){
+function winRate() {
 let total = stats.win + stats.loss;
 return total === 0 ? "0.00" : ((stats.win / total) * 100).toFixed(2);
 }
 
 /* =========================
-GET CANDLES
+GET CANDLES (FIX STABLE)
 ========================= */
 
 async function getCandles(symbol, interval) {
@@ -61,12 +56,14 @@ symbol,
 interval,
 limit: 100
 },
-timeout: 15000
+timeout: 10000
 });
 
+if (!res.data || !Array.isArray(res.data)) return null;
+
 return res.data.map(c => ({
-close: parseFloat(c[4]),
-volume: parseFloat(c[5])
+close: Number(c[4]),
+volume: Number(c[5])
 }));
 
 } catch (e) {
@@ -82,18 +79,15 @@ RSI
 
 function calcRSI(data, period = 14) {
 
-if (data.length < period + 1) return 50;
+if (!data || data.length < period + 1) return 50;
 
 let gains = 0;
 let losses = 0;
 
 for (let i = data.length - period; i < data.length; i++) {
-
 let diff = data[i] - data[i - 1];
-
 if (diff > 0) gains += diff;
 else losses += Math.abs(diff);
-
 }
 
 let rs = gains / (losses || 1);
@@ -107,7 +101,7 @@ EMA
 
 function calcEMA(data, period) {
 
-if (!data.length) return 0;
+if (!data || data.length === 0) return 0;
 
 let k = 2 / (period + 1);
 let ema = data[0];
@@ -121,7 +115,7 @@ return ema;
 }
 
 /* =========================
-ANALYZE ENGINE
+ANALYZE ENGINE (CORE FIX)
 ========================= */
 
 async function analyze(symbol = "BTCUSDT", interval = "1m") {
@@ -129,14 +123,11 @@ async function analyze(symbol = "BTCUSDT", interval = "1m") {
 try {
 
 symbol = symbol.toUpperCase().replace("/","");
-
-if (!SYMBOLS.includes(symbol)) {
-symbol = "BTCUSDT";
-}
+if (!SYMBOLS.includes(symbol)) symbol = "BTCUSDT";
 
 const candles = await getCandles(symbol, interval);
 
-if (!candles || candles.length < 50) {
+if (!candles || candles.length < 20) {
 
 return {
 symbol,
@@ -144,7 +135,7 @@ interval,
 signal: "WAIT",
 trend: "LOADING",
 price: "0",
-rsi: "0",
+rsi: "50",
 emaFast: "0",
 emaSlow: "0",
 momentum: "0",
@@ -156,7 +147,6 @@ volume: "0"
 }
 
 const closes = candles.map(c => c.close);
-const volumes = candles.map(c => c.volume);
 
 const last = closes.at(-1);
 const prev = closes.at(-2);
@@ -182,7 +172,7 @@ if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
 /* =========================
-STRENGTH ENGINE
+STRENGTH
 ========================= */
 
 let strength = 50;
@@ -215,7 +205,7 @@ stats.loss++;
 }
 
 /* =========================
-RESULT
+RETURN SAFE DATA
 ========================= */
 
 const result = {
@@ -237,10 +227,8 @@ strength: Math.max(0, Math.min(100, strength)),
 
 winRate: winRate(),
 
-volume: volumes.at(-1)
+volume: candles.at(-1).volume
 };
-
-lastData[symbol] = result;
 
 return result;
 
@@ -254,12 +242,13 @@ interval,
 signal: "WAIT",
 trend: "ERROR",
 price: "0",
-rsi: "0",
+rsi: "50",
 emaFast: "0",
 emaSlow: "0",
 momentum: "0",
 strength: 0,
-winRate: winRate()
+winRate: winRate(),
+volume: "0"
 };
 
 }
@@ -271,14 +260,8 @@ API
 ========================= */
 
 app.get("/api/signal/:symbol/:interval", async (req, res) => {
-
-const data = await analyze(
-req.params.symbol,
-req.params.interval
-);
-
+const data = await analyze(req.params.symbol, req.params.interval);
 res.json(data);
-
 });
 
 /* =========================
@@ -294,7 +277,7 @@ SERVER
 ========================= */
 
 const server = app.listen(PORT, () => {
-console.log("🚀 SERVER RUNNING ON", PORT);
+console.log("🚀 SERVER RUNNING:", PORT);
 });
 
 /* =========================
@@ -310,12 +293,9 @@ console.log("🟢 CLIENT CONNECTED");
 ws.on("message", async (msg) => {
 
 try {
-
 const parsed = JSON.parse(msg);
 const data = await analyze(parsed.symbol, parsed.interval);
-
 ws.send(JSON.stringify(data));
-
 } catch (e) {
 console.log("WS ERROR:", e.message);
 }
@@ -331,14 +311,10 @@ AUTO PUSH
 setInterval(async () => {
 
 for (let client of wss.clients) {
-
 if (client.readyState === 1) {
-
 const data = await analyze("BTCUSDT", "1m");
 client.send(JSON.stringify(data));
-
 }
-
 }
 
 }, 3000);
