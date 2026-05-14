@@ -3,38 +3,47 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const WebSocket = require("ws");
-const path = require("path");
 
 const app = express();
-
-app.use(express.static(__dirname));
+app.use(express.json());
 
 /* =========================
-HOME
+PORT RAILWAY SAFE
+========================= */
+const PORT = process.env.PORT || 3000;
+
+/* =========================
+ROOT (FIX NOT FOUND)
 ========================= */
 app.get("/", (req, res) => {
-res.sendFile(path.join(__dirname, "index.html"));
+res.send("🚀 SNIPER PRO V7 - ONLINE");
 });
 
 /* =========================
-FOREX DATA
+TEST
 ========================= */
-async function fetchForex(symbol, interval) {
+app.get("/test", (req, res) => {
+res.json({ status: "OK", server: "RUNNING" });
+});
+
+/* =========================
+FOREX API (TWELVE DATA)
+========================= */
+async function getForex(symbol, interval) {
 
 try {
 
-const intervals = {
+const map = {
 "30s":"1min",
 "1m":"1min",
 "5m":"5min",
 "15m":"15min"
 };
 
-const pair =
-symbol.slice(0,3) + "/" + symbol.slice(3);
+const pair = symbol.slice(0,3) + "/" + symbol.slice(3);
 
 const url =
-`https://api.twelvedata.com/time_series?symbol=${pair}&interval=${intervals[interval]}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${pair}&interval=${map[interval]}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
@@ -42,14 +51,10 @@ if (!res.data.values) return null;
 
 return res.data.values
 .reverse()
-.map(c => ({
-close:Number(c.close),
-high:Number(c.high),
-low:Number(c.low)
-}));
+.map(c => Number(c.close));
 
 } catch (e) {
-console.log(e.message);
+console.log("API ERROR:", e.message);
 return null;
 }
 }
@@ -57,51 +62,46 @@ return null;
 /* =========================
 RSI
 ========================= */
-function RSI(data, period = 14){
+function RSI(data, period = 14) {
 
-let gains = 0;
-let losses = 0;
+if (!data || data.length < period + 1) return 50;
 
-for(let i=1;i<=period;i++){
+let gain = 0;
+let loss = 0;
 
-const diff = data[i] - data[i-1];
-
-if(diff >= 0) gains += diff;
-else losses += Math.abs(diff);
-
+for (let i = 1; i <= period; i++) {
+const diff = data[i] - data[i - 1];
+if (diff > 0) gain += diff;
+else loss += Math.abs(diff);
 }
 
-let avgGain = gains / period;
-let avgLoss = losses / period;
+let avgGain = gain / period;
+let avgLoss = loss / period;
 
-for(let i=period+1;i<data.length;i++){
+for (let i = period + 1; i < data.length; i++) {
+const diff = data[i] - data[i - 1];
+const g = diff > 0 ? diff : 0;
+const l = diff < 0 ? Math.abs(diff) : 0;
 
-const diff = data[i] - data[i-1];
-
-const gain = diff > 0 ? diff : 0;
-const loss = diff < 0 ? Math.abs(diff) : 0;
-
-avgGain = ((avgGain * 13) + gain) / 14;
-avgLoss = ((avgLoss * 13) + loss) / 14;
-
+avgGain = (avgGain * 13 + g) / 14;
+avgLoss = (avgLoss * 13 + l) / 14;
 }
 
 const rs = avgGain / (avgLoss || 1);
-
 return 100 - (100 / (1 + rs));
 }
 
 /* =========================
 EMA
 ========================= */
-function EMA(data, period){
+function EMA(data, period) {
 
 const k = 2 / (period + 1);
 
 let ema = data[0];
 
-for(let i=1;i<data.length;i++){
-ema = data[i] * k + ema * (1-k);
+for (let i = 1; i < data.length; i++) {
+ema = data[i] * k + ema * (1 - k);
 }
 
 return ema;
@@ -110,175 +110,106 @@ return ema;
 /* =========================
 SUPPORT / RESISTANCE
 ========================= */
-function support(data){
+function support(data) {
 return Math.min(...data.slice(-20));
 }
 
-function resistance(data){
+function resistance(data) {
 return Math.max(...data.slice(-20));
 }
 
 /* =========================
-BOS DETECTION
+ANALYSIS ENGINE
 ========================= */
-function detectBOS(price, resistanceLevel, supportLevel){
+async function analyze(symbol, interval) {
 
-if(price > resistanceLevel)
-return "BULLISH BOS";
+const data = await getForex(symbol, interval);
 
-if(price < supportLevel)
-return "BEARISH BOS";
-
-return "NO BOS";
-}
-
-/* =========================
-ANALYZE
-========================= */
-async function analyze(symbol, interval){
-
-const candles = await fetchForex(symbol, interval);
-
-if(!candles || candles.length < 30){
-
+if (!data || data.length < 30) {
 return {
-signal:"WAIT",
-price:0,
-rsi:0,
-emaFast:0,
-emaSlow:0,
-trend:"NO DATA",
-strength:0,
-support:0,
-resistance:0,
-bos:"NO BOS",
-candles:[]
+signal: "WAIT",
+price: 0,
+rsi: 50,
+emaFast: 0,
+emaSlow: 0,
+trend: "NO DATA",
+support: 0,
+resistance: 0,
+strength: 0
 };
-
 }
 
-const closes = candles.map(c=>c.close);
+const price = data[data.length - 1];
 
-const price = closes.at(-1);
+const rsi = RSI(data);
+const emaFast = EMA(data.slice(-20), 9);
+const emaSlow = EMA(data.slice(-20), 21);
 
-const rsi = RSI(closes);
-
-const emaFast = EMA(closes.slice(-20),9);
-const emaSlow = EMA(closes.slice(-20),21);
-
-const sup = support(closes);
-const res = resistance(closes);
-
-const bos = detectBOS(price,res,sup);
+const sup = support(data);
+const res = resistance(data);
 
 let trend = "SIDEWAYS";
-
-if(emaFast > emaSlow)
-trend = "BULLISH";
-
-if(emaFast < emaSlow)
-trend = "BEARISH";
+if (emaFast > emaSlow) trend = "BULLISH";
+if (emaFast < emaSlow) trend = "BEARISH";
 
 let strength = 50;
 
-if(emaFast > emaSlow) strength += 20;
-if(rsi < 30) strength += 20;
-if(rsi > 70) strength += 20;
+if (emaFast > emaSlow) strength += 20;
+if (rsi < 30) strength += 20;
+if (rsi > 70) strength += 20;
 
 let signal = "WAIT";
 
-if(
-trend === "BULLISH" &&
-rsi < 45 &&
-price > sup
-){
-signal = "BUY";
-}
-
-if(
-trend === "BEARISH" &&
-rsi > 55 &&
-price < res
-){
-signal = "SELL";
-}
+if (trend === "BULLISH" && rsi < 50) signal = "BUY";
+if (trend === "BEARISH" && rsi > 50) signal = "SELL";
 
 return {
-
+symbol,
+interval,
 signal,
-price:price.toFixed(5),
-rsi:rsi.toFixed(2),
-emaFast:emaFast.toFixed(5),
-emaSlow:emaSlow.toFixed(5),
+price,
+rsi: Number(rsi.toFixed(2)),
+emaFast: Number(emaFast.toFixed(5)),
+emaSlow: Number(emaSlow.toFixed(5)),
 trend,
 strength,
-support:sup.toFixed(5),
-resistance:res.toFixed(5),
-bos,
-candles:candles.slice(-3)
-
+support: sup,
+resistance: res
 };
-
 }
 
 /* =========================
-API
+API ROUTE
 ========================= */
-app.get("/api/:symbol/:interval", async(req,res)=>{
-
-const data =
-await analyze(
-req.params.symbol,
-req.params.interval
-);
-
-res.json(data);
-
+app.get("/api/:symbol/:interval", async (req, res) => {
+res.json(await analyze(req.params.symbol, req.params.interval));
 });
 
 /* =========================
-SERVER
+START SERVER (IMPORTANT)
 ========================= */
-const PORT =
-process.env.PORT || 3000;
-
-const server =
-app.listen(PORT,()=>{
-console.log("SNIPER PRO V7 ONLINE");
+const server = app.listen(PORT, () => {
+console.log("🚀 SNIPER PRO V7 RUNNING ON PORT", PORT);
 });
 
 /* =========================
-WEBSOCKET
+WS LIVE
 ========================= */
-const wss =
-new WebSocket.Server({server});
+const wss = new WebSocket.Server({ server });
 
-wss.on("connection",(ws)=>{
+wss.on("connection", (ws) => {
 
-ws.on("message",async(msg)=>{
+ws.on("message", async (msg) => {
+try {
+const { symbol, interval } = JSON.parse(msg.toString());
 
-try{
-
-const {symbol,interval} =
-JSON.parse(msg);
-
-const result =
-await analyze(symbol,interval);
-
-setTimeout(()=>{
+const result = await analyze(symbol, interval);
 
 ws.send(JSON.stringify(result));
 
-},10000);
-
-}catch(e){
-
-ws.send(JSON.stringify({
-signal:"WAIT"
-}));
-
+} catch (e) {
+ws.send(JSON.stringify({ signal: "WAIT" }));
 }
-
 });
 
 });
