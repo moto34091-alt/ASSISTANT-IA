@@ -2,7 +2,6 @@ require("dotenv").config();
 
 const express = require("express");
 const axios = require("axios");
-const WebSocket = require("ws");
 
 const app = express();
 app.use(express.json());
@@ -13,15 +12,18 @@ const PORT = process.env.PORT || 3000;
 ROOT
 ========================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V7 - ONLINE");
-});
-
-app.get("/test", (req, res) => {
-res.json({ status: "OK", server: "RUNNING" });
+res.send("🚀 SNIPER PRO V8 SMART MONEY - ONLINE");
 });
 
 /* =========================
-TWELVE DATA FOREX FIX
+TEST
+========================= */
+app.get("/test", (req, res) => {
+res.json({ status: "OK", version: "V8 SMART MONEY" });
+});
+
+/* =========================
+FETCH DATA (TWELVE DATA FIX)
 ========================= */
 async function getForex(symbol, interval) {
 
@@ -33,55 +35,40 @@ const map = {
 "15m": "15min"
 };
 
-/* FIX PAIRE */
-const pair =
-symbol.includes("/")
+let pair = symbol.includes("/")
 ? symbol
-: symbol.slice(0, 3) + "/" + symbol.slice(3);
+: symbol.slice(0,3) + "/" + symbol.slice(3);
 
-const url = `https://api.twelvedata.com/time_series?symbol=${pair}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+const url =
+`https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=${map[interval] || "1min"}&outputsize=120&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-/* DEBUG IMPORTANT */
-console.log("TWELVE RESPONSE STATUS:", res.status);
-console.log("TWELVE RESPONSE:", JSON.stringify(res.data).slice(0, 300));
-
-/* ERROR HANDLING CLEAN */
-if (!res.data || res.data.status === "error") {
-console.log("API ERROR:", res.data);
-return null;
-}
-
-if (!res.data.values || res.data.values.length < 20) {
-console.log("NO VALUES OR TOO SMALL DATASET");
-return null;
-}
+if (!res.data || res.data.status === "error") return null;
+if (!res.data.values || res.data.values.length < 50) return null;
 
 return res.data.values
 .reverse()
 .map(c => Number(c.close));
 
 } catch (e) {
-console.log("FOREX ERROR:", e.message);
+console.log("API ERROR:", e.message);
 return null;
 }
 }
 
 /* =========================
-RSI
+INDICATORS
 ========================= */
 function RSI(data, period = 14) {
 
 if (!data || data.length < period + 2) return 50;
 
-let gain = 0;
-let loss = 0;
+let gain = 0, loss = 0;
 
 for (let i = 1; i <= period; i++) {
 const diff = data[i] - data[i - 1];
-if (diff > 0) gain += diff;
-else loss += Math.abs(diff);
+diff > 0 ? gain += diff : loss += Math.abs(diff);
 }
 
 let avgGain = gain / period;
@@ -97,39 +84,42 @@ avgLoss = (avgLoss * 13 + l) / 14;
 }
 
 const rs = avgGain / (avgLoss || 1);
-
 return 100 - (100 / (1 + rs));
 }
 
-/* =========================
-EMA
-========================= */
 function EMA(data, period) {
-
 const k = 2 / (period + 1);
-
 let ema = data[0];
-
 for (let i = 1; i < data.length; i++) {
 ema = data[i] * k + ema * (1 - k);
 }
-
 return ema;
 }
 
 /* =========================
-SUPPORT / RESISTANCE
+SMART MONEY LOGIC (SIMPLIFIED)
 ========================= */
-function support(data) {
-return Math.min(...data.slice(-20));
+
+/* BOS = Break of Structure */
+function detectBOS(data) {
+const last = data[data.length - 1];
+const prevHigh = Math.max(...data.slice(-20));
+const prevLow = Math.min(...data.slice(-20));
+
+if (last > prevHigh * 0.999) return "BULLISH_BOS";
+if (last < prevLow * 1.001) return "BEARISH_BOS";
+return "NONE";
 }
 
-function resistance(data) {
-return Math.max(...data.slice(-20));
+/* LIQUIDITY ZONES (simple proxy) */
+function liquidityZones(data) {
+const highs = Math.max(...data.slice(-20));
+const lows = Math.min(...data.slice(-20));
+return { highs, lows };
 }
 
 /* =========================
-ANALYSIS ENGINE FIXED
+ANALYZE ENGINE V8
 ========================= */
 async function analyze(symbol, interval) {
 
@@ -138,13 +128,12 @@ const data = await getForex(symbol, interval);
 if (!data) {
 return {
 signal: "WAIT",
+trend: "NO DATA",
 price: 0,
 rsi: 50,
 emaFast: 0,
 emaSlow: 0,
-trend: "NO DATA",
-support: 0,
-resistance: 0,
+bos: "NONE",
 strength: 0
 };
 }
@@ -152,25 +141,31 @@ strength: 0
 const price = data[data.length - 1];
 
 const rsi = RSI(data);
-const emaFast = EMA(data.slice(-20), 9);
-const emaSlow = EMA(data.slice(-20), 21);
+const emaFast = EMA(data.slice(-30), 9);
+const emaSlow = EMA(data.slice(-30), 21);
 
-const sup = support(data);
-const res = resistance(data);
+const bos = detectBOS(data);
+const liq = liquidityZones(data);
 
 let trend = "SIDEWAYS";
 if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
 let strength = 50;
-if (emaFast > emaSlow) strength += 20;
-if (rsi < 30) strength += 20;
-if (rsi > 70) strength += 20;
+
+/* SMART MONEY LOGIC */
+if (bos === "BULLISH_BOS") strength += 25;
+if (bos === "BEARISH_BOS") strength += 25;
+
+if (rsi < 30) strength += 15;
+if (rsi > 70) strength += 15;
+
+if (emaFast > emaSlow) strength += 10;
 
 let signal = "WAIT";
 
-if (trend === "BULLISH" && rsi < 55) signal = "BUY";
-if (trend === "BEARISH" && rsi > 45) signal = "SELL";
+if (strength > 75 && trend === "BULLISH") signal = "BUY";
+if (strength > 75 && trend === "BEARISH") signal = "SELL";
 
 return {
 symbol,
@@ -181,9 +176,9 @@ rsi: Number(rsi.toFixed(2)),
 emaFast: Number(emaFast.toFixed(5)),
 emaSlow: Number(emaSlow.toFixed(5)),
 trend,
-support: sup,
-resistance: res,
-strength
+bos,
+liquidity: liq,
+strength: Math.min(100, strength)
 };
 }
 
@@ -198,5 +193,5 @@ res.json(await analyze(req.params.symbol, req.params.interval));
 START
 ========================= */
 app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V7 RUNNING ON", PORT);
+console.log("🚀 SNIPER PRO V8 SMART MONEY RUNNING");
 });
