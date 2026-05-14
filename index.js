@@ -1,3 +1,47 @@
+/* =========================
+ANTI FAKE FILTER
+========================= */
+
+function antiFake(data){
+
+let score = 0;
+
+// VOLUME
+if(data.currentVolume > data.avgVolume * 1.3){
+score += 20;
+}else{
+score -= 20;
+}
+
+// EMA TREND
+if(data.emaFast > data.emaSlow){
+score += 15;
+}
+
+if(data.emaFast < data.emaSlow){
+score += 15;
+}
+
+// RSI FILTER
+if(data.rsi < 80 && data.rsi > 20){
+score += 10;
+}else{
+score -= 20;
+}
+
+// SIDEWAYS FILTER
+if(data.trend === "SIDEWAYS"){
+score -= 20;
+}
+
+return score;
+
+}
+
+/* =========================
+ANALYZE ENGINE
+========================= */
+
 async function analyze(symbol="BTCUSDT",interval="1m"){
 
 try{
@@ -5,7 +49,7 @@ try{
 const candles = await getCandles(symbol,interval);
 
 /* =========================
-SAFE DEFAULT DATA
+SAFE FALLBACK
 ========================= */
 
 if(!candles || candles.length < 30){
@@ -54,7 +98,7 @@ antiFakeScore:0
 MARKET DATA
 ========================= */
 
-const closes = candles.map(c=>c.close);
+const closes = candles.map(c => c.close);
 
 const last = closes.at(-1);
 
@@ -100,7 +144,21 @@ const currentVolume =
 candles.at(-1).volume;
 
 /* =========================
-SIGNAL ENGINE
+TREND
+========================= */
+
+let trend = "SIDEWAYS";
+
+if(emaFast > emaSlow){
+trend = "BULLISH";
+}
+
+if(emaFast < emaSlow){
+trend = "BEARISH";
+}
+
+/* =========================
+SIGNAL STRENGTH
 ========================= */
 
 let strength = 50;
@@ -118,19 +176,7 @@ if(pattern === "HAMMER")
 strength += 20;
 
 /* =========================
-TREND
-========================= */
-
-let trend = "SIDEWAYS";
-
-if(emaFast > emaSlow)
-trend = "BULLISH";
-
-if(emaFast < emaSlow)
-trend = "BEARISH";
-
-/* =========================
-ANTI FAKE FILTER
+ANTI FAKE SCORE
 ========================= */
 
 const antiFakeScore = antiFake({
@@ -204,7 +250,7 @@ sr.resistance
 }
 
 /* =========================
-STATS
+UPDATE STATS
 ========================= */
 
 if(signal !== "WAIT"){
