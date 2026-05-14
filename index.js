@@ -7,54 +7,63 @@ const WebSocket = require("ws");
 const app = express();
 app.use(express.json());
 
-/* =========================
-PORT RAILWAY SAFE
-========================= */
 const PORT = process.env.PORT || 3000;
 
 /* =========================
-ROOT (FIX NOT FOUND)
+ROOT
 ========================= */
 app.get("/", (req, res) => {
 res.send("🚀 SNIPER PRO V7 - ONLINE");
 });
 
-/* =========================
-TEST
-========================= */
 app.get("/test", (req, res) => {
 res.json({ status: "OK", server: "RUNNING" });
 });
 
 /* =========================
-FOREX API (TWELVE DATA)
+TWELVE DATA FOREX FIX
 ========================= */
 async function getForex(symbol, interval) {
 
 try {
 
 const map = {
-"30s":"1min",
-"1m":"1min",
-"5m":"5min",
-"15m":"15min"
+"1m": "1min",
+"5m": "5min",
+"15m": "15min"
 };
 
-const pair = symbol.slice(0,3) + "/" + symbol.slice(3);
+/* FIX PAIRE */
+const pair =
+symbol.includes("/")
+? symbol
+: symbol.slice(0, 3) + "/" + symbol.slice(3);
 
-const url =
-`https://api.twelvedata.com/time_series?symbol=${pair}&interval=${map[interval]}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+const url = `https://api.twelvedata.com/time_series?symbol=${pair}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-if (!res.data.values) return null;
+/* DEBUG IMPORTANT */
+console.log("TWELVE RESPONSE STATUS:", res.status);
+console.log("TWELVE RESPONSE:", JSON.stringify(res.data).slice(0, 300));
+
+/* ERROR HANDLING CLEAN */
+if (!res.data || res.data.status === "error") {
+console.log("API ERROR:", res.data);
+return null;
+}
+
+if (!res.data.values || res.data.values.length < 20) {
+console.log("NO VALUES OR TOO SMALL DATASET");
+return null;
+}
 
 return res.data.values
 .reverse()
 .map(c => Number(c.close));
 
 } catch (e) {
-console.log("API ERROR:", e.message);
+console.log("FOREX ERROR:", e.message);
 return null;
 }
 }
@@ -64,7 +73,7 @@ RSI
 ========================= */
 function RSI(data, period = 14) {
 
-if (!data || data.length < period + 1) return 50;
+if (!data || data.length < period + 2) return 50;
 
 let gain = 0;
 let loss = 0;
@@ -88,6 +97,7 @@ avgLoss = (avgLoss * 13 + l) / 14;
 }
 
 const rs = avgGain / (avgLoss || 1);
+
 return 100 - (100 / (1 + rs));
 }
 
@@ -119,13 +129,13 @@ return Math.max(...data.slice(-20));
 }
 
 /* =========================
-ANALYSIS ENGINE
+ANALYSIS ENGINE FIXED
 ========================= */
 async function analyze(symbol, interval) {
 
 const data = await getForex(symbol, interval);
 
-if (!data || data.length < 30) {
+if (!data) {
 return {
 signal: "WAIT",
 price: 0,
@@ -153,15 +163,14 @@ if (emaFast > emaSlow) trend = "BULLISH";
 if (emaFast < emaSlow) trend = "BEARISH";
 
 let strength = 50;
-
 if (emaFast > emaSlow) strength += 20;
 if (rsi < 30) strength += 20;
 if (rsi > 70) strength += 20;
 
 let signal = "WAIT";
 
-if (trend === "BULLISH" && rsi < 50) signal = "BUY";
-if (trend === "BEARISH" && rsi > 50) signal = "SELL";
+if (trend === "BULLISH" && rsi < 55) signal = "BUY";
+if (trend === "BEARISH" && rsi > 45) signal = "SELL";
 
 return {
 symbol,
@@ -172,44 +181,22 @@ rsi: Number(rsi.toFixed(2)),
 emaFast: Number(emaFast.toFixed(5)),
 emaSlow: Number(emaSlow.toFixed(5)),
 trend,
-strength,
 support: sup,
-resistance: res
+resistance: res,
+strength
 };
 }
 
 /* =========================
-API ROUTE
+API
 ========================= */
 app.get("/api/:symbol/:interval", async (req, res) => {
 res.json(await analyze(req.params.symbol, req.params.interval));
 });
 
 /* =========================
-START SERVER (IMPORTANT)
+START
 ========================= */
-const server = app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V7 RUNNING ON PORT", PORT);
-});
-
-/* =========================
-WS LIVE
-========================= */
-const wss = new WebSocket.Server({ server });
-
-wss.on("connection", (ws) => {
-
-ws.on("message", async (msg) => {
-try {
-const { symbol, interval } = JSON.parse(msg.toString());
-
-const result = await analyze(symbol, interval);
-
-ws.send(JSON.stringify(result));
-
-} catch (e) {
-ws.send(JSON.stringify({ signal: "WAIT" }));
-}
-});
-
+app.listen(PORT, () => {
+console.log("🚀 SNIPER PRO V7 RUNNING ON", PORT);
 });
