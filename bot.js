@@ -7,7 +7,7 @@ ctx.reply(
 "🚀 SNIPER PRO v7 LIVE",
 Markup.inlineKeyboard([
 Markup.button.webApp(
-"📊 SDT&interval=1m&limit=5"
+"https://binanc18bot.up.railway.app/"
 )
 ])
 );
