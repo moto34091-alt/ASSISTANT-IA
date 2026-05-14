@@ -9,153 +9,22 @@
 <script src="https://s3.tradingview.com/tv.js"></script>
 
 <style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
-
-body{
-background:#050816;
-font-family:Arial,sans-serif;
-color:white;
-overflow-x:hidden;
-}
-
-/* HEADER */
-header{
-padding:20px;
-background:#0b1220;
-border-bottom:1px solid #00ff9d33;
-text-align:center;
-}
-
-header h1{
-font-size:28px;
-color:#00ff9d;
-}
-
-header p{
-color:#999;
-font-size:14px;
-}
-
-/* TOPBAR */
-.topbar{
-display:flex;
-gap:10px;
-padding:15px;
-}
-
-select{
-flex:1;
-background:#0f172a;
-color:white;
-border:none;
-padding:12px;
-border-radius:10px;
-font-size:16px;
-}
-
-/* STATUS */
-#status{
-text-align:center;
-padding:10px;
-color:#00ff9d;
-font-weight:bold;
-}
-
-/* SIGNAL */
-.signal-box{
-margin:15px;
-padding:25px;
-border-radius:20px;
-text-align:center;
-background:#0c1224;
-border:1px solid #00ff9d22;
-}
-
-.signal-label{
-font-size:16px;
-color:#999;
-margin-bottom:10px;
-}
-
-.signal-value{
-font-size:60px;
-font-weight:900;
-}
-
-.buy{ color:#00ff9d; }
-.sell{ color:#ff3b5c; }
-.wait{ color:#facc15; }
-
-/* CHART */
-#tvchart{
-height:350px;
-margin:15px;
-border-radius:20px;
-overflow:hidden;
-}
-
-/* GRID */
-.grid{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:12px;
-padding:15px;
-}
-
-.card{
-background:#0c1224;
-padding:20px;
-border-radius:20px;
-border:1px solid #00ff9d22;
-}
-
-.label{
-font-size:13px;
-color:#888;
-}
-
-.value{
-font-size:28px;
-font-weight:bold;
-}
-
-/* MARKET */
-.market{
-margin:15px;
-padding:20px;
-background:#0c1224;
-border-radius:20px;
-}
-
-.market-row{
-display:flex;
-justify-content:space-between;
-margin-bottom:10px;
-}
-
-/* TELEGRAM BUTTON */
-.telegram{
-position:fixed;
-right:20px;
-bottom:20px;
-width:70px;
-height:70px;
-display:flex;
-align-items:center;
-justify-content:center;
-border-radius:50%;
-background:#00ff9d;
-color:black;
-font-size:28px;
-text-decoration:none;
-font-weight:bold;
-}
-
+body{margin:0;background:#050816;color:#fff;font-family:Arial}
+header{padding:20px;text-align:center;background:#0b1220;border-bottom:1px solid #00ff9d33}
+h1{color:#00ff9d}
+.topbar{display:flex;gap:10px;padding:15px}
+select{flex:1;padding:12px;background:#0f172a;color:white;border:none;border-radius:10px}
+#status{text-align:center;padding:10px;color:#00ff9d}
+.signal-box{text-align:center;padding:25px;margin:15px;background:#0c1224;border-radius:20px}
+.signal-value{font-size:60px;font-weight:bold}
+.buy{color:#00ff9d}
+.sell{color:#ff3b5c}
+.wait{color:#facc15}
+#tvchart{height:350px;margin:15px;border-radius:20px;overflow:hidden}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:15px}
+.card{background:#0c1224;padding:15px;border-radius:15px}
+.label{color:#888;font-size:12px}
+.value{font-size:22px;font-weight:bold}
 </style>
 
 </head>
@@ -164,10 +33,9 @@ font-weight:bold;
 
 <header>
 <h1>🚀 NZFX AI TERMINAL</h1>
-<p>BINANCE LIVE FUTURES ENGINE</p>
+<p>BINANCE LIVE ENGINE</p>
 </header>
 
-<!-- MARCHÉS CORRIGÉS -->
 <div class="topbar">
 
 <select id="symbol">
@@ -191,182 +59,93 @@ font-weight:bold;
 <div id="status">🟡 CONNECTING...</div>
 
 <div class="signal-box">
-
-<div class="signal-label">AI SIGNAL</div>
+<div>AI SIGNAL</div>
 <div id="signal" class="signal-value wait">WAIT</div>
-
 </div>
 
 <div id="tvchart"></div>
 
-<div class="market">
-
-<div class="market-row">
-<span>MARKET TREND</span>
-<b id="trend">SIDEWAYS</b>
-</div>
-
-<div class="market-row">
-<span>SIGNAL STRENGTH</span>
-<b id="strength">0%</b>
-</div>
-
-<div class="market-row">
-<span>24H VOLUME</span>
-<b id="volume">0</b>
-</div>
-
-</div>
-
 <div class="grid">
 
-<div class="card">
-<div class="label">PRICE</div>
-<div class="value" id="price">0</div>
-</div>
-
-<div class="card">
-<div class="label">RSI</div>
-<div class="value" id="rsi">0</div>
-</div>
-
-<div class="card">
-<div class="label">EMA FAST</div>
-<div class="value" id="emaF">0</div>
-</div>
-
-<div class="card">
-<div class="label">EMA SLOW</div>
-<div class="value" id="emaS">0</div>
-</div>
-
-<div class="card">
-<div class="label">WIN RATE</div>
-<div class="value" id="win">0%</div>
-</div>
-
-<div class="card">
-<div class="label">MOMENTUM</div>
-<div class="value" id="momentum">0</div>
-</div>
+<div class="card"><div class="label">PRICE</div><div class="value" id="price">0</div></div>
+<div class="card"><div class="label">RSI</div><div class="value" id="rsi">0</div></div>
+<div class="card"><div class="label">EMA FAST</div><div class="value" id="emaF">0</div></div>
+<div class="card"><div class="label">EMA SLOW</div><div class="value" id="emaS">0</div></div>
+<div class="card"><div class="label">WIN RATE</div><div class="value" id="win">0%</div></div>
+<div class="card"><div class="label">MOMENTUM</div><div class="value" id="momentum">0</div></div>
 
 </div>
 
-<a class="telegram" href="https://t.me/signalstradings_bot">📡</a>
+<a href="https://t.me/signalstradings_bot" style="position:fixed;bottom:20px;right:20px;background:#00ff9d;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:black;font-size:24px">📡</a>
 
 <script>
 
-const protocol =
-location.protocol === "https:"
-? "wss://"
-: "ws://";
+const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
 
-const ws = new WebSocket(protocol + location.host);
+const symbolEl = document.getElementById("symbol");
+const intervalEl = document.getElementById("interval");
+const status = document.getElementById("status");
+const signal = document.getElementById("signal");
 
-/* ELEMENTS */
-const signalEl = document.getElementById("signal");
-const statusBox = document.getElementById("status");
-const symbolSelect = document.getElementById("symbol");
-const intervalSelect = document.getElementById("interval");
-
-/* CHART */
 let widget;
 
 function loadChart(){
-
 document.getElementById("tvchart").innerHTML = "";
 
 widget = new TradingView.widget({
-
 container_id:"tvchart",
 autosize:true,
-symbol:"BINANCE:" + symbolSelect.value,
-interval: intervalSelect.value === "1h" ? "60" : intervalSelect.value.replace("m",""),
+symbol:"BINANCE:" + symbolEl.value,
+interval: intervalEl.value === "1h" ? "60" : intervalEl.value.replace("m",""),
 theme:"dark",
-style:"1",
-locale:"fr",
-toolbar_bg:"#050816",
-hide_top_toolbar:false,
-enable_publishing:false
-
+style:"1"
 });
-
 }
 
 loadChart();
 
-/* REQUEST */
-function requestData(){
-
-statusBox.innerHTML = "🟡 REQUESTING...";
-
+function send(){
 ws.send(JSON.stringify({
-symbol: symbolSelect.value,
-interval: intervalSelect.value
+symbol: symbolEl.value,
+interval: intervalEl.value
 }));
-
 }
 
-symbolSelect.onchange = ()=>{
-loadChart();
-requestData();
-};
+symbolEl.onchange = ()=>{ loadChart(); send(); };
+intervalEl.onchange = ()=>{ loadChart(); send(); };
 
-intervalSelect.onchange = ()=>{
-loadChart();
-requestData();
-};
-
-/* WS */
 ws.onopen = ()=>{
-statusBox.innerHTML = "🟢 LIVE CONNECTED";
-requestData();
+status.innerText = "🟢 LIVE CONNECTED";
+send();
 };
 
 ws.onmessage = (msg)=>{
 
 const d = JSON.parse(msg.data);
 
-/* SAFE DATA */
-const data = {
-signal: d.signal || "WAIT",
-price: d.price || "0",
-rsi: d.rsi || "0",
-emaFast: d.emaFast || "0",
-emaSlow: d.emaSlow || "0",
-winRate: d.winRate || "0",
-momentum: d.momentum || "0",
-trend: d.trend || "SIDEWAYS",
-strength: d.strength || 0,
-volume: d.volume || "0"
-};
+if(!d || d.ok === false){
+status.innerText = "⚠️ NO DATA";
+return;
+}
 
-/* SIGNAL */
-signalEl.innerText = data.signal;
+signal.innerText = d.signal;
 
-signalEl.className =
+signal.className =
 "signal-value " +
-(data.signal === "BUY"
-? "buy"
-: data.signal === "SELL"
-? "sell"
-: "wait");
+(d.signal === "BUY" ? "buy" :
+d.signal === "SELL" ? "sell" : "wait");
 
-/* UI */
-document.getElementById("price").innerText = data.price;
-document.getElementById("rsi").innerText = data.rsi;
-document.getElementById("emaF").innerText = data.emaFast;
-document.getElementById("emaS").innerText = data.emaSlow;
-document.getElementById("win").innerText = data.winRate + "%";
-document.getElementById("momentum").innerText = data.momentum;
-document.getElementById("trend").innerText = data.trend;
-document.getElementById("strength").innerText = data.strength + "%";
-document.getElementById("volume").innerText = data.volume + "M";
+document.getElementById("price").innerText = d.price;
+document.getElementById("rsi").innerText = d.rsi;
+document.getElementById("emaF").innerText = d.emaFast;
+document.getElementById("emaS").innerText = d.emaSlow;
+document.getElementById("win").innerText = d.winRate + "%";
+document.getElementById("momentum").innerText = d.momentum;
 
 };
 
 ws.onerror = ()=>{
-statusBox.innerHTML = "🔴 CONNECTION ERROR";
+status.innerText = "🔴 CONNECTION ERROR";
 };
 
 </script>
