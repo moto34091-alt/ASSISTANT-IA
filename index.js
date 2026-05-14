@@ -9,17 +9,18 @@ app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO STABLE V1 - ONLINE");
+res.send("🚀 SNIPER PRO V28 - STABLE FOREX ENGINE");
 });
 
-/* ================= CLEAN SYMBOL ================= */
+/* ================= SYMBOL FIX ================= */
 function cleanSymbol(symbol){
-return symbol.includes("/")
-? symbol
-: symbol.slice(0,3) + "/" + symbol.slice(3);
+if(symbol.includes("/")){
+return symbol.replace("/", "");
+}
+return symbol;
 }
 
-/* ================= FETCH DATA SAFE ================= */
+/* ================= FETCH DATA ================= */
 async function getData(symbol, interval){
 
 try {
@@ -30,16 +31,25 @@ const map = {
 "30s":"1min",
 "1m":"1min",
 "5m":"5min",
-"15m":"5min"
+"15m":"15min"
 };
 
 const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
+/* DEBUG */
+console.log("SYMBOL:", symbol);
+console.log("STATUS:", res.data?.status);
+
 /* SAFE CHECK */
-if(!res.data || res.data.status === "error") return null;
-if(!res.data.values || res.data.values.length < 20) return null;
+if(!res.data || res.data.status === "error"){
+return null;
+}
+
+if(!res.data.values || res.data.values.length < 20){
+return null;
+}
 
 return res.data.values
 .reverse()
@@ -199,6 +209,7 @@ liquidity
 });
 
 } catch (err) {
+
 console.log("SERVER ERROR:", err.message);
 
 res.json({
@@ -218,5 +229,5 @@ liquidity:{buySweep:false,sellSweep:false}
 });
 
 app.listen(PORT, ()=>{
-console.log("🚀 SNIPER PRO STABLE V1 RUNNING");
+console.log("🚀 SNIPER PRO V28 STABLE RUNNING");
 });
