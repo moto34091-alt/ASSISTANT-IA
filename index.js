@@ -37,23 +37,19 @@ const SYMBOLS = [
 "BNBUSDT",
 "XRPUSDT",
 "DOGEUSDT",
-
 "ADAUSDT",
 "AVAXUSDT",
 "LINKUSDT",
 "MATICUSDT",
 "LTCUSDT",
-
 "TRXUSDT",
 "DOTUSDT",
 "ATOMUSDT",
 "NEARUSDT",
-
 "ARBUSDT",
 "OPUSDT",
 "APTUSDT",
 "SUIUSDT",
-
 "FILUSDT",
 "ETCUSDT",
 "AAVEUSDT",
@@ -145,29 +141,36 @@ const r = await axios.get(
 `${BASE}/klines`,
 {
 params:{
-symbol,
-interval,
+symbol:symbol,
+interval:interval,
 limit:100
 },
-timeout:15000
+timeout:15000,
+headers:{
+"User-Agent":"Mozilla/5.0"
+}
 }
 );
 
+if(!r.data || !Array.isArray(r.data)){
+return null;
+}
+
 return r.data.map(x => ({
 
-open:+x[1],
-high:+x[2],
-low:+x[3],
-close:+x[4],
-volume:+x[5]
+open: parseFloat(x[1]),
+high: parseFloat(x[2]),
+low: parseFloat(x[3]),
+close: parseFloat(x[4]),
+volume: parseFloat(x[5])
 
 }));
 
 }catch(e){
 
 console.log(
-"❌ KLINES ERROR:",
-e.message
+"❌ BINANCE ERROR:",
+e.response?.data || e.message
 );
 
 return null;
@@ -371,6 +374,10 @@ interval = "1m"
 
 try{
 
+symbol = symbol
+.toUpperCase()
+.replace("/","");
+
 const candles =
 await getCandles(
 symbol,
@@ -544,13 +551,13 @@ if(signal === "BUY"){
 
 takeProfit =
 sr.resistance
-? sr.resistance.toFixed(2)
-: (last * 1.01).toFixed(2);
+? sr.resistance.toFixed(6)
+: (last * 1.01).toFixed(6);
 
 stopLoss =
 sr.support
-? sr.support.toFixed(2)
-: (last * 0.99).toFixed(2);
+? sr.support.toFixed(6)
+: (last * 0.99).toFixed(6);
 
 }
 
@@ -558,13 +565,13 @@ if(signal === "SELL"){
 
 takeProfit =
 sr.support
-? sr.support.toFixed(2)
-: (last * 0.99).toFixed(2);
+? sr.support.toFixed(6)
+: (last * 0.99).toFixed(6);
 
 stopLoss =
 sr.resistance
-? sr.resistance.toFixed(2)
-: (last * 1.01).toFixed(2);
+? sr.resistance.toFixed(6)
+: (last * 1.01).toFixed(6);
 
 }
 
@@ -594,15 +601,15 @@ trend,
 
 strength,
 
-price:last.toFixed(2),
+price:last.toFixed(6),
 
 rsi:rsi.toFixed(2),
 
-emaFast:emaFast.toFixed(2),
+emaFast:emaFast.toFixed(6),
 
-emaSlow:emaSlow.toFixed(2),
+emaSlow:emaSlow.toFixed(6),
 
-momentum:momentum.toFixed(2),
+momentum:momentum.toFixed(6),
 
 volume:(
 currentVolume / 1000000
@@ -614,12 +621,12 @@ pattern,
 
 support:
 sr.support
-? sr.support.toFixed(2)
+? sr.support.toFixed(6)
 : "0",
 
 resistance:
 sr.resistance
-? sr.resistance.toFixed(2)
+? sr.resistance.toFixed(6)
 : "0",
 
 takeProfit,
@@ -704,7 +711,7 @@ app.get(
 async(req,res)=>{
 
 const symbol =
-req.params.symbol.toUpperCase();
+req.params.symbol;
 
 const interval =
 req.params.interval;
