@@ -7,19 +7,19 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
-/* ================= HOME ================= */
+/* ================= ROOT ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V17 - ONLINE");
+res.send("🚀 SNIPER PRO V20 - SMART STRATEGY ENGINE");
 });
 
-/* ================= SYMBOL CLEAN ================= */
+/* ================= CLEAN SYMBOL ================= */
 function cleanSymbol(symbol){
 return symbol.includes("/")
 ? symbol
 : symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= FETCH DATA ================= */
+/* ================= GET MARKET DATA ================= */
 async function getData(symbol, interval){
 
 try {
@@ -42,13 +42,12 @@ console.log("SYMBOL:", symbol);
 console.log("STATUS:", res.data.status);
 console.log("VALUES:", res.data?.values?.length || 0);
 
-/* SAFE CHECK */
+/* VALIDATION */
 if(!res.data || res.data.status === "error"){
 return null;
 }
 
 if(!res.data.values || res.data.values.length < 10){
-/* 🔥 PLUS DE BLOQUAGE */
 return [];
 }
 
@@ -80,13 +79,79 @@ function EMA(data, period){
 if(!data || data.length===0) return 1.1;
 
 const k = 2/(period+1);
-let ema = data[0] || 1.1;
+let ema = data[0];
 
 for(let i=1;i<data.length;i++){
 ema = data[i]*k + ema*(1-k);
 }
 
 return ema;
+}
+
+/* ================= STRATEGY ENGINE ================= */
+function detectStrategies(data, rsi, emaFast, emaSlow){
+
+let strategies = [];
+
+const last = data.at(-1);
+const prev = data[data.length - 5] || last;
+const volatility = Math.abs(last - prev);
+
+/* 1️⃣ TREND FOLLOW */
+if(emaFast > emaSlow && rsi > 50 && rsi < 70){
+strategies.push("TREND_BUY");
+}
+
+if(emaFast < emaSlow && rsi < 50 && rsi > 30){
+strategies.push("TREND_SELL");
+}
+
+/* 2️⃣ PULLBACK */
+if(emaFast > emaSlow && rsi < 45){
+strategies.push("PULLBACK_BUY");
+}
+
+if(emaFast < emaSlow && rsi > 55){
+strategies.push("PULLBACK_SELL");
+}
+
+/* 3️⃣ BREAKOUT */
+if(volatility > 0.0010 && rsi > 60){
+strategies.push("BREAKOUT_BUY");
+}
+
+if(volatility > 0.0010 && rsi < 40){
+strategies.push("BREAKOUT_SELL");
+}
+
+/* 4️⃣ REVERSAL ZONE */
+if(rsi <= 25) strategies.push("REVERSAL_BUY");
+if(rsi >= 75) strategies.push("REVERSAL_SELL");
+
+/* 5️⃣ SMART MONEY FLOW */
+if(emaFast > emaSlow && rsi < 60){
+strategies.push("SM_BUY_FLOW");
+}
+
+if(emaFast < emaSlow && rsi > 40){
+strategies.push("SM_SELL_FLOW");
+}
+
+/* 6️⃣ RANGE MARKET */
+if(Math.abs(emaFast - emaSlow) < 0.0002){
+strategies.push("RANGE");
+}
+
+/* 7️⃣ STRONG TREND */
+if(emaFast > emaSlow && rsi > 60){
+strategies.push("STRONG_BULL");
+}
+
+if(emaFast < emaSlow && rsi < 40){
+strategies.push("STRONG_BEAR");
+}
+
+return strategies;
 }
 
 /* ================= API ================= */
@@ -99,9 +164,8 @@ if(interval==="30s") interval="1m";
 
 const data = await getData(symbol, interval);
 
-/* ================= SAFE FALLBACK (NE JAMAIS BLOQUER) ================= */
+/* ================= FALLBACK ================= */
 if(!data || data.length < 3){
-
 return res.json({
 symbol,
 interval,
@@ -109,33 +173,53 @@ signal:"WAIT",
 price:1.1000,
 rsi:50,
 trend:"MARKET LIVE",
-strength:40
+strength:40,
+strategies:[]
 });
 }
 
-const price = data.at(-1) || 1.1;
+const price = data.at(-1);
 const rsi = RSI(data);
-const emaFast = EMA(data.slice(-20),9);
-const emaSlow = EMA(data.slice(-20),21);
+const emaFast = EMA(data.slice(-25),9);
+const emaSlow = EMA(data.slice(-25),21);
 
-/* TREND */
 let trend = "SIDEWAYS";
 if(emaFast > emaSlow) trend="BULLISH";
 if(emaFast < emaSlow) trend="BEARISH";
 
-/* SIGNAL */
-let signal="WAIT";
-if(trend==="BULLISH" && rsi < 70) signal="BUY";
-if(trend==="BEARISH" && rsi > 30) signal="SELL";
+const strategies = detectStrategies(data,rsi,emaFast,emaSlow);
 
-/* STRENGTH */
-let strength = 55;
-if(signal!=="WAIT") strength+=25;
+/* ================= SIGNAL ENGINE ================= */
+let signal = "WAIT";
+
+/* PRIORITY SYSTEM */
+if(strategies.includes("STRONG_BULL")) signal="BUY";
+if(strategies.includes("STRONG_BEAR")) signal="SELL";
+
+if(signal==="WAIT"){
+if(strategies.includes("BREAKOUT_BUY")) signal="BUY";
+if(strategies.includes("BREAKOUT_SELL")) signal="SELL";
+}
+
+if(signal==="WAIT"){
+if(strategies.includes("TREND_BUY")) signal="BUY";
+if(strategies.includes("TREND_SELL")) signal="SELL";
+}
+
+if(signal==="WAIT"){
+if(strategies.includes("REVERSAL_BUY")) signal="BUY";
+if(strategies.includes("REVERSAL_SELL")) signal="SELL";
+}
+
+/* ================= STRENGTH ================= */
+let strength = 50;
+if(signal!=="WAIT") strength+=30;
 if(trend!=="SIDEWAYS") strength+=10;
+if(rsi>45 && rsi<70) strength+=10;
 
 strength = Math.min(100,strength);
 
-/* RESPONSE */
+/* ================= RESPONSE ================= */
 res.json({
 symbol,
 interval,
@@ -143,11 +227,12 @@ signal,
 price,
 rsi:Number(rsi.toFixed(2)),
 trend,
-strength
+strength,
+strategies
 });
 
 });
 
-app.listen(PORT, ()=>{
-console.log("🚀 SNIPER PRO V17 STABLE RUNNING");
+app.listen(PORT,()=>{
+console.log("🚀 SNIPER PRO V20 FULL ENGINE RUNNING");
 });
