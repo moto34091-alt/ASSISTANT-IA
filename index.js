@@ -8,84 +8,57 @@ const app = express();
 app.use(express.json());
 
 /* =========================
-SAFE CRASH HANDLING
+CRASH PROTECTION
 ========================= */
-process.on("uncaughtException", (err) => {
-console.log("CRASH:", err.message);
-});
-
-process.on("unhandledRejection", (err) => {
-console.log("PROMISE ERROR:", err.message);
-});
+process.on("uncaughtException", (err) => console.log("CRASH:", err.message));
+process.on("unhandledRejection", (err) => console.log("PROMISE:", err.message));
 
 /* =========================
-HOME PAGE (RAILWAY CHECK)
+HOME (RAILWAY OK PAGE)
 ========================= */
 app.get("/", (req, res) => {
-res.send(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>SNIPER PRO V7</title>
-<style>
-body{
-margin:0;
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-background:white;
-font-family:Arial;
-}
-h1{color:#111;font-size:28px;}
-p{color:#666;}
-</style>
-</head>
-<body>
-<div style="text-align:center">
-<h1>🚀 SNIPER PRO V7 - ONLINE</h1>
-<p>System running on Railway</p>
-</div>
-</body>
-</html>
-`);
+res.send("🚀 SNIPER PRO V7 - ONLINE");
 });
 
-/* =========================
-TEST ROUTE
-========================= */
 app.get("/test", (req, res) => {
-res.json({ status: "OK", message: "SERVER WORKING" });
+res.json({ status: "OK" });
 });
 
 /* =========================
-BINANCE DATA
+BINANCE (FIX ROBUST)
 ========================= */
-const BASE = "https://api.binance.com/api/v3";
+const BASES = [
+"https://api.binance.com/api/v3",
+"https://api1.binance.com/api/v3",
+"https://data-api.binance.vision/api/v3"
+];
 
-async function getCloses(symbol, interval) {
+async function fetchKlines(symbol, interval) {
+for (const base of BASES) {
 try {
-const res = await axios.get(`${BASE}/klines`, {
-params: { symbol, interval, limit: 100 }
+const res = await axios.get(`${base}/klines`, {
+params: { symbol, interval, limit: 100 },
+timeout: 5000
 });
 
+if (Array.isArray(res.data) && res.data.length > 0) {
 return res.data.map(c => Number(c[4]));
+}
 
 } catch (e) {
-console.log("BINANCE ERROR:", e.message);
-return null;
+continue;
 }
+}
+return null;
 }
 
 /* =========================
-RSI
+RSI (REAL)
 ========================= */
 function RSI(data, period = 14) {
 if (!data || data.length < period + 1) return 50;
 
-let gain = 0;
-let loss = 0;
+let gain = 0, loss = 0;
 
 for (let i = 1; i <= period; i++) {
 const diff = data[i] - data[i - 1];
@@ -112,6 +85,8 @@ return 100 - (100 / (1 + avgGain / (avgLoss || 1)));
 EMA
 ========================= */
 function EMA(data, period) {
+if (!data || data.length === 0) return 0;
+
 const k = 2 / (period + 1);
 let ema = data[0];
 
@@ -123,12 +98,13 @@ return ema;
 }
 
 /* =========================
-ANALYZE ENGINE
+ANALYZE ENGINE (FIXED)
 ========================= */
 async function analyze(symbol, interval) {
 
-const data = await getCloses(symbol, interval);
+const data = await fetchKlines(symbol, interval);
 
+/* ⚠️ NO FAKE MODE */
 if (!data || data.length < 50) {
 return {
 symbol,
@@ -139,27 +115,29 @@ rsi: 50,
 emaFast: 0,
 emaSlow: 0,
 momentum: 0,
-trend: "LOADING",
+trend: "NO DATA",
 strength: 0
 };
 }
 
-const price = data.at(-1);
-const prev = data.at(-2) || price;
+const price = data[data.length - 1];
+const prev = data[data.length - 2];
 
 const rsi = RSI(data);
 const emaFast = EMA(data.slice(-20), 9);
 const emaSlow = EMA(data.slice(-20), 21);
 const momentum = price - prev;
 
-/* SIGNAL */
+/* =========================
+SMART SIGNAL
+========================= */
 let strength = 50;
 
-if (emaFast > emaSlow) strength += 25;
-if (emaFast < emaSlow) strength -= 25;
+if (emaFast > emaSlow) strength += 30;
+if (emaFast < emaSlow) strength -= 30;
 
-if (rsi < 30) strength += 20;
-if (rsi > 70) strength += 20;
+if (rsi < 30) strength += 15;
+if (rsi > 70) strength += 15;
 
 if (momentum > 0) strength += 10;
 if (momentum < 0) strength -= 10;
@@ -168,8 +146,11 @@ strength = Math.max(0, Math.min(100, strength));
 
 let signal = "WAIT";
 if (strength >= 75 && rsi < 45) signal = "BUY";
-else if (strength >= 75 && rsi > 55) signal = "SELL";
+if (strength >= 75 && rsi > 55) signal = "SELL";
 
+/* =========================
+REAL OUTPUT
+========================= */
 return {
 symbol,
 interval,
@@ -180,61 +161,47 @@ emaFast: Number(emaFast.toFixed(2)),
 emaSlow: Number(emaSlow.toFixed(2)),
 momentum: Number(momentum.toFixed(2)),
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH",
-strength
+strength: Number(strength.toFixed(0))
 };
 }
 
 /* =========================
-API ROUTE (IMPORTANT)
+API
 ========================= */
 app.get("/api/:symbol/:interval", async (req, res) => {
-try {
-const result = await analyze(req.params.symbol, req.params.interval);
-res.json(result);
-} catch (e) {
-res.status(500).json({ error: "SERVER ERROR" });
-}
+res.json(await analyze(req.params.symbol, req.params.interval));
 });
 
 /* =========================
-PORT RAILWAY FIX
+PORT FIX
 ========================= */
 const PORT = process.env.PORT || 3000;
 
-/* =========================
-START SERVER
-========================= */
 const server = app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V7 RUNNING ON PORT", PORT);
+console.log("🚀 SNIPER PRO V7 RUNNING:", PORT);
 });
 
 /* =========================
-WEBSOCKET
+WS LIVE
 ========================= */
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
-
 ws.on("message", async (msg) => {
 try {
 const { symbol, interval } = JSON.parse(msg.toString());
-const data = await analyze(symbol, interval);
-ws.send(JSON.stringify(data));
-} catch (e) {
+ws.send(JSON.stringify(await analyze(symbol, interval)));
+} catch {
 ws.send(JSON.stringify({ signal: "WAIT" }));
 }
 });
-
 });
 
-/* =========================
-LIVE UPDATE LOOP
-========================= */
+/* LIVE PUSH */
 setInterval(async () => {
 for (const client of wss.clients) {
 if (client.readyState === 1) {
-const data = await analyze("BTCUSDT", "5m");
-client.send(JSON.stringify(data));
+client.send(JSON.stringify(await analyze("BTCUSDT", "5m")));
 }
 }
-}, 10000);
+}, 8000);
