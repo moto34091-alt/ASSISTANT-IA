@@ -2,16 +2,14 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 
-const formatResponse = require("./engine/responseFormatter");
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
-/* ================= ROOT ================= */
+/* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V27 - SMART MONEY ENGINE");
+res.send("🚀 SNIPER PRO STABLE V1 - ONLINE");
 });
 
 /* ================= CLEAN SYMBOL ================= */
@@ -21,7 +19,7 @@ return symbol.includes("/")
 : symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= FETCH DATA ================= */
+/* ================= FETCH DATA SAFE ================= */
 async function getData(symbol, interval){
 
 try {
@@ -35,14 +33,18 @@ const map = {
 "15m":"5min"
 };
 
-const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=200&apikey=${process.env.TWELVE_API_KEY}`;
+const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
+/* SAFE CHECK */
 if(!res.data || res.data.status === "error") return null;
-if(!res.data.values || res.data.values.length < 15) return null;
+if(!res.data.values || res.data.values.length < 20) return null;
 
-return res.data.values.reverse().map(c => Number(c.close));
+return res.data.values
+.reverse()
+.map(c => Number(c.close))
+.filter(n => !isNaN(n));
 
 } catch(err){
 console.log("API ERROR:", err.message);
@@ -52,7 +54,7 @@ return null;
 
 /* ================= RSI ================= */
 function RSI(data){
-if(!data || data.length < 10) return 50;
+if(!data || data.length < 14) return 50;
 
 let gain=0, loss=0;
 
@@ -67,6 +69,8 @@ return 100 - (100 / (1 + rs));
 
 /* ================= EMA ================= */
 function EMA(data, period){
+if(!data || data.length < period) return data?.at(-1) || 0;
+
 const k = 2 / (period + 1);
 let ema = data[0];
 
@@ -77,8 +81,10 @@ ema = data[i] * k + ema * (1 - k);
 return ema;
 }
 
-/* ================= ROUTE ================= */
+/* ================= API ================= */
 app.get("/api/:symbol/:interval", async (req,res)=>{
+
+try {
 
 let symbol = cleanSymbol(req.params.symbol);
 let interval = req.params.interval;
@@ -87,13 +93,13 @@ if(interval === "30s") interval = "1m";
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK ================= */
-if(!data){
+/* ================= FALLBACK ANTI CRASH ================= */
+if(!data || data.length < 20){
 return res.json({
 symbol,
 interval,
 signal:"WAIT",
-price:1.1000,
+price:0,
 rsi:50,
 trend:"NO DATA",
 score:0,
@@ -107,8 +113,8 @@ liquidity:{buySweep:false,sellSweep:false}
 
 /* ================= VALUES ================= */
 const price = data.at(-1);
-const rsiValue = RSI(data);
 
+const rsi = RSI(data);
 const emaFast = EMA(data.slice(-30), 9);
 const emaSlow = EMA(data.slice(-30), 21);
 
@@ -148,8 +154,8 @@ let score = 0;
 if (emaFast > emaSlow) score += 30;
 if (emaFast < emaSlow) score -= 30;
 
-if (rsiValue < 30) score += 25;
-if (rsiValue > 70) score -= 25;
+if (rsi < 30) score += 25;
+if (rsi > 70) score -= 25;
 
 if (BOS.bullish) score += 25;
 if (BOS.bearish) score -= 25;
@@ -177,25 +183,40 @@ signal = trend === "BULLISH" ? "BUY"
 }
 
 /* ================= RESPONSE ================= */
-res.json(formatResponse({
+res.json({
 symbol,
 interval,
-
 signal,
 price,
-rsi: rsiValue,
+rsi,
 trend,
 score,
-
 BOS,
 CHoCH,
 support,
 resistance,
 liquidity
-}));
+});
+
+} catch (err) {
+console.log("SERVER ERROR:", err.message);
+
+res.json({
+signal:"WAIT",
+price:0,
+rsi:50,
+trend:"ERROR",
+score:0,
+BOS:{bullish:false,bearish:false},
+CHoCH:{bullish:false,bearish:false},
+support:0,
+resistance:0,
+liquidity:{buySweep:false,sellSweep:false}
+});
+}
 
 });
 
 app.listen(PORT, ()=>{
-console.log("🚀 SNIPER PRO V27 RUNNING");
+console.log("🚀 SNIPER PRO STABLE V1 RUNNING");
 });
