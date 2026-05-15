@@ -159,6 +159,12 @@ font-weight:bold;
 let interval=null;
 let timer=null;
 
+/* 🔒 CACHE SIGNAL (IMPORTANT) */
+let lastSignal = "WAIT";
+let lastMarket = "";
+let lastProb = 0;
+let lastData = null;
+
 /* PRICE */
 function getPrice(market){
 let base = 1 + Math.random()*100;
@@ -180,7 +186,6 @@ let trendS = trend>0.25?1:trend<-0.25?-1:0;
 let volS = volume>65?1:volume<35?-1:0;
 
 let confirm = rsiS + trendS;
-
 let score = (rsiS*0.5) + (trendS*0.4) + (volS*0.1);
 
 let signal="WAIT";
@@ -196,11 +201,17 @@ let entry = signal=="BUY" ? "BUY ZONE 🔼" :
 return {score,signal,prob,winrate,entry};
 }
 
-/* ANALYZE (NO BLOCK) */
+/* ANALYZE (SIGNAL FIXE) */
 function analyze(){
 
 let m=document.getElementById("market").value;
 let t=document.getElementById("time").value;
+
+/* 🔥 IMPORTANT : si même marché + signal existe → NE PAS CHANGER */
+if(m === lastMarket && lastSignal !== "WAIT"){
+apply(lastData,m);
+return;
+}
 
 document.getElementById("icon").innerText="🧠";
 document.getElementById("signal").innerText="ANALYZING...";
@@ -209,6 +220,20 @@ document.getElementById("signal").className="signal wait";
 setTimeout(()=>{
 
 let d=ai();
+
+/* 🔒 FIX SIGNAL */
+if(lastSignal !== "WAIT" && m === lastMarket){
+d.signal = lastSignal;
+d.prob = lastProb;
+d.score = lastData.score;
+d.winrate = lastData.winrate;
+d.entry = lastData.entry;
+}
+
+lastData=d;
+lastSignal=d.signal;
+lastMarket=m;
+lastProb=d.prob;
 
 apply(d,m);
 startTimer(t,d.signal);
@@ -257,7 +282,6 @@ let r=sec;
 timer=setInterval(()=>{
 
 r--;
-
 document.getElementById("fill").style.width=(r/sec*100)+"%";
 document.getElementById("timer").innerText=r+" SEC";
 
@@ -265,6 +289,10 @@ if(r<=0){
 clearInterval(timer);
 document.getElementById("timer").innerText="READY";
 document.getElementById("timer").style.display="none";
+
+/* reset signal après expiration */
+lastSignal="WAIT";
+lastMarket="";
 }
 
 },1000);
