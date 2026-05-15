@@ -11,9 +11,85 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static("public"));
 
-/* ================= HOME ================= */
+/* ================= HOME (FIX SCREEN WHITE) ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V30 - ONLINE");
+res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+<title>SNIPER PRO V30</title>
+
+<style>
+body{
+margin:0;
+background:#050816;
+color:white;
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+.card{
+background:#0c1224;
+padding:30px;
+border-radius:20px;
+border:1px solid #00ff9d;
+text-align:center;
+box-shadow:0 0 20px #00ff9d33;
+animation: glow 2s infinite alternate;
+}
+
+h1{
+color:#00ff9d;
+margin-bottom:10px;
+}
+
+p{
+color:#aaa;
+}
+
+button{
+margin-top:20px;
+padding:12px 18px;
+border:none;
+border-radius:10px;
+background:#00ff9d;
+color:black;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
+}
+
+button:hover{
+transform:scale(1.05);
+box-shadow:0 0 15px #00ff9d;
+}
+
+@keyframes glow{
+from{box-shadow:0 0 10px #00ff9d33;}
+to{box-shadow:0 0 25px #00ff9d;}
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+<h1>🚀 SNIPER PRO V30</h1>
+<p>SMART ENGINE LIVE ACTIVE</p>
+
+<button onclick="window.location.href='/api/BTCUSD/1m'">
+📊 TEST SIGNAL API
+</button>
+
+</div>
+
+</body>
+</html>
+`);
 });
 
 /* ================= CLEAN SYMBOL ================= */
@@ -29,7 +105,7 @@ return symbol.slice(0,3) + "/" + symbol.slice(3);
 
 }
 
-/* ================= DATA ================= */
+/* ================= DATA FETCH ================= */
 async function getData(symbol, interval){
 
 try {
@@ -48,7 +124,6 @@ const url =
 
 const res = await axios.get(url);
 
-/* SAFE CHECK */
 if(!res.data || res.data.status === "error") return null;
 if(!res.data.values || res.data.values.length < 20) return null;
 
@@ -115,7 +190,6 @@ const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK ================= */
 if(!data || data.length < 20){
 
 return res.json({
@@ -136,20 +210,16 @@ liquidity:{buySweep:false,sellSweep:false}
 
 }
 
-/* ================= PRICE ================= */
 const price = data.at(-1) || 0;
 
-/* ================= INDICATORS ================= */
 const rsi = RSI(data);
 const emaFast = EMA(data.slice(-30), 9);
 const emaSlow = EMA(data.slice(-30), 21);
 
-/* ================= TREND ================= */
 const trend =
 emaFast > emaSlow ? "BULLISH" :
 emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
 
-/* ================= STRUCTURE ================= */
 const recentHigh = Math.max(...data.slice(-10));
 const recentLow = Math.min(...data.slice(-10));
 const prevHigh = Math.max(...data.slice(-20,-10));
@@ -165,17 +235,14 @@ bullish: trend === "BULLISH" && BOS.bullish,
 bearish: trend === "BEARISH" && BOS.bearish
 };
 
-/* ================= SUPPORT ================= */
 const support = Math.min(...data.slice(-30));
 const resistance = Math.max(...data.slice(-30));
 
-/* ================= LIQUIDITY ================= */
 const liquidity = {
 buySweep: price < support,
 sellSweep: price > resistance
 };
 
-/* ================= SCORE ================= */
 let score = 0;
 
 if (emaFast > emaSlow) score += 30;
@@ -194,11 +261,9 @@ if (liquidity.buySweep) score += 20;
 if (liquidity.sellSweep) score -= 20;
 
 const momentum = price - (data.at(data.length - 3) || price);
-
 if (momentum > 0) score += 10;
 if (momentum < 0) score -= 10;
 
-/* ================= SIGNAL ================= */
 let signal = "WAIT";
 
 if (score >= 55) signal = "BUY";
@@ -213,9 +278,7 @@ trend === "BULLISH"
 : "WAIT";
 }
 
-/* ================= RESPONSE ================= */
 res.json({
-
 symbol,
 interval,
 signal,
@@ -229,7 +292,6 @@ CHoCH,
 support,
 resistance,
 liquidity
-
 });
 
 } catch(err){
