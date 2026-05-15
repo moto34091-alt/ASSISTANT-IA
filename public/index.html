@@ -3,128 +3,97 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pocket Sniper AI</title>
+<title>SNIPER AI PRO</title>
 
 <style>
 
 body{
 margin:0;
 font-family:Arial;
-background:#0a0f1f;
+background:#050816;
 color:white;
-overflow:hidden;
-}
-
-/* ================= TOP BAR ================= */
-.top{
-height:60px;
-background:#0f172a;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 15px;
-border-bottom:1px solid #00ff9d22;
-}
-
-.logo{
-color:#00ff9d;
-font-weight:bold;
-}
-
-.balance{
-font-size:12px;
-color:#aaa;
-}
-
-/* ================= CHART AREA ================= */
-.chart{
-height:45vh;
-background:radial-gradient(circle at top,#111a33,#070b16);
 display:flex;
 justify-content:center;
 align-items:center;
-font-size:12px;
-color:#555;
+height:100vh;
 }
 
-/* ================= SIGNAL PANEL ================= */
-.panel{
+.app{
+width:95%;
+max-width:420px;
+background:#0c1224;
+border-radius:25px;
 padding:20px;
-text-align:center;
+border:1px solid #00ff9d22;
+box-shadow:0 0 25px #00ff9d22;
 }
 
-.signal{
-font-size:70px;
-font-weight:bold;
-margin:10px 0;
-animation:pulse 1s infinite;
-}
-
-@keyframes pulse{
-0%{transform:scale(1); opacity:1;}
-50%{transform:scale(1.1); opacity:0.5;}
-100%{transform:scale(1); opacity:1;}
-}
-
-.status{
-font-size:13px;
-color:#888;
-}
-
-/* ================= ACTION BUTTONS ================= */
-.actions{
-position:fixed;
-bottom:0;
-width:100%;
-display:flex;
-gap:10px;
-padding:15px;
-background:#0f172a;
-border-top:1px solid #00ff9d22;
-}
-
+/* BUTTONS */
 button{
-flex:1;
-padding:15px;
+width:100%;
+padding:14px;
+margin-top:10px;
 border:none;
-border-radius:12px;
+border-radius:14px;
+background:#00ff9d;
 font-weight:bold;
 cursor:pointer;
 }
 
-.buy{
-background:#00ff9d;
-color:black;
+/* LIST */
+.list{
+margin-top:15px;
+max-height:250px;
+overflow:auto;
 }
 
-.sell{
-background:#ff3b5c;
-color:white;
+.item{
+padding:12px;
+margin-bottom:8px;
+background:#111a33;
+border-radius:12px;
+display:flex;
+justify-content:space-between;
+cursor:pointer;
+border:1px solid transparent;
 }
 
-.analyze{
-background:#1f2937;
-color:white;
+.item.active{
+border:1px solid #00ff9d;
 }
 
-/* ================= LIGHT EFFECT ================= */
-.glow{
-position:absolute;
-width:300px;
-height:300px;
-background:#00ff9d;
-filter:blur(140px);
-opacity:0.12;
-top:30%;
-left:50%;
-transform:translate(-50%,-50%);
-animation:move 5s infinite alternate;
+/* TIMER BAR */
+.bar{
+height:8px;
+width:100%;
+background:#1a1f35;
+border-radius:20px;
+overflow:hidden;
+margin-top:15px;
 }
 
-@keyframes move{
-from{transform:translate(-50%,-50%) scale(1);}
-to{transform:translate(-50%,-50%) scale(1.3);}
+.fill{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+animation:none;
 }
+
+/* RESULT */
+.signal{
+font-size:55px;
+text-align:center;
+margin-top:20px;
+animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+0%{opacity:1;}
+50%{opacity:0.4;}
+100%{opacity:1;}
+}
+
+.hidden{display:none;}
 
 </style>
 
@@ -132,81 +101,109 @@ to{transform:translate(-50%,-50%) scale(1.3);}
 
 <body>
 
-<div class="glow"></div>
+<div class="app">
 
-<div class="top">
-<div class="logo">POCKET SNIPER AI</div>
-<div class="balance">LIVE • BTC/USD</div>
+<h3>🚀 SNIPER AI SCANNER</h3>
+
+<button onclick="scan()">🔄 ACTUALISER MARCHÉS</button>
+
+<div id="list" class="list hidden"></div>
+
+<div id="step2" class="hidden">
+<h3>⏱ TIMEFRAME</h3>
+<button onclick="setTime('1m')">1M</button>
+<button onclick="setTime('5m')">5M</button>
+<button onclick="setTime('15m')">15M</button>
 </div>
 
-<div class="chart">
-📊 LIVE CHART AREA
+<div id="step3" class="hidden">
+<h3>🧠 ANALYSE</h3>
+
+<div class="bar">
+<div class="fill" id="bar"></div>
 </div>
 
-<div class="panel">
-
-<div class="status" id="status">READY</div>
-
-<div class="signal" id="signal">WAIT</div>
-
-<div class="status" id="info">ANALYSIS ENGINE ACTIVE</div>
-
+<button onclick="analyze()">START ANALYSE</button>
 </div>
 
-<div class="actions">
-
-<button class="buy" onclick="run()">
-BUY
-</button>
-
-<button class="analyze" onclick="run()">
-ANALYZE
-</button>
-
-<button class="sell" onclick="run()">
-SELL
-</button>
+<div id="result" class="hidden">
+<div class="signal" id="signal">---</div>
+</div>
 
 </div>
 
 <script>
 
-async function run(){
+let markets = [];
+let selected = "";
+let time = "";
 
-document.getElementById("status").innerText = "ANALYZING...";
+/* ================= SCAN ================= */
+function scan(){
 
-const res = await fetch("/api/BTCUSD/1m");
+markets = [
+"BTCUSD","ETHUSD","EURUSD","GBPUSD","USDJPY",
+"GOLD","NAS100","SPX500","GER40","AUDUSD"
+];
+
+let list = document.getElementById("list");
+list.classList.remove("hidden");
+list.innerHTML = "";
+
+markets.forEach(m=>{
+
+let div = document.createElement("div");
+div.className="item";
+div.innerHTML = `<span>${m}</span><span>🔥</span>`;
+
+div.onclick = ()=>{
+document.querySelectorAll(".item").forEach(x=>x.classList.remove("active"));
+div.classList.add("active");
+selected = m;
+document.getElementById("step2").classList.remove("hidden");
+};
+
+list.appendChild(div);
+
+});
+
+}
+
+/* ================= TIME ================= */
+function setTime(t){
+time = t;
+document.getElementById("step3").classList.remove("hidden");
+}
+
+/* ================= ANALYSE ================= */
+async function analyze(){
+
+const bar = document.getElementById("bar");
+bar.style.animation = "none";
+void bar.offsetWidth;
+bar.style.animation = "shrink 5s linear forwards";
+
+const res = await fetch(`/api/${selected}/${time}`);
 const data = await res.json();
 
-let s = data.signal || "WAIT";
+setTimeout(()=>{
 
-document.getElementById("signal").innerText = s;
+document.getElementById("result").classList.remove("hidden");
+document.getElementById("signal").innerText =
+data.signal + " (" + data.strength + "%)";
 
-/* STYLE FEEDBACK */
-if(s === "BUY"){
-document.getElementById("signal").style.color = "#00ff9d";
-document.body.style.background = "#041a12";
-}
-
-if(s === "SELL"){
-document.getElementById("signal").style.color = "#ff3b5c";
-document.body.style.background = "#1a0404";
-}
-
-if(s === "WAIT"){
-document.getElementById("signal").style.color = "#facc15";
-document.body.style.background = "#0a0f1f";
-}
-
-document.getElementById("status").innerText =
-"POSITION READY";
-
-document.getElementById("info").innerText =
-"RSI + MOMENTUM ANALYZED";
+},5000);
 
 }
 
 </script>
+
+<style>
+@keyframes shrink{
+from{width:100%;}
+to{width:0%;}
+}
+</style>
 
 </body>
 </html>
