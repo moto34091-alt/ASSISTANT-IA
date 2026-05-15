@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMART ENGINE V4</title>
+<title>SNIPER AI PRO</title>
 
 <style>
 
@@ -18,17 +19,15 @@ align-items:center;
 height:100vh;
 }
 
+/* APP */
 .app{
 width:95%;
 max-width:420px;
 background:#0c1224;
 border-radius:20px;
 padding:15px;
+box-shadow:0 0 20px #00ff9d22;
 }
-
-/* SCREENS */
-.screen{display:none;}
-.screen.active{display:block;}
 
 /* TITLE */
 h2{
@@ -39,41 +38,39 @@ color:#00ff9d;
 /* BUTTON */
 button{
 width:100%;
-padding:14px;
-margin-top:10px;
+padding:12px;
 border:none;
 border-radius:12px;
 background:#00ff9d;
+color:black;
 font-weight:bold;
-cursor:pointer;
-}
-
-/* ITEM */
-.item{
-padding:12px;
-margin:6px 0;
-background:#111a33;
-border-radius:10px;
-text-align:center;
-cursor:pointer;
-}
-
-/* RESULT */
-.result{
-text-align:center;
-margin-top:20px;
-}
-
-.signal{
-font-size:50px;
 margin-top:10px;
+cursor:pointer;
+}
+
+/* SIGNAL */
+.signal{
+font-size:55px;
+text-align:center;
+margin:15px 0;
+font-weight:bold;
 }
 
 .buy{color:#00ff9d;}
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
 
+/* SCORE */
+.info{
+text-align:center;
+font-size:18px;
+margin:5px 0;
+color:#aaa;
+}
+
+/* BAR */
 .bar{
+width:100%;
 height:6px;
 background:#1a1f35;
 border-radius:20px;
@@ -83,9 +80,9 @@ margin-top:10px;
 
 .fill{
 height:100%;
-width:100%;
+width:0%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:1s;
+transition:0.5s;
 }
 
 </style>
@@ -96,132 +93,69 @@ transition:1s;
 
 <div class="app">
 
-<!-- SCREEN 1 -->
-<div class="screen active" id="s1">
-<h2>📡 CIBLER MARCHÉ</h2>
-<button onclick="scan()">SCAN MARCHÉS</button>
-</div>
+<h2>📊 SNIPER AI PRO</h2>
 
-<!-- SCREEN 2 -->
-<div class="screen" id="s2">
-<h2>📊 MARCHÉS</h2>
-<div id="list"></div>
-</div>
-
-<!-- SCREEN 3 -->
-<div class="screen" id="s3">
-<h2>⏱ TIME FRAME</h2>
-
-<div class="item" onclick="setTime('1m')">1 MIN</div>
-<div class="item" onclick="setTime('5m')">5 MIN</div>
-<div class="item" onclick="setTime('15m')">15 MIN</div>
-
-</div>
-
-<!-- SCREEN 4 -->
-<div class="screen" id="s4">
-<h2>🧠 READY</h2>
-<button onclick="analyze()">ANALYSER</button>
-</div>
-
-<!-- SCREEN 5 -->
-<div class="screen" id="s5">
-
-<h2>📊 RESULTAT</h2>
+<button onclick="analyze()">🔄 NOUVELLE ANALYSE</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
-<div class="result">
-<div id="score">0%</div>
-<div id="prob">0%</div>
-</div>
+<div id="score" class="info">SCORE: 0</div>
+<div id="prob" class="info">PROB: 0%</div>
 
 <div class="bar">
 <div class="fill" id="fill"></div>
-</div>
-
-<button onclick="restart()">NOUVELLE ANALYSE</button>
-
 </div>
 
 </div>
 
 <script>
 
-let symbol="";
-let tf="1m";
+let symbol = "BTCUSD";
+let tf = "1m";
 
-/* NAV */
-function go(id){
-document.querySelectorAll(".screen")
-.forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
-
-/* SCAN */
-function scan(){
-
-let markets=[
-"BTCUSD","ETHUSD","EURUSD","GBPUSD","USDJPY",
-"XAUUSD","NAS100","SPX500","DOWJONES",
-"GER40","AUDUSD","NZDUSD"
-];
-
-let box=document.getElementById("list");
-box.innerHTML="";
-
-markets.forEach(m=>{
-
-let div=document.createElement("div");
-div.className="item";
-div.innerText=m;
-
-div.onclick=()=>{
-symbol=m;
-go("s3");
-};
-
-box.appendChild(div);
-
-});
-
-go("s2");
-}
-
-/* TIME */
-function setTime(t){
-tf=t;
-go("s4");
-}
-
-/* ANALYZE */
+/* ================= ANALYZE ================= */
 async function analyze(){
+
+try{
 
 const res = await fetch(`/api/analyze/${symbol}/${tf}`);
 const data = await res.json();
 
-let signal=document.getElementById("signal");
-let score=document.getElementById("score");
-let prob=document.getElementById("prob");
+/* SIGNAL */
+const signal = document.getElementById("signal");
+const score = document.getElementById("score");
+const prob = document.getElementById("prob");
 
-signal.innerText=data.signal;
-score.innerText="SCORE: "+data.score;
-prob.innerText="PROB: "+data.probability+"%";
-
-signal.className="signal " +
-(data.signal==="BUY"?"buy":
-data.signal==="SELL"?"sell":"wait");
-
-document.getElementById("fill").style.width =
-data.probability + "%";
-
-setTimeout(()=>go("s5"),500);
-
+/* BUY / SELL */
+if(data.signal === "BUY"){
+signal.innerText = "🟢 BUY";
+signal.className = "signal buy";
 }
 
-/* RESET */
-function restart(){
-go("s1");
+else if(data.signal === "SELL"){
+signal.innerText = "🔴 SELL";
+signal.className = "signal sell";
+}
+
+else{
+signal.innerText = "🟡 WAIT";
+signal.className = "signal wait";
+}
+
+/* SCORE */
+score.innerText = "SCORE: " + (data.score || 0);
+
+/* PROBABILITY */
+prob.innerText = "PROB: " + (data.probability || 0) + "%";
+
+/* BAR */
+document.getElementById("fill").style.width =
+(data.probability || 0) + "%";
+
+}catch(err){
+console.log(err);
+}
+
 }
 
 </script>
