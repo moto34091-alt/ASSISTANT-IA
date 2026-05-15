@@ -4,51 +4,88 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>D-FLAM BOT TRADING</title>
+<title>D-FLAM APP</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial;}
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
 
 body{
 background:#050816;
 color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-min-height:100vh;
-padding:15px;
+height:100vh;
+overflow:hidden;
 }
 
+/* APP */
 .app{
+display:flex;
+flex-direction:column;
+height:100vh;
 width:100%;
-max-width:420px;
-background:#0c1224;
-padding:15px;
-border-radius:15px;
 }
 
-h2{text-align:center;color:#00ff9d;}
+/* TOP BAR APP */
+.topbar{
+background:#0c1224;
+padding:12px;
+text-align:center;
+font-weight:bold;
+color:#00ff9d;
+box-shadow:0 0 10px #00ff9d22;
+}
 
-select,button{
+/* CONTENT */
+.content{
+flex:1;
+overflow:auto;
+padding:15px;
+}
+
+/* SELECT */
+select{
 width:100%;
 padding:12px;
 margin-top:10px;
 border-radius:10px;
 border:none;
+background:#121d38;
+color:white;
 font-weight:bold;
 }
 
-button{background:#00ff9d;color:black;}
+/* BUTTON */
+button{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
+border:none;
+background:#00ff9d;
+font-weight:bold;
+color:black;
+}
+
+/* SIGNAL CARD */
+.signalBox{
+margin-top:15px;
+background:#0c1224;
+padding:18px;
+border-radius:15px;
+text-align:center;
+box-shadow:0 0 12px #00ff9d22;
+}
 
 .icon{
-text-align:center;
 font-size:60px;
-margin-top:15px;
 }
 
 .signal{
-text-align:center;
-font-size:40px;
+font-size:38px;
 font-weight:bold;
 margin-top:5px;
 }
@@ -57,11 +94,20 @@ margin-top:5px;
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
 
-.info{
+/* CARDS */
+.card{
+background:#0c1224;
+padding:12px;
+border-radius:12px;
+margin-top:10px;
 text-align:center;
-margin-top:8px;
 }
 
+/* ENTRY + PRICE */
+.entry{color:#00ff9d;font-weight:bold;}
+.price{color:#aaa;}
+
+/* BAR */
 .bar{
 height:10px;
 background:#1d2746;
@@ -76,26 +122,12 @@ width:100%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
 }
 
+/* TIMER */
 .timer{
 text-align:center;
-margin-top:8px;
+margin-top:10px;
 font-size:14px;
-display:none; /* caché par défaut */
-}
-
-.price{
-text-align:center;
-margin-top:6px;
-font-size:16px;
-color:#aaa;
-}
-
-.entry{
-text-align:center;
-margin-top:6px;
-font-size:16px;
-color:#00ff9d;
-font-weight:bold;
+display:none;
 }
 </style>
 </head>
@@ -104,7 +136,9 @@ font-weight:bold;
 
 <div class="app">
 
-<h2>SNIPER AI PRO V2</h2>
+<div class="topbar">📊 SNIPER AI PRO V2</div>
+
+<div class="content">
 
 <select id="market">
 <option>EUR/USD</option>
@@ -138,20 +172,22 @@ font-weight:bold;
 <button onclick="analyze()">ANALYZE</button>
 <button onclick="autoMode()">AUTO MODE</button>
 
+<div class="signalBox">
 <div id="icon" class="icon">🟡</div>
 <div id="signal" class="signal wait">WAIT</div>
+<div id="timer" class="timer">READY</div>
+</div>
 
-<div class="entry" id="entry">ENTRY POINT: -</div>
-<div class="price" id="price">PRICE: --</div>
+<div class="card entry" id="entry">ENTRY POINT: -</div>
+<div class="card price" id="price">PRICE: --</div>
 
-<div class="info" id="score">SCORE: 0</div>
-<div class="info" id="prob">PROB: 0%</div>
-<div class="info" id="winrate">WINRATE: 0%</div>
+<div class="card" id="score">SCORE: 0</div>
+<div class="card" id="prob">PROB: 0%</div>
+<div class="card" id="winrate">WINRATE: 0%</div>
 
 <div class="bar"><div id="fill" class="fill"></div></div>
 
-<div class="timer" id="timer">READY</div>
-
+</div>
 </div>
 
 <script>
@@ -163,66 +199,48 @@ let timer=null;
 let lastKey="";
 let lastData=null;
 
-/* =========================
-   💰 PRICE SIMULATION
-========================= */
-function getPrice(market){
-let base = 1 + Math.random()*100;
-if(market.includes("JPY")) base = 100 + Math.random()*50;
-if(market.includes("BTC")) base = 60000 + Math.random()*2000;
-if(market.includes("XAU")) base = 2300 + Math.random()*50;
+/* PRICE */
+function getPrice(m){
+let base=1+Math.random()*100;
+if(m.includes("JPY"))base=100+Math.random()*50;
+if(m.includes("BTC"))base=60000+Math.random()*2000;
+if(m.includes("XAU"))base=2300+Math.random()*50;
 return base.toFixed(2);
 }
 
-/* =========================
-   🧠 IA ULTRA SIMPLE PRO
-========================= */
+/* IA */
 function ai(){
 
-let rsi = Math.random()*100;
-let trend = Math.random()*2-1;
-let volume = Math.random()*100;
+let rsi=Math.random()*100;
+let trend=Math.random()*2-1;
+let volume=Math.random()*100;
 
-/* RSI */
-let rsiS = rsi<30?1:rsi>70?-1:0;
+let rsiS=rsi<30?1:rsi>70?-1:0;
+let trendS=trend>0.25?1:trend<-0.25?-1:0;
+let volS=volume>65?1:volume<35?-1:0;
 
-/* TREND */
-let trendS = trend>0.25?1:trend<-0.25?-1:0;
+let confirm=rsiS+trendS;
 
-/* VOLUME FILTER */
-let volS = volume>65?1:volume<35?-1:0;
+let score=(rsiS*0.5)+(trendS*0.4)+(volS*0.1);
 
-/* DOUBLE CONFIRMATION */
-let confirm = (rsiS + trendS);
-
-/* SCORE FINAL */
-let score = (rsiS*0.5) + (trendS*0.4) + (volS*0.1);
-
-/* SIGNAL */
 let signal="WAIT";
 if(confirm>=2 && score>0.35) signal="BUY";
 else if(confirm<=-2 && score<-0.35) signal="SELL";
 
-/* PROB */
-let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 55));
+let prob=Math.min(100,Math.floor(Math.abs(score)*100+55));
+let winrate=signal=="WAIT"?50:65+Math.random()*20;
 
-/* WINRATE SIM */
-let winrate = signal=="WAIT" ? 50 : 65 + Math.random()*20;
+let entry=signal=="BUY"?"BUY ZONE 🔼":signal=="SELL"?"SELL ZONE 🔽":"-";
 
-/* ENTRY POINT */
-let entry = signal=="WAIT" ? "-" : (signal=="BUY" ? "BUY ZONE 🔼" : "SELL ZONE 🔽");
-
-return {rsi,trend,volume,score,signal,prob,winrate,entry};
+return {score,signal,prob,winrate,entry};
 }
 
-/* =========================
-   ANALYZE
-========================= */
+/* ANALYZE */
 function analyze(){
 
 let m=document.getElementById("market").value;
 let t=document.getElementById("time").value;
-let key=m+"_"+t;
+let key=m+t;
 
 if(lock && key===lastKey){
 apply(lastData,m);
@@ -234,108 +252,80 @@ if(lock && key!==lastKey) return;
 lock=true;
 lastKey=key;
 
-document.getElementById("icon").innerText="🧠";
 document.getElementById("signal").innerText="ANALYZING...";
-document.getElementById("signal").className="signal wait";
+document.getElementById("icon").innerText="🧠";
 
 setTimeout(()=>{
 
-let data=ai();
-lastData=data;
+let d=ai();
+lastData=d;
 
-apply(data,m);
-startTimer(t,data.signal);
+apply(d,m);
+startTimer(t,d.signal);
 
 },900);
 }
 
-/* =========================
-   APPLY SIGNAL
-========================= */
-function apply(d,market){
+/* APPLY */
+function apply(d,m){
 
 let icon=document.getElementById("icon");
 let s=document.getElementById("signal");
 
 if(d.signal=="BUY"){
-icon.innerText="🟢";
-s.innerText="BUY";
-s.className="signal buy";
+icon.innerText="🟢";s.innerText="BUY";s.className="signal buy";
 }
 else if(d.signal=="SELL"){
-icon.innerText="🔴";
-s.innerText="SELL";
-s.className="signal sell";
+icon.innerText="🔴";s.innerText="SELL";s.className="signal sell";
 }
 else{
-icon.innerText="🟡";
-s.innerText="WAIT";
-s.className="signal wait";
+icon.innerText="🟡";s.innerText="WAIT";s.className="signal wait";
 }
 
-/* ENTRY */
 document.getElementById("entry").innerText="ENTRY POINT: "+d.entry;
-
-/* PRICE */
-document.getElementById("price").innerText="PRICE: "+getPrice(market);
-
-/* INFO */
+document.getElementById("price").innerText="PRICE: "+getPrice(m);
 document.getElementById("score").innerText="SCORE: "+d.score.toFixed(2);
 document.getElementById("prob").innerText="PROB: "+d.prob+"%";
 document.getElementById("winrate").innerText="WINRATE: "+d.winrate.toFixed(1)+"%";
 
-/* TIMER SHOW ONLY IF SIGNAL */
-if(d.signal=="WAIT"){
-document.getElementById("timer").style.display="none";
-}
+/* TIMER SHOW ONLY SIGNAL */
+document.getElementById("timer").style.display =
+d.signal=="WAIT" ? "none" : "block";
 }
 
-/* =========================
-   TIMER (ONLY SIGNAL)
-========================= */
+/* TIMER */
 function startTimer(sec,signal){
 
 clearInterval(timer);
-
 if(signal=="WAIT") return;
 
-document.getElementById("timer").style.display="block";
-
 let r=sec;
-
 timer=setInterval(()=>{
 
 r--;
-
 document.getElementById("fill").style.width=(r/sec*100)+"%";
 document.getElementById("timer").innerText=r+" SEC";
 
 if(r<=0){
 clearInterval(timer);
 lock=false;
-document.getElementById("timer").innerText="READY";
 document.getElementById("timer").style.display="none";
 }
 
 },1000);
 }
 
-/* =========================
-   AUTO MODE
-========================= */
+/* AUTO */
 function autoMode(){
 
 if(interval){
 clearInterval(interval);
 interval=null;
-alert("STOP AUTO");
 return;
 }
 
-alert("START AUTO");
-
 interval=setInterval(()=>{
-if(!lock) analyze();
+if(!lock)analyze();
 },3000);
 }
 
