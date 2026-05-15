@@ -2,10 +2,11 @@
 <html lang="fr">
 
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>SNIPER AI PRO V12</title>
+<title>SNIPER AI V13</title>
 
 <style>
 
@@ -13,11 +14,11 @@ body{
 margin:0;
 font-family:Arial;
 background:#050816;
+color:white;
 display:flex;
 justify-content:center;
 align-items:center;
 height:100vh;
-color:white;
 }
 
 .app{
@@ -29,11 +30,10 @@ padding:18px;
 box-shadow:0 0 30px #00ff9d22;
 }
 
-/* TITLE */
-
 h2{
 text-align:center;
 color:#00ff9d;
+margin-bottom:10px;
 }
 
 /* SELECT */
@@ -47,6 +47,7 @@ border:none;
 background:#111a33;
 color:white;
 font-weight:bold;
+outline:none;
 }
 
 /* BUTTON */
@@ -57,9 +58,11 @@ padding:15px;
 margin-top:12px;
 border:none;
 border-radius:14px;
-font-weight:bold;
 background:#00ff9d;
+color:black;
+font-weight:bold;
 cursor:pointer;
+transition:0.2s;
 }
 
 button:active{
@@ -91,30 +94,28 @@ color:#aaa;
 /* BAR */
 
 .bar{
-height:22px;
+height:20px;
 background:#1a1f35;
 border-radius:20px;
-margin-top:20px;
 overflow:hidden;
+margin-top:18px;
 }
 
 .fill{
 height:100%;
 width:0%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
+transition:0.8s;
 }
 
-/* EXPIRY */
+/* STATUS */
 
-.expiry{
+.status{
 text-align:center;
-margin-top:12px;
-font-weight:bold;
+margin-top:10px;
+font-size:14px;
+color:#777;
 }
-
-.good{color:#00ff9d;}
-.mid{color:#facc15;}
-.bad{color:#ff3b5c;}
 
 </style>
 
@@ -124,200 +125,124 @@ font-weight:bold;
 
 <div class="app">
 
-<h2>📊 SNIPER AI PRO V12</h2>
+<h2>📊 SNIPER AI V13</h2>
+
+<!-- MARKET -->
 
 <select id="market">
 
-<option>EURUSD</option>
-<option>GBPUSD</option>
-<option>USDJPY</option>
-<option>XAUUSD</option>
+<option value="EURUSD">EUR/USD</option>
+<option value="GBPUSD">GBP/USD</option>
+<option value="USDJPY">USD/JPY</option>
+<option value="USDCHF">USD/CHF</option>
+<option value="XAUUSD">GOLD</option>
 
 </select>
 
+<!-- TIME (UI ONLY) -->
+
 <select id="time">
+
 <option value="60">1 MIN</option>
 <option value="300">5 MIN</option>
 <option value="900">15 MIN</option>
+
 </select>
 
-<button onclick="analyze()">🔄 ANALYZE</button>
-<button onclick="autoMode()">🤖 AUTO MODE</button>
+<!-- BUTTON -->
+
+<button onclick="analyze()">🔄 ANALYZE MARKET</button>
+
+<!-- SIGNAL -->
 
 <div id="signal" class="signal wait">WAIT</div>
 
 <div class="info" id="score">SCORE: 0</div>
 <div class="info" id="prob">PROB: 0%</div>
 
+<!-- BAR -->
+
 <div class="bar">
 <div id="fill" class="fill"></div>
 </div>
 
-<div id="expiry" class="expiry">READY</div>
+<div class="status" id="status">READY</div>
 
 </div>
 
 <script>
 
-let auto = false;
-let interval;
-
-/* 🔥 ANALYZE */
-
 async function analyze(){
+
+try{
+
+console.log("ANALYZE CLICKED");
 
 const market =
 document.getElementById("market").value;
 
-const time =
-document.getElementById("time").value;
-
 const res =
-await fetch(`/api/${market}/1m`);
+await fetch(`/api/${market}`);
 
-const d =
+if(!res.ok){
+throw new Error("API ERROR");
+}
+
+const data =
 await res.json();
+
+console.log("DATA:", data);
 
 /* SCORE */
 
 document.getElementById("score").innerText =
-"SCORE: " + (d.score || 0);
+"SCORE: " + (data.score || 0);
 
 document.getElementById("prob").innerText =
-"PROB: " + (d.probability || 0) + "%";
-
-/* FILTER */
-
-if((d.probability || 0) < 60){
-
-setSignal("WAIT","❌ BAD ENTRY","wait");
-
-return;
-
-}
+"PROB: " + (data.probability || 50) + "%";
 
 /* SIGNAL */
 
-if(d.signal === "BUY"){
-
-setSignal("BUY","🟢 BUY","buy");
-
-}else if(d.signal === "SELL"){
-
-setSignal("SELL","🔴 SELL","sell");
-
-}
-
-startExpiry(d.probability || 60);
-
-}
-
-/* 🔥 SIGNAL UI */
-
-function setSignal(text,emoji,cls){
-
-const s =
+const signal =
 document.getElementById("signal");
 
-s.innerText = emoji;
+if(data.signal === "BUY"){
 
-s.className = "signal " + cls;
+signal.innerText = "🟢 BUY";
+signal.className = "signal buy";
 
-notify(emoji);
+}else if(data.signal === "SELL"){
 
-}
-
-/* 🔥 EXPIRY INTELLIGENT */
-
-function startExpiry(prob){
-
-clearInterval(interval);
-
-let time =
-Math.floor(prob * 1.2); // intelligent expiry
-
-let fill =
-document.getElementById("fill");
-
-let exp =
-document.getElementById("expiry");
-
-interval =
-setInterval(()=>{
-
-time--;
-
-let pct =
-(time/(prob*1.2))*100;
-
-fill.style.width =
-pct + "%";
-
-if(pct > 60){
-
-exp.innerText = "🟢 SAFE ENTRY";
-exp.className = "expiry good";
-
-}else if(pct > 30){
-
-exp.innerText = "🟡 RISK ENTRY";
-exp.className = "expiry mid";
+signal.innerText = "🔴 SELL";
+signal.className = "signal sell";
 
 }else{
 
-exp.innerText = "🔴 LATE ENTRY";
-exp.className = "expiry bad";
+signal.innerText = "🟡 WAIT";
+signal.className = "signal wait";
 
 }
 
-if(time <= 0){
+/* BAR UPDATE */
 
-clearInterval(interval);
+const prob = data.probability || 50;
 
-exp.innerText = "EXPIRED";
+document.getElementById("fill").style.width =
+prob + "%";
 
-}
+/* STATUS */
 
-},1000);
+document.getElementById("status").innerText =
+"LAST UPDATE: " + new Date().toLocaleTimeString();
 
-}
+}catch(err){
 
-/* 🔥 AUTO MODE */
+console.log(err);
 
-function autoMode(){
-
-auto = !auto;
-
-if(auto){
-
-alert("AUTO MODE ON");
-
-interval = setInterval(analyze,5000);
-
-}else{
-
-alert("AUTO MODE OFF");
-
-clearInterval(interval);
+document.getElementById("status").innerText =
+"ERROR API / CHECK SERVER";
 
 }
-
-}
-
-/* 🔔 NOTIFY */
-
-function notify(msg){
-
-try{
-
-navigator.vibrate([200,100,200]);
-
-let audio =
-new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-
-audio.play();
-
-}catch(e){}
 
 }
 
