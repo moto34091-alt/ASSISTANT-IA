@@ -13,7 +13,7 @@
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Arial, sans-serif;
+font-family:Arial,sans-serif;
 }
 
 body{
@@ -22,7 +22,7 @@ min-height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-padding:90px 10px 30px;
+padding:70px 12px 20px;
 overflow-x:hidden;
 color:white;
 }
@@ -42,49 +42,55 @@ z-index:-1;
 
 /* BRAND */
 .brand{
-position:absolute;
-top:20px;
+position:fixed;
+top:15px;
+left:0;
 width:100%;
 text-align:center;
-font-size:30px;
+font-size:34px;
 font-weight:bold;
 color:#00ff9d;
-text-shadow:0 0 15px #00ff9d;
+text-shadow:0 0 20px #00ff9d;
 letter-spacing:2px;
+z-index:999;
 }
 
 /* APP */
 .app{
 width:100%;
-max-width:420px;
+max-width:500px;
+min-height:92vh;
 background:#0c1224;
-border-radius:25px;
-padding:20px;
+border-radius:28px;
+padding:25px;
 border:1px solid #1f2b4d;
 box-shadow:
 0 0 25px #00ff9d22,
 0 0 60px #000 inset;
+display:flex;
+flex-direction:column;
+justify-content:flex-start;
 }
 
 /* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
-font-size:34px;
-margin-bottom:18px;
+font-size:38px;
+margin-bottom:20px;
 }
 
 /* SELECT */
 select{
 width:100%;
-padding:16px;
-margin-top:12px;
+padding:18px;
+margin-top:14px;
 border:none;
 outline:none;
-border-radius:16px;
+border-radius:18px;
 background:#121d38;
 color:white;
-font-size:18px;
+font-size:20px;
 font-weight:bold;
 border:2px solid transparent;
 }
@@ -96,13 +102,13 @@ border:2px solid #facc15;
 /* BUTTON */
 button{
 width:100%;
-padding:16px;
-margin-top:14px;
+padding:18px;
+margin-top:15px;
 border:none;
-border-radius:16px;
+border-radius:18px;
 background:#00ff9d;
 color:black;
-font-size:20px;
+font-size:22px;
 font-weight:bold;
 cursor:pointer;
 transition:0.2s;
@@ -115,9 +121,9 @@ transform:scale(0.97);
 
 /* ICON */
 .icon{
-font-size:90px;
+font-size:110px;
 text-align:center;
-margin-top:25px;
+margin-top:30px;
 }
 
 /* SPIN */
@@ -136,43 +142,45 @@ transform:rotate(360deg);
 
 /* SIGNAL */
 .signal{
-font-size:75px;
+font-size:90px;
 font-weight:bold;
 text-align:center;
-margin-top:8px;
+margin-top:10px;
 }
 
+/* COLORS */
 .buy{
 color:#00ff9d;
-text-shadow:0 0 20px #00ff9d;
+text-shadow:0 0 25px #00ff9d;
 }
 
 .sell{
 color:#ff3b5c;
-text-shadow:0 0 20px #ff3b5c;
+text-shadow:0 0 25px #ff3b5c;
 }
 
 .wait{
 color:#facc15;
-text-shadow:0 0 20px #facc15;
+text-shadow:0 0 25px #facc15;
 }
 
 /* INFO */
 .info{
 text-align:center;
-margin-top:10px;
-font-size:24px;
+margin-top:14px;
+font-size:28px;
 color:#d0d0d0;
+font-weight:bold;
 }
 
 /* BAR */
 .bar{
 width:100%;
-height:16px;
+height:18px;
 background:#1d2746;
-border-radius:20px;
+border-radius:30px;
 overflow:hidden;
-margin-top:20px;
+margin-top:25px;
 }
 
 .fill{
@@ -185,32 +193,34 @@ transition:width 1s linear;
 /* TIMER */
 .timer{
 text-align:center;
-margin-top:10px;
-font-size:18px;
-color:#aaa;
+margin-top:14px;
+font-size:24px;
+font-weight:bold;
+color:#facc15;
 }
 
 /* FOOTER */
 .footer{
-margin-top:18px;
+margin-top:auto;
+padding-top:25px;
 text-align:center;
-font-size:14px;
+font-size:16px;
 color:#666;
 }
 
 /* TELEGRAM */
 .telegram{
 position:fixed;
-right:20px;
-bottom:20px;
-width:65px;
-height:65px;
+right:18px;
+bottom:18px;
+width:70px;
+height:70px;
 background:#0088cc;
 border-radius:50%;
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:34px;
+font-size:36px;
 text-decoration:none;
 box-shadow:0 0 25px #0088cc;
 animation:pulse 1.5s infinite;
@@ -227,6 +237,29 @@ transform:scale(1.1);
 100%{
 transform:scale(1);
 }
+}
+
+/* MOBILE */
+@media(max-width:480px){
+
+.app{
+max-width:100%;
+min-height:94vh;
+padding:22px;
+}
+
+.signal{
+font-size:78px;
+}
+
+.icon{
+font-size:100px;
+}
+
+button{
+font-size:20px;
+}
+
 }
 
 </style>
@@ -320,6 +353,7 @@ PROB: 0%
 READY
 </div>
 
+<!-- FOOTER -->
 <div class="footer">
 POWERED BY D-FLAM AI ENGINE
 </div>
@@ -335,19 +369,14 @@ target="_blank">
 
 <script>
 
-let signalLocked = false;
 let autoInterval = null;
 let candleTimer = null;
-let remaining = 0;
+
+let currentMarket = "";
+let currentTF = 0;
 
 /* ANALYZE */
 async function analyze(){
-
-if(signalLocked){
-return;
-}
-
-signalLocked = true;
 
 const market =
 document.getElementById("market").value;
@@ -361,6 +390,22 @@ document.getElementById("signal");
 const icon =
 document.getElementById("signalIcon");
 
+/* CHANGE MARKET RESET */
+if(currentMarket !== market || currentTF !== tf){
+
+clearInterval(candleTimer);
+
+document.getElementById("timer").innerText =
+"READY";
+
+document.getElementById("fill").style.width =
+"100%";
+
+}
+
+currentMarket = market;
+currentTF = tf;
+
 /* ANALYZING */
 icon.innerText = "🌀";
 icon.classList.add("spin");
@@ -368,14 +413,14 @@ icon.classList.add("spin");
 signal.innerText = "ANALYZING...";
 signal.className = "signal wait";
 
-/* FETCH */
+try{
+
 const res =
 await fetch(`/api/analyze/${market}/${tf}`);
 
 const data =
 await res.json();
 
-/* DELAY */
 setTimeout(()=>{
 
 icon.classList.remove("spin");
@@ -391,6 +436,8 @@ signal.className = "signal buy";
 
 playSound();
 
+startCandle(tf);
+
 }
 
 /* SELL */
@@ -404,6 +451,8 @@ signal.className = "signal sell";
 
 playSound();
 
+startCandle(tf);
+
 }
 
 /* WAIT */
@@ -415,19 +464,34 @@ signal.innerText = "WAIT";
 
 signal.className = "signal wait";
 
+document.getElementById("timer").innerText =
+"READY";
+
+document.getElementById("fill").style.width =
+"100%";
+
 }
 
 /* DATA */
 document.getElementById("score").innerText =
-"SCORE: " + data.score;
+"SCORE: " + (data.score || 0);
 
 document.getElementById("prob").innerText =
-"PROB: " + data.probability + "%";
+"PROB: " + (data.probability || 0) + "%";
 
-/* START TIMER */
-startCandle(tf);
+},1500);
 
-},2000);
+}catch(err){
+
+icon.classList.remove("spin");
+
+icon.innerText = "⚠️";
+
+signal.innerText = "ERROR";
+
+signal.className = "signal wait";
+
+}
 
 }
 
@@ -436,7 +500,7 @@ function startCandle(seconds){
 
 clearInterval(candleTimer);
 
-remaining = seconds;
+let remaining = seconds;
 
 const fill =
 document.getElementById("fill");
@@ -460,10 +524,8 @@ if(remaining <= 0){
 
 clearInterval(candleTimer);
 
-signalLocked = false;
-
 document.getElementById("timer").innerText =
-"READY";
+"EXPIRATION";
 
 }
 
@@ -490,15 +552,11 @@ alert("AUTO MODE STARTED");
 
 autoInterval = setInterval(()=>{
 
-if(!signalLocked){
-
 analyze();
 
 vibrate();
 
-}
-
-},3000);
+},5000);
 
 }
 
@@ -506,7 +564,9 @@ vibrate();
 function playSound(){
 
 let audio =
-new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+new Audio(
+"https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+);
 
 audio.play();
 
