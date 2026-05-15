@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI V15 UPGRADE</title>
+<title>SNIPER AI V16 LIVE</title>
 
 <style>
 
@@ -52,13 +52,22 @@ font-weight:bold;
 cursor:pointer;
 }
 
-.analyze{background:#00ff9d;}
-.auto{background:#00c3ff;}
+.analyze{
+background:#00ff9d;
+animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+0%{transform:scale(1);}
+50%{transform:scale(1.03);}
+100%{transform:scale(1);}
+}
 
 .signal{
 text-align:center;
-font-size:60px;
+font-size:65px;
 margin-top:10px;
+transition:0.3s;
 }
 
 .buy{color:#00ff9d;}
@@ -72,7 +81,7 @@ color:#aaa;
 }
 
 .bar{
-height:16px;
+height:18px;
 background:#1a1f35;
 border-radius:20px;
 overflow:hidden;
@@ -83,6 +92,7 @@ margin-top:12px;
 height:100%;
 width:50%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
+transition:0.3s;
 }
 
 .status{
@@ -100,9 +110,8 @@ color:#888;
 
 <div class="app">
 
-<h2>📊 SNIPER AI V15 PRO</h2>
+<h2>📊 V16 REAL LIVE ENGINE</h2>
 
-<!-- MARKET -->
 <select id="market">
 <option value="EURUSD">EUR/USD</option>
 <option value="GBPUSD">GBP/USD</option>
@@ -112,23 +121,22 @@ color:#888;
 <option value="XAUUSD">GOLD</option>
 </select>
 
-<!-- TIME -->
 <select id="time">
 <option value="1min">1 MIN</option>
 <option value="5min">5 MIN</option>
 <option value="15min">15 MIN</option>
 </select>
 
-<button class="analyze" onclick="analyze()">🔄 ANALYZE</button>
-
-<button class="auto" onclick="autoMode()">🤖 AUTO MODE</button>
+<button class="analyze" onclick="startAuto()">
+🔄 AUTO ANALYZE LIVE
+</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
 <div class="info" id="score">SCORE: 0</div>
 <div class="info" id="prob">PROB: 50%</div>
-<div class="info" id="rsi">RSI: 0</div>
-<div class="info" id="momentum">MOMENTUM: 0</div>
+<div class="info" id="rsi">RSI: 50</div>
+<div class="info" id="mom">MOM: 0</div>
 
 <div class="bar">
 <div id="fill" class="fill"></div>
@@ -140,7 +148,6 @@ color:#888;
 
 <script>
 
-let auto = false;
 let loop;
 
 /* ANALYZE */
@@ -152,7 +159,7 @@ const time = document.getElementById("time").value;
 const res = await fetch(`/api/${market}/${time}`);
 const data = await res.json();
 
-/* UI */
+/* UI LIVE */
 document.getElementById("score").innerText =
 "SCORE: " + data.score;
 
@@ -162,7 +169,7 @@ document.getElementById("prob").innerText =
 document.getElementById("rsi").innerText =
 "RSI: " + data.rsi;
 
-document.getElementById("momentum").innerText =
+document.getElementById("mom").innerText =
 "MOM: " + data.momentum;
 
 /* SIGNAL */
@@ -187,30 +194,23 @@ document.getElementById("fill").style.width =
 data.probability + "%";
 
 document.getElementById("status").innerText =
-"UPDATED " + new Date().toLocaleTimeString();
+"LIVE " + new Date().toLocaleTimeString();
 
 }
 
-/* AUTO MODE */
-function autoMode(){
-
-auto = !auto;
-
-if(auto){
-
-loop = setInterval(analyze, 3000);
-
-document.getElementById("status").innerText =
-"AUTO MODE ON";
-
-}else{
+/* AUTO MODE LIVE */
+function startAuto(){
 
 clearInterval(loop);
 
-document.getElementById("status").innerText =
-"AUTO MODE OFF";
+loop = setInterval(()=>{
+analyze();
+}, 1500);
 
-}
+document.getElementById("status").innerText =
+"AUTO LIVE ON";
+
+analyze();
 
 }
 
