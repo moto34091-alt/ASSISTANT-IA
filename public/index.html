@@ -11,60 +11,59 @@ body{
 margin:0;
 font-family:Arial;
 background:#050816;
+color:white;
+overflow:hidden;
+}
+
+/* ================= PAGES ================= */
+.page{
+position:absolute;
+width:100%;
+height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-height:100vh;
-color:white;
-overflow:hidden;
+flex-direction:column;
+opacity:0;
+transform:translateX(80px);
+transition:0.4s ease;
+pointer-events:none;
+}
+
+.page.active{
+opacity:1;
+transform:translateX(0);
+pointer-events:auto;
 }
 
 /* ================= CARD ================= */
 .card{
 width:90%;
-max-width:380px;
+max-width:360px;
 background:#0c1224;
 border-radius:25px;
 padding:25px;
 text-align:center;
 border:1px solid #00ff9d22;
-box-shadow:0 0 30px #00ff9d22;
+box-shadow:0 0 25px #00ff9d22;
 }
 
-/* ================= SYMBOL ================= */
-.symbol{
-font-size:14px;
-color:#888;
-margin-bottom:10px;
-}
-
-/* ================= TIMER BAR ================= */
-.timerBar{
+/* ================= BUTTON ================= */
+button{
 width:100%;
-height:8px;
-background:#1a1f35;
-border-radius:20px;
-overflow:hidden;
-margin-top:20px;
-}
-
-.fill{
-height:100%;
-width:100%;
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-animation: shrink linear forwards;
-}
-
-@keyframes shrink{
-from{width:100%;}
-to{width:0%;}
+margin-top:10px;
+padding:14px;
+border:none;
+border-radius:14px;
+background:#00ff9d;
+font-weight:bold;
+cursor:pointer;
 }
 
 /* ================= SIGNAL ================= */
 .signal{
-font-size:55px;
-font-weight:bold;
-margin:15px 0;
+font-size:50px;
+margin-top:15px;
 animation:pulse 1s infinite;
 }
 
@@ -74,28 +73,26 @@ animation:pulse 1s infinite;
 100%{opacity:1;}
 }
 
-/* ================= STATUS ================= */
-.status{
-font-size:16px;
-color:#aaa;
-}
-
-/* ================= BUTTON ================= */
-button{
+/* ================= TIMER ================= */
+.bar{
 width:100%;
+height:8px;
+background:#1a1f35;
+border-radius:20px;
+overflow:hidden;
 margin-top:15px;
-padding:14px;
-border:none;
-border-radius:14px;
-background:#00ff9d;
-color:black;
-font-weight:bold;
-font-size:16px;
-cursor:pointer;
 }
 
-button:active{
-transform:scale(0.97);
+.fill{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+animation: shrink 5s linear forwards;
+}
+
+@keyframes shrink{
+from{width:100%;}
+to{width:0%;}
 }
 
 </style>
@@ -104,68 +101,104 @@ transform:scale(0.97);
 
 <body>
 
+<!-- PAGE 1 -->
+<div class="page active" id="p1">
 <div class="card">
+<h2>📊 MARCHÉ</h2>
 
-<div class="symbol" id="symbol">SYMBOL: ---</div>
+<button onclick="setMarket('BTCUSD')">BTC/USD</button>
+<button onclick="setMarket('EURUSD')">EUR/USD</button>
+<button onclick="setMarket('GBPUSD')">GBP/USD</button>
 
-<div class="status">⌛ ANALYSE EN COURS</div>
-
-<div class="signal" id="signal">WAIT</div>
-
-<div class="status" id="details">RSI / MOMENTUM LOADING...</div>
-
-<div class="timerBar">
-<div class="fill" id="bar"></div>
+</div>
 </div>
 
-<button onclick="startAnalysis()">
-🚀 START ANALYSIS
-</button>
+<!-- PAGE 2 -->
+<div class="page" id="p2">
+<div class="card">
+<h2>⏱ TIMEFRAME</h2>
 
+<button onclick="setTime('1m')">1 MIN</button>
+<button onclick="setTime('5m')">5 MIN</button>
+<button onclick="setTime('15m')">15 MIN</button>
+
+</div>
+</div>
+
+<!-- PAGE 3 -->
+<div class="page" id="p3">
+<div class="card">
+<h2>⌛ ANALYSE</h2>
+
+<div class="signal" id="loading">WAIT</div>
+
+<div class="bar">
+<div class="fill"></div>
+</div>
+
+<button onclick="runAnalysis()">START</button>
+
+</div>
+</div>
+
+<!-- PAGE 4 -->
+<div class="page" id="p4">
+<div class="card">
+<h2>🔥 POSITION</h2>
+
+<div class="signal" id="result">---</div>
+
+<div id="info">---</div>
+
+</div>
 </div>
 
 <script>
 
-let market = "BTCUSD";
-let time = "1m";
+let market = "";
+let time = "";
 
-/* ================= ANALYSE ================= */
-async function startAnalysis(){
+/* ================= NAV ================= */
+function show(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
 
-document.getElementById("bar").style.animation = "none";
-void document.getElementById("bar").offsetWidth;
+/* ================= STEP 1 ================= */
+function setMarket(m){
+market = m;
+show("p2");
+}
 
-/* restart timer animation */
-document.getElementById("bar").style.animation = "shrink 5s linear forwards";
+/* ================= STEP 2 ================= */
+function setTime(t){
+time = t;
+show("p3");
+}
 
-document.getElementById("symbol").innerText =
-"SYMBOL: " + market;
+/* ================= STEP 3 ================= */
+async function runAnalysis(){
 
-/* FETCH DATA */
+document.getElementById("loading").innerText = "ANALYZING...";
+
+/* restart animation */
+let bar = document.querySelector(".fill");
+bar.style.animation = "none";
+void bar.offsetWidth;
+bar.style.animation = "shrink 5s linear forwards";
+
 const res = await fetch(`/api/${market}/${time}`);
 const data = await res.json();
 
-/* SIGNAL */
-document.getElementById("signal").innerText = data.signal;
-
-/* DETAILS RSI + MOMENTUM */
-document.getElementById("details").innerText =
-`RSI: ${data.rsi || 0} | SCORE: ${data.score || 0}`;
-
-/* END RESULT AFTER TIMER */
 setTimeout(()=>{
 
-if(data.signal === "BUY"){
-document.getElementById("signal").innerText = "🟢 BUY";
-}
+show("p4");
 
-if(data.signal === "SELL"){
-document.getElementById("signal").innerText = "🔴 SELL";
-}
+document.getElementById("result").innerText =
+data.signal;
 
-if(data.signal === "WAIT"){
-document.getElementById("signal").innerText = "⌛ WAIT";
-}
+document.getElementById("info").innerText =
+"RSI: " + data.rsi + " | SCORE: " + data.score;
 
 },5000);
 
