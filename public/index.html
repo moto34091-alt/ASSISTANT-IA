@@ -25,10 +25,8 @@ max-width:420px;
 background:#0c1224;
 border-radius:25px;
 padding:18px;
-box-shadow:0 0 35px #00ff9d22;
 }
 
-/* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
@@ -43,7 +41,6 @@ border-radius:12px;
 border:none;
 background:#111a33;
 color:white;
-font-weight:bold;
 }
 
 /* BUTTONS */
@@ -56,11 +53,6 @@ border-radius:14px;
 background:#00ff9d;
 font-weight:bold;
 cursor:pointer;
-transition:0.2s;
-}
-
-button:active{
-transform:scale(0.97);
 }
 
 .auto{
@@ -100,7 +92,6 @@ margin-top:15px;
 height:100%;
 width:0%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:0.5s;
 }
 
 /* STATUS */
@@ -119,15 +110,23 @@ color:#888;
 
 <div class="app">
 
-<h2>📊 SMART MONEY V14</h2>
+<h2>📊 SNIPER AI V14 FULL</h2>
 
-<!-- MARKET -->
+<!-- MARKET CLEAN -->
 <select id="market">
+
 <option value="EURUSD">EUR/USD</option>
 <option value="GBPUSD">GBP/USD</option>
 <option value="USDJPY">USD/JPY</option>
 <option value="USDCHF">USD/CHF</option>
+<option value="USDCAD">USD/CAD</option>
+<option value="AUDUSD">AUD/USD</option>
+<option value="NZDUSD">NZD/USD</option>
+<option value="EURGBP">EUR/GBP</option>
+<option value="EURJPY">EUR/JPY</option>
+<option value="GBPJPY">GBP/JPY</option>
 <option value="XAUUSD">GOLD</option>
+
 </select>
 
 <!-- TIME -->
@@ -137,11 +136,11 @@ color:#888;
 <option value="900">15 MIN</option>
 </select>
 
-<!-- MANUAL ANALYZE -->
-<button onclick="analyze()">🔄 ANALYZE MARKET</button>
+<!-- MANUAL -->
+<button onclick="analyze()">🔄 ANALYZE</button>
 
-<!-- AUTO MODE -->
-<button class="auto" onclick="toggleAuto()">🤖 AUTO ANALYZE: OFF</button>
+<!-- AUTO -->
+<button class="auto" onclick="toggleAuto()">🤖 AUTO ANALYZE OFF</button>
 
 <!-- SIGNAL -->
 <div id="signal" class="signal wait">WAIT</div>
@@ -160,14 +159,11 @@ color:#888;
 
 <script>
 
-let autoMode = false;
-let autoInterval = null;
+let auto = false;
+let loop;
 
-/* ================= ANALYZE ================= */
-
+/* ANALYZE */
 async function analyze(){
-
-try{
 
 const market = document.getElementById("market").value;
 
@@ -176,11 +172,11 @@ const data = await res.json();
 
 /* SCORE */
 document.getElementById("score").innerText =
-"SCORE: " + (data.score || 0);
+"SCORE: " + data.score;
 
 /* PROB */
 document.getElementById("prob").innerText =
-"PROB: " + (data.probability || 50) + "%";
+"PROB: " + data.probability + "%";
 
 /* SIGNAL */
 const s = document.getElementById("signal");
@@ -202,39 +198,32 @@ s.className = "signal wait";
 
 /* BAR */
 document.getElementById("fill").style.width =
-(data.probability || 50) + "%";
+data.probability + "%";
 
 /* STATUS */
 document.getElementById("status").innerText =
-"LAST UPDATE: " + new Date().toLocaleTimeString();
-
-}catch(err){
-console.log(err);
-document.getElementById("status").innerText =
-"ERROR SERVER";
-}
+"UPDATED: " + new Date().toLocaleTimeString();
 
 }
 
-/* ================= AUTO MODE ================= */
-
+/* AUTO MODE */
 function toggleAuto(){
 
-autoMode = !autoMode;
+auto = !auto;
 
 const btn = document.querySelector(".auto");
 
-if(autoMode){
+if(auto){
 
-btn.innerText = "🤖 AUTO ANALYZE: ON";
+btn.innerText = "🤖 AUTO ANALYZE ON";
 
-autoInterval = setInterval(analyze, 4000);
+loop = setInterval(analyze, 3000);
 
 }else{
 
-btn.innerText = "🤖 AUTO ANALYZE: OFF";
+btn.innerText = "🤖 AUTO ANALYZE OFF";
 
-clearInterval(autoInterval);
+clearInterval(loop);
 
 }
 
