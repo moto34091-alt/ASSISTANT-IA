@@ -2,99 +2,236 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>SNIPER AI V37</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIPER AI PRO</title>
 
 <style>
+
 body{
 margin:0;
-background:#050816;
 font-family:Arial;
+background:#050816;
 color:white;
+overflow:hidden;
+}
+
+/* ================= APP FRAME ================= */
+.app{
+position:relative;
+width:100%;
+height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-height:100vh;
 }
 
+/* ================= PAGES ================= */
+.page{
+position:absolute;
+width:100%;
+height:100%;
+display:flex;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+opacity:0;
+transform:translateX(100px);
+transition:0.4s ease;
+pointer-events:none;
+}
+
+.page.active{
+opacity:1;
+transform:translateX(0);
+pointer-events:auto;
+}
+
+/* ================= CARD ================= */
 .card{
+width:85%;
+max-width:350px;
 background:#0c1224;
-padding:30px;
-border-radius:20px;
-border:1px solid #00ff9d;
+padding:25px;
+border-radius:25px;
+border:1px solid #00ff9d33;
+box-shadow:0 0 25px #00ff9d22;
 text-align:center;
-box-shadow:0 0 25px #00ff9d33;
 animation: glow 2s infinite alternate;
 }
 
+@keyframes glow{
+from{box-shadow:0 0 10px #00ff9d22;}
+to{box-shadow:0 0 25px #00ff9d55;}
+}
+
 h1{
+font-size:20px;
 color:#00ff9d;
-font-size:28px;
 }
 
 p{
 color:#aaa;
-margin-top:10px;
+font-size:13px;
 }
 
+/* ================= BUTTONS ================= */
 button{
-margin-top:20px;
-padding:12px 18px;
+width:100%;
+margin-top:10px;
+padding:14px;
 border:none;
-border-radius:10px;
+border-radius:14px;
 background:#00ff9d;
 color:black;
 font-weight:bold;
 cursor:pointer;
-transition:0.3s;
+transition:0.2s;
+font-size:15px;
 }
 
-button:hover{
-transform:scale(1.1);
-box-shadow:0 0 15px #00ff9d;
+button:active{
+transform:scale(0.96);
 }
 
+/* ================= SIGNAL ================= */
 .signal{
-margin-top:15px;
-font-size:20px;
-color:#facc15;
+font-size:32px;
+margin-top:20px;
+font-weight:bold;
 animation:pulse 1s infinite;
-}
-
-@keyframes glow{
-from{box-shadow:0 0 10px #00ff9d33;}
-to{box-shadow:0 0 25px #00ff9d;}
 }
 
 @keyframes pulse{
 0%{opacity:1;}
-50%{opacity:0.5;}
+50%{opacity:0.4;}
 100%{opacity:1;}
 }
+
+/* ================= TOP INDICATOR ================= */
+.step{
+position:absolute;
+top:15px;
+font-size:12px;
+color:#777;
+}
+
 </style>
 
 </head>
 
 <body>
 
+<div class="app">
+
+<div class="step" id="step">STEP 1/4</div>
+
+<!-- PAGE 1 -->
+<div class="page active" id="p1">
 <div class="card">
-<h1>🚀 SNIPER AI V37</h1>
-<p>SMART ENGINE LIVE</p>
+<h1>📊 MARCHÉ</h1>
+<p>Choisir un actif</p>
 
-<div class="signal" id="signal">WAITING SIGNAL...</div>
+<button onclick="selectMarket('EURUSD')">EUR/USD</button>
+<button onclick="selectMarket('BTCUSD')">BTC/USD</button>
+<button onclick="selectMarket('GBPUSD')">GBP/USD</button>
 
-<button onclick="getSignal()">
-📊 GET SIGNAL
-</button>
+</div>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page" id="p2">
+<div class="card">
+<h1>⏱ TIMEFRAME</h1>
+
+<button onclick="selectTime('1m')">1 MIN</button>
+<button onclick="selectTime('5m')">5 MIN</button>
+<button onclick="selectTime('15m')">15 MIN</button>
+
+</div>
+</div>
+
+<!-- PAGE 3 -->
+<div class="page" id="p3">
+<div class="card">
+<h1>⚡ ANALYSE</h1>
+
+<div class="signal" id="live">WAIT</div>
+
+<button onclick="getSignal()">DÉMARRER ANALYSE</button>
+
+</div>
+</div>
+
+<!-- PAGE 4 -->
+<div class="page" id="p4">
+<div class="card">
+<h1>📈 SIGNAL FINAL</h1>
+
+<div class="signal" id="final">---</div>
+<div id="emoji" style="font-size:60px;margin-top:15px;">⚪</div>
+
+<button onclick="restart()">RESTART</button>
+
+</div>
+</div>
+
 </div>
 
 <script>
+
+let market = "";
+let time = "";
+
+function show(id, step){
+
+document.querySelectorAll(".page").forEach(p=>{
+p.classList.remove("active");
+});
+
+document.getElementById(id).classList.add("active");
+document.getElementById("step").innerText = step;
+
+}
+
+/* ================= STEP 1 ================= */
+function selectMarket(m){
+market = m;
+show("p2","STEP 2/4");
+}
+
+/* ================= STEP 2 ================= */
+function selectTime(t){
+time = t;
+show("p3","STEP 3/4");
+}
+
+/* ================= STEP 3 ================= */
 async function getSignal(){
-const res = await fetch("/api/BTCUSD/1m");
+
+document.getElementById("live").innerText = "ANALYZING...";
+
+const res = await fetch(`/api/${market}/${time}`);
 const data = await res.json();
 
-document.getElementById("signal").innerText =
-"SIGNAL: " + data.signal + " | PRICE: " + data.price;
+show("p4","STEP 4/4");
+
+document.getElementById("final").innerText =
+data.signal;
+
+let emoji = "⚪";
+
+if(data.signal === "BUY") emoji = "🟢📈";
+if(data.signal === "SELL") emoji = "🔴📉";
+
+document.getElementById("emoji").innerText = emoji;
+
 }
+
+/* ================= RESTART ================= */
+function restart(){
+show("p1","STEP 1/4");
+}
+
 </script>
 
 </body>
