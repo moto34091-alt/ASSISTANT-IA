@@ -1,242 +1,101 @@
-require("dotenv").config();
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SNIPER AI V37</title>
 
-const express = require("express");
-const axios = require("axios");
-
-const app = express();
-
-/* ================= PORT RAILWAY ================= */
-const PORT = process.env.PORT || 3000;
-
-/* ================= MIDDLEWARE ================= */
-app.use(express.json());
-app.use(express.static("public"));
-
-/* ================= HOME ================= */
-app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V30 - ONLINE");
-});
-
-/* ================= CLEAN SYMBOL ================= */
-function cleanSymbol(symbol){
-if(!symbol) return "EUR/USD";
-
-symbol = symbol.toUpperCase().trim();
-
-return symbol.includes("/")
-? symbol
-: symbol.slice(0,3) + "/" + symbol.slice(3);
+<style>
+body{
+margin:0;
+background:#050816;
+font-family:Arial;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
-/* ================= FETCH SAFE DATA ================= */
-async function getData(symbol, interval){
-
-try {
-
-symbol = cleanSymbol(symbol);
-
-const map = {
-"30s":"1min",
-"1m":"1min",
-"5m":"5min",
-"15m":"5min"
-};
-
-const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
-
-const res = await axios.get(url);
-
-/* SAFE CHECK */
-if(!res.data || res.data.status === "error") return null;
-if(!res.data.values || res.data.values.length < 20) return null;
-
-return res.data.values
-.reverse()
-.map(c => Number(c.close))
-.filter(v => !isNaN(v));
-
-} catch(err){
-console.log("API ERROR:", err.message);
-return null;
-}
+.card{
+background:#0c1224;
+padding:30px;
+border-radius:20px;
+border:1px solid #00ff9d;
+text-align:center;
+box-shadow:0 0 25px #00ff9d33;
+animation: glow 2s infinite alternate;
 }
 
-/* ================= RSI SAFE ================= */
-function RSI(data){
-if(!data || data.length < 14) return 50;
-
-let gain = 0;
-let loss = 0;
-
-for(let i=1;i<14;i++){
-const diff = data[i] - data[i-1];
-if(diff > 0) gain += diff;
-else loss += Math.abs(diff);
+h1{
+color:#00ff9d;
+font-size:28px;
 }
 
-const rs = gain / (loss || 1);
-const rsi = 100 - (100 / (1 + rs));
-
-return Number(rsi.toFixed(2));
+p{
+color:#aaa;
+margin-top:10px;
 }
 
-/* ================= EMA SAFE ================= */
-function EMA(data, period){
-if(!data || data.length < period) return data.at(-1) || 0;
-
-const k = 2 / (period + 1);
-let ema = data[0] || 0;
-
-for(let i=1;i<data.length;i++){
-ema = data[i] * k + ema * (1 - k);
+button{
+margin-top:20px;
+padding:12px 18px;
+border:none;
+border-radius:10px;
+background:#00ff9d;
+color:black;
+font-weight:bold;
+cursor:pointer;
+transition:0.3s;
 }
 
-return ema;
+button:hover{
+transform:scale(1.1);
+box-shadow:0 0 15px #00ff9d;
 }
 
-/* ================= API ================= */
-app.get("/api/:symbol/:interval", async (req,res)=>{
-
-try {
-
-const symbol = req.params.symbol;
-const interval = req.params.interval;
-
-const data = await getData(symbol, interval);
-
-/* ================= FALLBACK SAFE ================= */
-if(!data || data.length < 20){
-return res.json({
-symbol,
-interval,
-signal:"WAIT",
-price:0,
-rsi:50,
-trend:"NO DATA",
-score:0,
-strength:0,
-BOS:{bullish:false,bearish:false},
-CHoCH:{bullish:false,bearish:false},
-support:0,
-resistance:0,
-liquidity:{buySweep:false,sellSweep:false}
-});
+.signal{
+margin-top:15px;
+font-size:20px;
+color:#facc15;
+animation:pulse 1s infinite;
 }
 
-/* ================= VALUES ================= */
-const price = data.at(-1) || 0;
-const rsi = RSI(data);
-
-const emaFast = EMA(data.slice(-30), 9);
-const emaSlow = EMA(data.slice(-30), 21);
-
-/* ================= TREND ================= */
-const trend =
-emaFast > emaSlow ? "BULLISH" :
-emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
-
-/* ================= STRUCTURE ================= */
-const recentHigh = Math.max(...data.slice(-10));
-const recentLow = Math.min(...data.slice(-10));
-const prevHigh = Math.max(...data.slice(-20, -10));
-const prevLow = Math.min(...data.slice(-20, -10));
-
-const BOS = {
-bullish: recentHigh > prevHigh,
-bearish: recentLow < prevLow
-};
-
-const CHoCH = {
-bullish: trend === "BULLISH" && BOS.bullish,
-bearish: trend === "BEARISH" && BOS.bearish
-};
-
-/* ================= SUPPORT / RESISTANCE ================= */
-const support = Math.min(...data.slice(-30));
-const resistance = Math.max(...data.slice(-30));
-
-/* ================= LIQUIDITY ================= */
-const liquidity = {
-buySweep: price < support,
-sellSweep: price > resistance
-};
-
-/* ================= SCORE ================= */
-let score = 0;
-
-if (emaFast > emaSlow) score += 30;
-if (emaFast < emaSlow) score -= 30;
-
-if (rsi < 30) score += 25;
-if (rsi > 70) score -= 25;
-
-if (BOS.bullish) score += 20;
-if (BOS.bearish) score -= 20;
-
-if (CHoCH.bullish) score += 30;
-if (CHoCH.bearish) score -= 30;
-
-if (liquidity.buySweep) score += 20;
-if (liquidity.sellSweep) score -= 20;
-
-const momentum = price - (data.at(data.length - 3) || price);
-if (momentum > 0) score += 10;
-if (momentum < 0) score -= 10;
-
-/* ================= SIGNAL ================= */
-let signal = "WAIT";
-
-if (score >= 55) signal = "BUY";
-if (score <= -55) signal = "SELL";
-
-if (Math.abs(score) < 20){
-signal = trend === "BULLISH"
-? "BUY"
-: trend === "BEARISH"
-? "SELL"
-: "WAIT";
+@keyframes glow{
+from{box-shadow:0 0 10px #00ff9d33;}
+to{box-shadow:0 0 25px #00ff9d;}
 }
 
-/* ================= RESPONSE ================= */
-res.json({
-symbol,
-interval,
-signal,
-price,
-rsi,
-trend,
-score,
-strength: Math.min(100, Math.abs(score)),
-BOS,
-CHoCH,
-support,
-resistance,
-liquidity
-});
-
-} catch(err){
-
-console.log("SERVER ERROR:", err.message);
-
-res.json({
-signal:"WAIT",
-price:0,
-rsi:50,
-trend:"ERROR",
-score:0,
-strength:0,
-BOS:{bullish:false,bearish:false},
-CHoCH:{bullish:false,bearish:false},
-support:0,
-resistance:0,
-liquidity:{buySweep:false,sellSweep:false}
-});
+@keyframes pulse{
+0%{opacity:1;}
+50%{opacity:0.5;}
+100%{opacity:1;}
 }
+</style>
 
-});
+</head>
 
-/* ================= START SERVER ================= */
-app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V30 RUNNING ON PORT", PORT);
-});
+<body>
+
+<div class="card">
+<h1>🚀 SNIPER AI V37</h1>
+<p>SMART ENGINE LIVE</p>
+
+<div class="signal" id="signal">WAITING SIGNAL...</div>
+
+<button onclick="getSignal()">
+📊 GET SIGNAL
+</button>
+</div>
+
+<script>
+async function getSignal(){
+const res = await fetch("/api/BTCUSD/1m");
+const data = await res.json();
+
+document.getElementById("signal").innerText =
+"SIGNAL: " + data.signal + " | PRICE: " + data.price;
+}
+</script>
+
+</body>
+</html>
