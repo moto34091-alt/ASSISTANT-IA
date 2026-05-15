@@ -3,18 +3,22 @@ const express = require("express");
 const axios = require("axios");
 
 const app = express();
+
+/* ================= PORT ================= */
 const PORT = process.env.PORT || 3000;
 
+/* ================= MIDDLEWARE ================= */
 app.use(express.json());
 app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V30 - SMART ENGINE LIVE");
+res.send("🚀 SNIPER PRO V30 - ONLINE");
 });
 
 /* ================= CLEAN SYMBOL ================= */
 function cleanSymbol(symbol){
+
 if(!symbol) return "EUR/USD";
 
 symbol = symbol.toUpperCase().trim();
@@ -22,9 +26,10 @@ symbol = symbol.toUpperCase().trim();
 if(symbol.includes("/")) return symbol;
 
 return symbol.slice(0,3) + "/" + symbol.slice(3);
+
 }
 
-/* ================= DATA FETCH ================= */
+/* ================= DATA ================= */
 async function getData(symbol, interval){
 
 try {
@@ -38,7 +43,6 @@ const map = {
 "15m":"5min"
 };
 
-/* ✅ FIX URL (IMPORTANT) */
 const url =
 `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
@@ -57,29 +61,40 @@ return res.data.values
 console.log("API ERROR:", err.message);
 return null;
 }
+
 }
 
 /* ================= RSI ================= */
 function RSI(data){
+
 if(!data || data.length < 14) return 50;
 
-let gain=0, loss=0;
+let gain = 0;
+let loss = 0;
 
 for(let i=1;i<14;i++){
+
 const diff = data[i] - data[i-1];
+
 if(diff > 0) gain += diff;
 else loss += Math.abs(diff);
+
 }
 
 const rs = gain / (loss || 1);
+
 return Number((100 - (100 / (1 + rs))).toFixed(2));
+
 }
 
 /* ================= EMA ================= */
 function EMA(data, period){
-if(!data || data.length < period) return data.at(-1) || 0;
+
+if(!data || data.length < period)
+return data.at(-1) || 0;
 
 const k = 2 / (period + 1);
+
 let ema = data[0] || 0;
 
 for(let i=1;i<data.length;i++){
@@ -87,6 +102,7 @@ ema = data[i] * k + ema * (1 - k);
 }
 
 return ema;
+
 }
 
 /* ================= API ================= */
@@ -94,13 +110,14 @@ app.get("/api/:symbol/:interval", async (req,res)=>{
 
 try {
 
-let symbol = cleanSymbol(req.params.symbol);
-let interval = req.params.interval;
+const symbol = cleanSymbol(req.params.symbol);
+const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK SAFE ================= */
+/* ================= FALLBACK ================= */
 if(!data || data.length < 20){
+
 return res.json({
 symbol,
 interval,
@@ -114,11 +131,9 @@ BOS:{bullish:false,bearish:false},
 CHoCH:{bullish:false,bearish:false},
 support:0,
 resistance:0,
-liquidity:{buySweep:false,sellSweep:false},
-FVG:{bullish:false,bearish:false},
-orderBlock:{bullish:false,bearish:false},
-confidence:0
+liquidity:{buySweep:false,sellSweep:false}
 });
+
 }
 
 /* ================= PRICE ================= */
@@ -129,6 +144,7 @@ const rsi = RSI(data);
 const emaFast = EMA(data.slice(-30), 9);
 const emaSlow = EMA(data.slice(-30), 21);
 
+/* ================= TREND ================= */
 const trend =
 emaFast > emaSlow ? "BULLISH" :
 emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
@@ -136,8 +152,8 @@ emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
 /* ================= STRUCTURE ================= */
 const recentHigh = Math.max(...data.slice(-10));
 const recentLow = Math.min(...data.slice(-10));
-const prevHigh = Math.max(...data.slice(-20, -10));
-const prevLow = Math.min(...data.slice(-20, -10));
+const prevHigh = Math.max(...data.slice(-20,-10));
+const prevLow = Math.min(...data.slice(-20,-10));
 
 const BOS = {
 bullish: recentHigh > prevHigh,
@@ -149,7 +165,7 @@ bullish: trend === "BULLISH" && BOS.bullish,
 bearish: trend === "BEARISH" && BOS.bearish
 };
 
-/* ================= SUPPORT / RESISTANCE ================= */
+/* ================= SUPPORT ================= */
 const support = Math.min(...data.slice(-30));
 const resistance = Math.max(...data.slice(-30));
 
@@ -157,18 +173,6 @@ const resistance = Math.max(...data.slice(-30));
 const liquidity = {
 buySweep: price < support,
 sellSweep: price > resistance
-};
-
-/* ================= FVG (ADDED) ================= */
-const FVG = {
-bullish: data.at(-3) > data.at(-5),
-bearish: data.at(-3) < data.at(-5)
-};
-
-/* ================= ORDER BLOCK (ADDED) ================= */
-const orderBlock = {
-bullish: price > data.at(-2),
-bearish: price < data.at(-2)
 };
 
 /* ================= SCORE ================= */
@@ -189,14 +193,8 @@ if (CHoCH.bearish) score -= 30;
 if (liquidity.buySweep) score += 20;
 if (liquidity.sellSweep) score -= 20;
 
-/* ADDED */
-if (FVG.bullish) score += 15;
-if (FVG.bearish) score -= 15;
-
-if (orderBlock.bullish) score += 20;
-if (orderBlock.bearish) score -= 20;
-
 const momentum = price - (data.at(data.length - 3) || price);
+
 if (momentum > 0) score += 10;
 if (momentum < 0) score -= 10;
 
@@ -207,18 +205,17 @@ if (score >= 55) signal = "BUY";
 if (score <= -55) signal = "SELL";
 
 if (Math.abs(score) < 20){
-signal = trend === "BULLISH"
+signal =
+trend === "BULLISH"
 ? "BUY"
 : trend === "BEARISH"
 ? "SELL"
 : "WAIT";
 }
 
-/* ================= CONFIDENCE (ADDED) ================= */
-const confidence = Math.min(100, Math.abs(score));
-
 /* ================= RESPONSE ================= */
 res.json({
+
 symbol,
 interval,
 signal,
@@ -226,18 +223,16 @@ price,
 rsi,
 trend,
 score,
-strength: confidence,
-confidence,
+strength: Math.min(100, Math.abs(score)),
 BOS,
 CHoCH,
-FVG,
-orderBlock,
 support,
 resistance,
 liquidity
+
 });
 
-} catch (err) {
+} catch(err){
 
 console.log("SERVER ERROR:", err.message);
 
@@ -248,15 +243,13 @@ rsi:50,
 trend:"ERROR",
 score:0,
 strength:0,
-confidence:0,
 BOS:{bullish:false,bearish:false},
 CHoCH:{bullish:false,bearish:false},
 support:0,
 resistance:0,
-liquidity:{buySweep:false,sellSweep:false},
-FVG:{bullish:false,bearish:false},
-orderBlock:{bullish:false,bearish:false}
+liquidity:{buySweep:false,sellSweep:false}
 });
+
 }
 
 });
