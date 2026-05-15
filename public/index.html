@@ -48,7 +48,7 @@ margin-top:15px;
 
 .signal{
 text-align:center;
-font-size:34px;
+font-size:40px;
 font-weight:bold;
 margin-top:5px;
 }
@@ -56,13 +56,10 @@ margin-top:5px;
 .buy{color:#00ff9d;}
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
-.entry{color:#00c3ff;}
 
 .info{
 text-align:center;
-margin-top:6px;
-font-size:14px;
-color:#ccc;
+margin-top:8px;
 }
 
 .bar{
@@ -81,9 +78,24 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 
 .timer{
 text-align:center;
+margin-top:8px;
+font-size:14px;
+display:none; /* caché par défaut */
+}
+
+.price{
+text-align:center;
 margin-top:6px;
-font-size:13px;
+font-size:16px;
 color:#aaa;
+}
+
+.entry{
+text-align:center;
+margin-top:6px;
+font-size:16px;
+color:#00ff9d;
+font-weight:bold;
 }
 </style>
 </head>
@@ -92,7 +104,7 @@ color:#aaa;
 
 <div class="app">
 
-<h2>SNIPER AI PRO V3</h2>
+<h2>SNIPER AI PRO V2</h2>
 
 <select id="market">
 <option>EUR/USD</option>
@@ -129,13 +141,16 @@ color:#aaa;
 <div id="icon" class="icon">🟡</div>
 <div id="signal" class="signal wait">WAIT</div>
 
-<div class="info" id="price">PRICE: --</div>
+<div class="entry" id="entry">ENTRY POINT: -</div>
+<div class="price" id="price">PRICE: --</div>
+
 <div class="info" id="score">SCORE: 0</div>
 <div class="info" id="prob">PROB: 0%</div>
 <div class="info" id="winrate">WINRATE: 0%</div>
 
 <div class="bar"><div id="fill" class="fill"></div></div>
-<div class="timer" id="timer"></div>
+
+<div class="timer" id="timer">READY</div>
 
 </div>
 
@@ -149,66 +164,55 @@ let lastKey="";
 let lastData=null;
 
 /* =========================
-   💰 MARKET PRICE SIMULÉ
+   💰 PRICE SIMULATION
 ========================= */
-function getPrice(base){
-let p = 100 + Math.random()*50;
-return p.toFixed(2);
+function getPrice(market){
+let base = 1 + Math.random()*100;
+if(market.includes("JPY")) base = 100 + Math.random()*50;
+if(market.includes("BTC")) base = 60000 + Math.random()*2000;
+if(market.includes("XAU")) base = 2300 + Math.random()*50;
+return base.toFixed(2);
 }
 
 /* =========================
-   🧠 IA FORTIFIÉE
+   🧠 IA ULTRA SIMPLE PRO
 ========================= */
 function ai(){
 
 let rsi = Math.random()*100;
-let trend1 = Math.random()*2-1;
-let trend2 = Math.random()*2-1; // confirmation
+let trend = Math.random()*2-1;
 let volume = Math.random()*100;
 
 /* RSI */
 let rsiS = rsi<30?1:rsi>70?-1:0;
 
-/* TREND DOUBLE CONFIRM */
-let trendS = (trend1>0.25 && trend2>0.25) ? 1 :
-             (trend1<-0.25 && trend2<-0.25) ? -1 : 0;
+/* TREND */
+let trendS = trend>0.25?1:trend<-0.25?-1:0;
 
 /* VOLUME FILTER */
 let volS = volume>65?1:volume<35?-1:0;
 
+/* DOUBLE CONFIRMATION */
+let confirm = (rsiS + trendS);
+
 /* SCORE FINAL */
-let score =
-(rsiS*0.4) +
-(trendS*0.5) +
-(volS*0.1);
+let score = (rsiS*0.5) + (trendS*0.4) + (volS*0.1);
 
 /* SIGNAL */
 let signal="WAIT";
-if(score>0.45) signal="BUY";
-else if(score<-0.45) signal="SELL";
+if(confirm>=2 && score>0.35) signal="BUY";
+else if(confirm<=-2 && score<-0.35) signal="SELL";
 
-/* ENTRY POINT EXACT */
-let entry=false;
-if(Math.abs(score)>0.55 && trendS!==0){
-entry=true;
-}
+/* PROB */
+let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 55));
 
-/* WINRATE SIMULÉ */
-let winrate = Math.min(95, Math.floor(55 + Math.abs(score)*80));
+/* WINRATE SIM */
+let winrate = signal=="WAIT" ? 50 : 65 + Math.random()*20;
 
-let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 40));
+/* ENTRY POINT */
+let entry = signal=="WAIT" ? "-" : (signal=="BUY" ? "BUY ZONE 🔼" : "SELL ZONE 🔽");
 
-return {
-rsi,
-trend1,
-trend2,
-volume,
-score,
-signal,
-prob,
-entry,
-winrate
-};
+return {rsi,trend,volume,score,signal,prob,winrate,entry};
 }
 
 /* =========================
@@ -221,15 +225,17 @@ let t=document.getElementById("time").value;
 let key=m+"_"+t;
 
 if(lock && key===lastKey){
-apply(lastData);
+apply(lastData,m);
 return;
 }
+
+if(lock && key!==lastKey) return;
 
 lock=true;
 lastKey=key;
 
 document.getElementById("icon").innerText="🧠";
-document.getElementById("signal").innerText="SCANNING...";
+document.getElementById("signal").innerText="ANALYZING...";
 document.getElementById("signal").className="signal wait";
 
 setTimeout(()=>{
@@ -238,68 +244,63 @@ let data=ai();
 lastData=data;
 
 apply(data,m);
-
-startTimer(t);
+startTimer(t,data.signal);
 
 },900);
 }
 
 /* =========================
-   APPLY
+   APPLY SIGNAL
 ========================= */
 function apply(d,market){
 
 let icon=document.getElementById("icon");
 let s=document.getElementById("signal");
 
-/* PRICE */
-document.getElementById("price").innerText =
-"PRICE: " + getPrice(market);
-
-/* SIGNAL */
-if(d.entry){
-s.innerText="ENTRY POINT EXACT";
-s.className="signal entry";
-icon.innerText="⚡";
-}
-else if(d.signal=="BUY"){
+if(d.signal=="BUY"){
+icon.innerText="🟢";
 s.innerText="BUY";
 s.className="signal buy";
-icon.innerText="🟢";
 }
 else if(d.signal=="SELL"){
+icon.innerText="🔴";
 s.innerText="SELL";
 s.className="signal sell";
-icon.innerText="🔴";
 }
 else{
+icon.innerText="🟡";
 s.innerText="WAIT";
 s.className="signal wait";
-icon.innerText="🟡";
 }
 
+/* ENTRY */
+document.getElementById("entry").innerText="ENTRY POINT: "+d.entry;
+
+/* PRICE */
+document.getElementById("price").innerText="PRICE: "+getPrice(market);
+
 /* INFO */
-document.getElementById("score").innerText =
-"SCORE: "+d.score.toFixed(2);
+document.getElementById("score").innerText="SCORE: "+d.score.toFixed(2);
+document.getElementById("prob").innerText="PROB: "+d.prob+"%";
+document.getElementById("winrate").innerText="WINRATE: "+d.winrate.toFixed(1)+"%";
 
-document.getElementById("prob").innerText =
-"PROB: "+d.prob+"%";
-
-document.getElementById("winrate").innerText =
-"WINRATE: "+d.winrate+"%";
-
-/* cacher timer si WAIT */
-if(d.signal=="WAIT" && !d.entry){
-document.getElementById("timer").innerText="";
+/* TIMER SHOW ONLY IF SIGNAL */
+if(d.signal=="WAIT"){
+document.getElementById("timer").style.display="none";
 }
 }
 
 /* =========================
-   TIMER
+   TIMER (ONLY SIGNAL)
 ========================= */
-function startTimer(sec){
+function startTimer(sec,signal){
 
 clearInterval(timer);
+
+if(signal=="WAIT") return;
+
+document.getElementById("timer").style.display="block";
+
 let r=sec;
 
 timer=setInterval(()=>{
@@ -313,6 +314,7 @@ if(r<=0){
 clearInterval(timer);
 lock=false;
 document.getElementById("timer").innerText="READY";
+document.getElementById("timer").style.display="none";
 }
 
 },1000);
@@ -326,8 +328,11 @@ function autoMode(){
 if(interval){
 clearInterval(interval);
 interval=null;
+alert("STOP AUTO");
 return;
 }
+
+alert("START AUTO");
 
 interval=setInterval(()=>{
 if(!lock) analyze();
