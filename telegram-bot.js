@@ -4,12 +4,14 @@ require("dotenv").config();
 /* ================= BOT INIT ================= */
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-/* ================= SAFETY FIX (RAILWAY) ================= */
+/* ================= SAFETY (RAILWAY) ================= */
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
 
 /* ================= START COMMAND ================= */
 bot.start((ctx) => {
+console.log("START RECEIVED FROM:", ctx.from.id);
+
 ctx.reply("🚀 SNIPER WEB APP READY", {
 reply_markup: {
 inline_keyboard: [
@@ -26,7 +28,7 @@ url: "https://binanc18bot.up.railway.app/"
 });
 });
 
-/* ================= APP COMMAND ================= */
+/* ================= OPTIONAL COMMAND ================= */
 bot.command("app", (ctx) => {
 ctx.reply("🚀 ACCÈS WEB APP", {
 reply_markup: {
@@ -49,11 +51,11 @@ bot.catch((err, ctx) => {
 console.log("❌ BOT ERROR:", err);
 });
 
-/* ================= LAUNCH SAFE ================= */
+/* ================= LAUNCH ================= */
 bot.launch()
 .then(() => {
 console.log("🚀 BOT STARTED SUCCESSFULLY");
 })
-.catch(err => {
-console.log("❌ BOT FAILED TO START:", err);
+.catch((err) => {
+console.log("❌ BOT FAILED:", err);
 });
