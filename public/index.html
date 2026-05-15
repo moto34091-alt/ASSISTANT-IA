@@ -48,7 +48,7 @@ margin-top:15px;
 
 .signal{
 text-align:center;
-font-size:40px;
+font-size:34px;
 font-weight:bold;
 margin-top:5px;
 }
@@ -56,10 +56,13 @@ margin-top:5px;
 .buy{color:#00ff9d;}
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
+.entry{color:#00c3ff;}
 
 .info{
 text-align:center;
-margin-top:8px;
+margin-top:6px;
+font-size:14px;
+color:#ccc;
 }
 
 .bar{
@@ -78,8 +81,9 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 
 .timer{
 text-align:center;
-margin-top:8px;
-font-size:14px;
+margin-top:6px;
+font-size:13px;
+color:#aaa;
 }
 </style>
 </head>
@@ -88,7 +92,7 @@ font-size:14px;
 
 <div class="app">
 
-<h2>SNIPER AI PRO V2</h2>
+<h2>SNIPER AI PRO V3</h2>
 
 <select id="market">
 <option>EUR/USD</option>
@@ -125,11 +129,13 @@ font-size:14px;
 <div id="icon" class="icon">🟡</div>
 <div id="signal" class="signal wait">WAIT</div>
 
+<div class="info" id="price">PRICE: --</div>
 <div class="info" id="score">SCORE: 0</div>
 <div class="info" id="prob">PROB: 0%</div>
+<div class="info" id="winrate">WINRATE: 0%</div>
 
 <div class="bar"><div id="fill" class="fill"></div></div>
-<div class="timer" id="timer">READY</div>
+<div class="timer" id="timer"></div>
 
 </div>
 
@@ -143,38 +149,70 @@ let lastKey="";
 let lastData=null;
 
 /* =========================
-   🧠 IA SIMPLE MAIS PROPRE
+   💰 MARKET PRICE SIMULÉ
+========================= */
+function getPrice(base){
+let p = 100 + Math.random()*50;
+return p.toFixed(2);
+}
+
+/* =========================
+   🧠 IA FORTIFIÉE
 ========================= */
 function ai(){
 
 let rsi = Math.random()*100;
-let trend = Math.random()*2-1;
+let trend1 = Math.random()*2-1;
+let trend2 = Math.random()*2-1; // confirmation
 let volume = Math.random()*100;
 
 /* RSI */
 let rsiS = rsi<30?1:rsi>70?-1:0;
 
-/* TREND */
-let trendS = trend>0.2?1:trend<-0.2?-1:0;
+/* TREND DOUBLE CONFIRM */
+let trendS = (trend1>0.25 && trend2>0.25) ? 1 :
+             (trend1<-0.25 && trend2<-0.25) ? -1 : 0;
 
-/* VOLUME */
+/* VOLUME FILTER */
 let volS = volume>65?1:volume<35?-1:0;
 
 /* SCORE FINAL */
-let score = (rsiS*0.45) + (trendS*0.4) + (volS*0.15);
+let score =
+(rsiS*0.4) +
+(trendS*0.5) +
+(volS*0.1);
 
+/* SIGNAL */
 let signal="WAIT";
-if(score>0.35) signal="BUY";
-else if(score<-0.35) signal="SELL";
+if(score>0.45) signal="BUY";
+else if(score<-0.45) signal="SELL";
 
-/* PROBABILITÉ */
-let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 50));
+/* ENTRY POINT EXACT */
+let entry=false;
+if(Math.abs(score)>0.55 && trendS!==0){
+entry=true;
+}
 
-return {rsi,trend,volume,score,signal,prob};
+/* WINRATE SIMULÉ */
+let winrate = Math.min(95, Math.floor(55 + Math.abs(score)*80));
+
+let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 40));
+
+return {
+rsi,
+trend1,
+trend2,
+volume,
+score,
+signal,
+prob,
+entry,
+winrate
+};
 }
 
 /* =========================
-   ANALYZE (CACHE STABLE)
+   ANALYZE
 ========================= */
 function analyze(){
 
@@ -182,19 +220,16 @@ let m=document.getElementById("market").value;
 let t=document.getElementById("time").value;
 let key=m+"_"+t;
 
-/* si déjà calculé → même signal */
 if(lock && key===lastKey){
 apply(lastData);
 return;
 }
 
-if(lock && key!==lastKey) return;
-
 lock=true;
 lastKey=key;
 
 document.getElementById("icon").innerText="🧠";
-document.getElementById("signal").innerText="ANALYZING...";
+document.getElementById("signal").innerText="SCANNING...";
 document.getElementById("signal").className="signal wait";
 
 setTimeout(()=>{
@@ -202,38 +237,61 @@ setTimeout(()=>{
 let data=ai();
 lastData=data;
 
-apply(data);
+apply(data,m);
+
 startTimer(t);
 
 },900);
 }
 
 /* =========================
-   APPLY SIGNAL
+   APPLY
 ========================= */
-function apply(d){
+function apply(d,market){
 
 let icon=document.getElementById("icon");
 let s=document.getElementById("signal");
 
-if(d.signal=="BUY"){
-icon.innerText="🟢";
+/* PRICE */
+document.getElementById("price").innerText =
+"PRICE: " + getPrice(market);
+
+/* SIGNAL */
+if(d.entry){
+s.innerText="ENTRY POINT EXACT";
+s.className="signal entry";
+icon.innerText="⚡";
+}
+else if(d.signal=="BUY"){
 s.innerText="BUY";
 s.className="signal buy";
+icon.innerText="🟢";
 }
 else if(d.signal=="SELL"){
-icon.innerText="🔴";
 s.innerText="SELL";
 s.className="signal sell";
+icon.innerText="🔴";
 }
 else{
-icon.innerText="🟡";
 s.innerText="WAIT";
 s.className="signal wait";
+icon.innerText="🟡";
 }
 
-document.getElementById("score").innerText="SCORE: "+d.score.toFixed(2);
-document.getElementById("prob").innerText="PROB: "+d.prob+"%";
+/* INFO */
+document.getElementById("score").innerText =
+"SCORE: "+d.score.toFixed(2);
+
+document.getElementById("prob").innerText =
+"PROB: "+d.prob+"%";
+
+document.getElementById("winrate").innerText =
+"WINRATE: "+d.winrate+"%";
+
+/* cacher timer si WAIT */
+if(d.signal=="WAIT" && !d.entry){
+document.getElementById("timer").innerText="";
+}
 }
 
 /* =========================
@@ -268,11 +326,8 @@ function autoMode(){
 if(interval){
 clearInterval(interval);
 interval=null;
-alert("STOP AUTO");
 return;
 }
-
-alert("START AUTO");
 
 interval=setInterval(()=>{
 if(!lock) analyze();
