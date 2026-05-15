@@ -104,7 +104,7 @@ font-weight:bold;
 
 <div class="app">
 
-<h2>SNIPER AI PRO V2</h2>
+<h2>SNIPER AI PRO V3</h2>
 
 <select id="market">
 <option>EUR/USD</option>
@@ -136,7 +136,6 @@ font-weight:bold;
 </select>
 
 <button onclick="analyze()">ANALYZE</button>
-<button onclick="autoMode()">AUTO MODE</button>
 
 <div id="icon" class="icon">🟡</div>
 <div id="signal" class="signal wait">WAIT</div>
@@ -156,160 +155,133 @@ font-weight:bold;
 
 <script>
 
-let interval=null;
 let timer=null;
 
-/* PRICE */
+/* PRICE SIM */
 function getPrice(market){
-let base = 1 + Math.random()*100;
+let base = 50 + Math.random()*50;
 if(market.includes("JPY")) base = 100 + Math.random()*50;
 if(market.includes("BTC")) base = 60000 + Math.random()*2000;
 if(market.includes("XAU")) base = 2300 + Math.random()*50;
 return base.toFixed(2);
 }
 
-/* 🧠 IA + WINRATE RÉEL SIMULÉ */
+/* 🧠 IA SNIPER PRO V3 */
 function ai(){
 
-let rsi = Math.random()*100;
-let trend = Math.random()*2-1;
-let volume = Math.random()*100;
+let price = 50 + Math.random()*50;
+
+/* TIMEFRAMES */
+let tf1 = Math.random()*2-1;
+let tf5 = Math.random()*2-1;
 
 /* RSI */
-let rsiS = rsi<30?1:rsi>70?-1:0;
+let rsi = 30 + Math.random()*40;
 
-/* TREND */
-let trendS = trend>0.25?1:trend<-0.25?-1:0;
+/* MOMENTUM */
+let momentum = Math.random()*2-1;
 
-/* VOLUME */
-let volS = volume>65?1:volume<35?-1:0;
+/* SUPPORT / RESISTANCE */
+let support = 40;
+let resistance = 90;
 
-/* CONFIRMATION */
-let confirm = rsiS + trendS;
+let supportZone = price < support + 5 ? 1 : 0;
+let resistanceZone = price > resistance - 5 ? 1 : 0;
 
-/* SCORE */
-let score = (rsiS*0.5) + (trendS*0.4) + (volS*0.1);
+/* RSI DIVERGENCE */
+let rsiBuy = (momentum < 0 && rsi > 55) ? 1 : 0;
+let rsiSell = (momentum > 0 && rsi < 45) ? 1 : 0;
+
+/* MULTI TF */
+let tfBuy = (tf1 > 0 && tf5 > 0) ? 1 : 0;
+let tfSell = (tf1 < 0 && tf5 < 0) ? 1 : 0;
+
+/* FAKE BREAKOUT */
+let breakout = Math.abs(momentum) > 0.9;
+let volume = Math.random();
+
+let fakeBreakout = breakout && volume < 0.4;
+
+/* BLOCK FAKE */
+if(fakeBreakout){
+return {
+signal:"WAIT",
+score:0,
+prob:45,
+winrate:45,
+entry:"FAKE BREAKOUT BLOCKED ❌"
+};
+}
+
+/* SCORES */
+let buyScore =
+(rsiBuy*2) +
+(tfBuy*2) +
+(supportZone*1.5) +
+(momentum>0?1:0);
+
+let sellScore =
+(rsiSell*2) +
+(tfSell*2) +
+(resistanceZone*1.5) +
+(momentum<0?1:0);
 
 /* SIGNAL */
 let signal="WAIT";
-if(confirm>=2 && score>0.35) signal="BUY";
-else if(confirm<=-2 && score<-0.35) signal="SELL";
+
+if(buyScore >= 4) signal="BUY";
+else if(sellScore >= 4) signal="SELL";
 
 /* PROB */
-let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 55));
+let prob = Math.min(92, 50 + Math.max(buyScore,sellScore)*10);
 
-/* WINRATE INTELLIGENT */
-let winrate = 50;
+/* WINRATE */
+let winrate = 50 + Math.max(buyScore,sellScore)*8;
 
-if(signal !== "WAIT"){
-    winrate = 55 + Math.abs(score)*70;
+if(tfBuy || tfSell) winrate += 5;
+if(supportZone || resistanceZone) winrate += 3;
 
-    if(rsi < 20 || rsi > 80){
-        winrate += 5;
-    }
-
-    if(Math.abs(trend) > 0.7){
-        winrate += 5;
-    }
-
-    if(winrate > 91) winrate = 91;
-    if(winrate < 50) winrate = 50;
-}else{
-    winrate = 40 + Math.random()*10;
-}
+if(winrate > 90) winrate = 90;
+if(winrate < 45) winrate = 45;
 
 /* ENTRY */
-let entry = signal=="BUY" ? "BUY ZONE 🔼" :
-            signal=="SELL" ? "SELL ZONE 🔽" : "-";
+let entry =
+signal=="BUY" ? "SNIPER BUY ENTRY 🔼" :
+signal=="SELL" ? "SNIPER SELL ENTRY 🔽" : "-";
 
-return {score,signal,prob,winrate,entry};
+return {price,signal,prob,winrate,entry};
+}
+
+/* APPLY */
+function apply(d,m){
+
+document.getElementById("icon").innerText =
+d.signal=="BUY"?"🟢":d.signal=="SELL"?"🔴":"🟡";
+
+document.getElementById("signal").innerText = d.signal;
+document.getElementById("signal").className =
+"signal " + (d.signal=="BUY"?"buy":d.signal=="SELL"?"sell":"wait");
+
+document.getElementById("entry").innerText="ENTRY POINT: "+d.entry;
+document.getElementById("price").innerText="PRICE: "+getPrice(m);
+document.getElementById("prob").innerText="PROB: "+d.prob+"%";
+document.getElementById("winrate").innerText="WINRATE: "+d.winrate.toFixed(1)+"%";
 }
 
 /* ANALYZE */
 function analyze(){
 
 let m=document.getElementById("market").value;
-let t=document.getElementById("time").value;
 
 document.getElementById("icon").innerText="🧠";
 document.getElementById("signal").innerText="ANALYZING...";
-document.getElementById("signal").className="signal wait";
 
 setTimeout(()=>{
 
 let d=ai();
-
 apply(d,m);
-startTimer(t,d.signal);
 
 },600);
-}
-
-/* APPLY */
-function apply(d,m){
-
-let icon=document.getElementById("icon");
-let s=document.getElementById("signal");
-
-if(d.signal=="BUY"){
-icon.innerText="🟢";s.innerText="BUY";s.className="signal buy";
-}
-else if(d.signal=="SELL"){
-icon.innerText="🔴";s.innerText="SELL";s.className="signal sell";
-}
-else{
-icon.innerText="🟡";s.innerText="WAIT";s.className="signal wait";
-}
-
-document.getElementById("entry").innerText="ENTRY POINT: "+d.entry;
-document.getElementById("price").innerText="PRICE: "+getPrice(m);
-document.getElementById("score").innerText="SCORE: "+d.score.toFixed(2);
-document.getElementById("prob").innerText="PROB: "+d.prob+"%";
-document.getElementById("winrate").innerText="WINRATE: "+d.winrate.toFixed(1)+"%";
-
-if(d.signal=="WAIT"){
-document.getElementById("timer").style.display="none";
-}
-}
-
-/* TIMER */
-function startTimer(sec,signal){
-
-clearInterval(timer);
-
-if(signal=="WAIT") return;
-
-document.getElementById("timer").style.display="block";
-
-let r=sec;
-
-timer=setInterval(()=>{
-
-r--;
-document.getElementById("fill").style.width=(r/sec*100)+"%";
-document.getElementById("timer").innerText=r+" SEC";
-
-if(r<=0){
-clearInterval(timer);
-document.getElementById("timer").innerText="READY";
-document.getElementById("timer").style.display="none";
-}
-
-},1000);
-}
-
-/* AUTO */
-function autoMode(){
-
-if(interval){
-clearInterval(interval);
-interval=null;
-return;
-}
-
-interval=setInterval(()=>{
-analyze();
-},3000);
 }
 
 </script>
