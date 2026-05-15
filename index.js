@@ -9,23 +9,21 @@ app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V29 - STABLE ENGINE");
+res.send("🚀 SNIPER PRO V30 - SMART ENGINE");
 });
 
-/* ================= SYMBOL NORMALIZER ================= */
+/* ================= SYMBOL ================= */
 function cleanSymbol(symbol){
 symbol = symbol.toUpperCase().trim();
 
-// accepte EURUSD ou EUR/USD
 if(symbol.includes("/")){
 return symbol;
 }
 
-// conversion auto EURUSD -> EUR/USD
 return symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= FETCH DATA ================= */
+/* ================= DATA ================= */
 async function getData(symbol, interval){
 
 try {
@@ -43,18 +41,8 @@ const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${
 
 const res = await axios.get(url);
 
-/* DEBUG */
-console.log("SYMBOL:", symbol);
-console.log("STATUS:", res.data?.status);
-
-/* SAFE CHECK */
-if(!res.data || res.data.status === "error"){
-return null;
-}
-
-if(!res.data.values || res.data.values.length < 20){
-return null;
-}
+if(!res.data || res.data.status === "error") return null;
+if(!res.data.values || res.data.values.length < 20) return null;
 
 return res.data.values
 .reverse()
@@ -62,7 +50,6 @@ return res.data.values
 .filter(n => !isNaN(n));
 
 } catch(err){
-console.log("API ERROR:", err.message);
 return null;
 }
 }
@@ -84,7 +71,7 @@ return 100 - (100 / (1 + rs));
 
 /* ================= EMA ================= */
 function EMA(data, period){
-if(!data || data.length < period) return data?.at(-1) || 0;
+if(!data || data.length < period) return data.at(-1);
 
 const k = 2 / (period + 1);
 let ema = data[0];
@@ -116,6 +103,7 @@ price:0,
 rsi:50,
 trend:"NO DATA",
 score:0,
+strength:0,
 BOS:{bullish:false,bearish:false},
 CHoCH:{bullish:false,bearish:false},
 support:0,
@@ -161,7 +149,7 @@ buySweep: price < support,
 sellSweep: price > resistance
 };
 
-/* ================= SCORE ================= */
+/* ================= SCORE ENGINE ================= */
 let score = 0;
 
 if (emaFast > emaSlow) score += 30;
@@ -176,8 +164,8 @@ if (BOS.bearish) score -= 25;
 if (CHoCH.bullish) score += 35;
 if (CHoCH.bearish) score -= 35;
 
-if (liquidity.buySweep) score += 25;
-if (liquidity.sellSweep) score -= 25;
+if (liquidity.buySweep) score += 20;
+if (liquidity.sellSweep) score -= 20;
 
 const momentum = price - data.at(Math.max(0, data.length - 3));
 if (momentum > 0) score += 10;
@@ -195,6 +183,9 @@ signal = trend === "BULLISH" ? "BUY"
 : "WAIT";
 }
 
+/* ================= 🔥 FIX STRENGTH ================= */
+const strength = Math.min(100, Math.abs(score));
+
 /* ================= RESPONSE ================= */
 res.json({
 symbol,
@@ -204,6 +195,7 @@ price,
 rsi,
 trend,
 score,
+strength,
 BOS,
 CHoCH,
 support,
@@ -213,14 +205,13 @@ liquidity
 
 } catch (err) {
 
-console.log("SERVER ERROR:", err.message);
-
 res.json({
 signal:"WAIT",
 price:0,
 rsi:50,
 trend:"ERROR",
 score:0,
+strength:0,
 BOS:{bullish:false,bearish:false},
 CHoCH:{bullish:false,bearish:false},
 support:0,
@@ -233,5 +224,5 @@ liquidity:{buySweep:false,sellSweep:false}
 });
 
 app.listen(PORT, ()=>{
-console.log("🚀 SNIPER PRO V29 STABLE RUNNING");
+console.log("🚀 SNIPER PRO V30 RUNNING");
 });
