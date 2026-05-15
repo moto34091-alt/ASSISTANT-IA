@@ -3,21 +3,18 @@ const express = require("express");
 const axios = require("axios");
 
 const app = express();
-
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
 app.use(express.static("public"));
 
-console.log("🔥 SNIPER AI STABLE ENGINE STARTED");
+console.log("🚀 SNIPER AI REAL ENGINE STARTED");
 
-/* ================= CLEAN SYMBOL ================= */
+/* ================= SYMBOL CLEAN ================= */
 
 function cleanSymbol(symbol){
 
 if(!symbol) return "EUR/USD";
-
-symbol = symbol.toUpperCase().trim();
 
 const map = {
 EURUSD:"EUR/USD",
@@ -30,7 +27,7 @@ NZDUSD:"NZD/USD",
 XAUUSD:"XAU/USD"
 };
 
-return map[symbol] || symbol;
+return map[symbol.toUpperCase()] || symbol;
 
 }
 
@@ -52,7 +49,7 @@ const res = await axios.get(url);
 if(
 !res.data ||
 !res.data.values ||
-res.data.values.length < 20
+res.data.values.length < 25
 ){
 return null;
 }
@@ -72,9 +69,7 @@ return null;
 
 function RSI(data){
 
-if(!data || data.length < 14){
-return 50;
-}
+if(!data || data.length < 14) return 50;
 
 let gain = 0;
 let loss = 0;
@@ -83,7 +78,8 @@ for(let i=1;i<14;i++){
 
 const diff = data[i] - data[i-1];
 
-diff > 0 ? gain += diff : loss += Math.abs(diff);
+if(diff > 0) gain += diff;
+else loss += Math.abs(diff);
 
 }
 
@@ -95,7 +91,7 @@ return 100 - (100 / (1 + rs));
 
 /* ================= EMA ================= */
 
-function EMA(data,period){
+function EMA(data, period){
 
 if(!data || data.length < period){
 return data?.at(-1) || 0;
@@ -113,6 +109,40 @@ return ema;
 
 }
 
+/* ================= SCORE ENGINE ================= */
+
+function calculateScore(price, data, rsi, emaFast, emaSlow){
+
+let score = 0;
+
+/* TREND */
+
+if(emaFast > emaSlow) score += 35;
+if(emaFast < emaSlow) score -= 35;
+
+/* RSI EXTREME */
+
+if(rsi < 30) score += 25;
+if(rsi > 70) score -= 25;
+
+/* MOMENTUM */
+
+const momentum =
+price - (data.at(-3) || price);
+
+if(momentum > 0) score += 20;
+if(momentum < 0) score -= 20;
+
+/* FORCE NORMALIZATION */
+
+if(Math.abs(score) < 8){
+score = score > 0 ? 12 : -12;
+}
+
+return score;
+
+}
+
 /* ================= API ================= */
 
 app.get("/api/:symbol", async (req,res)=>{
@@ -121,16 +151,18 @@ const symbol = cleanSymbol(req.params.symbol);
 
 const data = await getData(symbol);
 
-/* ================= NO DATA SAFE MODE ================= */
+/* ================= SAFE MODE ================= */
 
 if(!data){
 
 return res.json({
+
 symbol,
 signal:"WAIT",
-score:0,
-probability:50,
+score:10,
+probability:55,
 trend:"NO DATA"
+
 });
 
 }
@@ -143,47 +175,27 @@ const emaFast = EMA(data.slice(-30),9);
 
 const emaSlow = EMA(data.slice(-30),21);
 
-let score = 0;
+/* ================= SCORE ================= */
 
-/* EMA */
-
-if(emaFast > emaSlow) score += 30;
-else score -= 30;
-
-/* RSI */
-
-if(rsi < 30) score += 20;
-if(rsi > 70) score -= 20;
-
-/* MOMENTUM */
-
-const momentum =
-price - (data.at(-3) || price);
-
-if(momentum > 0) score += 15;
-if(momentum < 0) score -= 15;
-
-/* ================= NORMALIZE SCORE ================= */
-
-if(Math.abs(score) < 10){
-score = 10; // 🔥 avoid ZERO weak signals
-}
+const score =
+calculateScore(price,data,rsi,emaFast,emaSlow);
 
 /* ================= PROBABILITY ================= */
 
-let probability =
+const probability =
 60 + Math.min(35, Math.abs(score));
 
 /* ================= SIGNAL ================= */
 
 let signal = "WAIT";
 
-if(score >= 45) signal = "BUY";
-if(score <= -45) signal = "SELL";
+if(score >= 40) signal = "BUY";
+if(score <= -40) signal = "SELL";
 
-/* ================= FINAL SAFE RESPONSE ================= */
+/* ================= RESPONSE CLEAN ================= */
 
 res.json({
+
 symbol,
 price,
 rsi,
@@ -193,6 +205,7 @@ score,
 probability,
 signal,
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH"
+
 });
 
 });
@@ -201,6 +214,6 @@ trend: emaFast > emaSlow ? "BULLISH" : "BEARISH"
 
 app.listen(PORT,()=>{
 
-console.log("🚀 RUNNING ON",PORT);
+console.log("🔥 REAL ENGINE RUNNING ON PORT",PORT);
 
 });
