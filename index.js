@@ -1,197 +1,524 @@
 require("dotenv").config();
+
 const express = require("express");
 const axios = require("axios");
+const path = require("path");
 
 const app = express();
 
+/* =========================================
+   PORT
+========================================= */
+
 const PORT = process.env.PORT || 8080;
 
-console.log("🔥 SNIPER AI V37 STARTING...");
-console.log("📡 PORT:", PORT);
+/* =========================================
+   MIDDLEWARE
+========================================= */
 
 app.use(express.json());
 app.use(express.static("public"));
 
-/* ================= HEALTH ================= */
-app.get("/health", (req,res)=>{
+/* =========================================
+   START LOG
+========================================= */
+
+console.log("🔥 SNIPER AI PRO V10 STARTED");
+
+/* =========================================
+   HEALTH
+========================================= */
+
+app.get("/health",(req,res)=>{
+
 res.json({
 status:"OK",
-server:"SNIPER AI V37",
-time: new Date().toISOString()
-});
+server:"SNIPER AI PRO V10",
+time:new Date()
 });
 
-/* ================= CLEAN SYMBOL ================= */
+});
+
+/* =========================================
+   HOME
+========================================= */
+
+app.get("/",(req,res)=>{
+
+res.sendFile(
+path.join(__dirname,"public","index.html")
+);
+
+});
+
+/* =========================================
+   CLEAN SYMBOL
+========================================= */
+
 function cleanSymbol(symbol){
-if(!symbol) return "EURUSD";
-symbol = symbol.toUpperCase().replace("/","");
-return symbol;
-}
 
-/* ================= SAFE FALLBACK DATA ================= */
-function fallbackData(){
-let base = 1000;
-let data = [];
+if(!symbol) return "EUR/USD";
 
-for(let i=0;i<60;i++){
-base += (Math.random()-0.5)*10;
-data.push(base);
-}
-
-return data;
-}
-
-/* ================= RSI ================= */
-function RSI(data){
-let gain = 0;
-let loss = 0;
-
-for(let i=1;i<14;i++){
-let diff = data[i] - data[i-1];
-diff > 0 ? gain += diff : loss += Math.abs(diff);
-}
-
-let rs = gain / (loss || 1);
-return 100 - (100 / (1 + rs));
-}
-
-/* ================= EMA ================= */
-function EMA(data, period){
-let k = 2 / (period + 1);
-let ema = data[0];
-
-for(let i=1;i<data.length;i++){
-ema = data[i] * k + ema * (1 - k);
-}
-
-return ema;
-}
-
-/* ================= DATA FETCH (SAFE) ================= */
-async function getData(symbol, interval){
-
-try {
-
-if(!process.env.TWELVE_API_KEY){
-console.log("⚠️ NO API KEY → fallback mode");
-return fallbackData();
-}
+symbol = symbol.toUpperCase().trim();
 
 const map = {
-"30s":"1min",
-"1m":"1min",
-"5m":"5min",
-"15m":"5min"
+
+"EURUSD":"EUR/USD",
+"GBPUSD":"GBP/USD",
+"USDJPY":"USD/JPY",
+"USDCHF":"USD/CHF",
+"USDCAD":"USD/CAD",
+
+"AUDUSD":"AUD/USD",
+"NZDUSD":"NZD/USD",
+
+"EURJPY":"EUR/JPY",
+"GBPJPY":"GBP/JPY",
+
+"XAUUSD":"XAU/USD"
+
 };
 
-const url =
-`https://api.twelvedata.com/time_series?symbol=${cleanSymbol(symbol)}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
-
-const res = await axios.get(url,{timeout:5000});
-
-if(!res.data || res.data.status === "error"){
-return fallbackData();
-}
-
-if(!res.data.values || res.data.values.length < 20){
-return fallbackData();
-}
-
-return res.data.values
-.reverse()
-.map(c => Number(c.close))
-.filter(v => !isNaN(v));
-
-} catch(err){
-console.log("API ERROR → fallback used:", err.message);
-return fallbackData();
-}
+return map[symbol] || symbol;
 
 }
 
-/* ================= API ANALYZE ================= */
-app.get("/api/analyze/:symbol/:interval", async (req,res)=>{
+/* =========================================
+   GET MARKET DATA
+========================================= */
+
+async function getData(symbol,interval){
 
 try{
 
-const symbol = cleanSymbol(req.params.symbol);
-const interval = req.params.interval;
+if(!process.env.TWELVE_API_KEY){
 
-const data = await getData(symbol, interval);
+console.log("❌ API KEY MISSING");
 
-const price = data.at(-1);
+return null;
 
-const rsi = RSI(data);
-const emaFast = EMA(data.slice(-30), 9);
-const emaSlow = EMA(data.slice(-30), 21);
-
-/* TREND */
-let trend =
-emaFast > emaSlow ? "BULLISH" :
-emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
-
-/* SCORE */
-let score = 0;
-
-if(emaFast > emaSlow) score += 30;
-if(emaFast < emaSlow) score -= 30;
-
-if(rsi < 30) score += 25;
-if(rsi > 70) score -= 25;
-
-let momentum = price - data.at(-3);
-if(momentum > 0) score += 10;
-if(momentum < 0) score -= 10;
-
-/* SIGNAL */
-let signal = "WAIT";
-
-if(score >= 55) signal = "BUY";
-if(score <= -55) signal = "SELL";
-
-if(Math.abs(score) < 20){
-signal =
-trend === "BULLISH" ? "BUY" :
-trend === "BEARISH" ? "SELL" : "WAIT";
 }
 
-/* PROBABILITY */
-let probability = Math.min(95, Math.abs(score) + 40);
+const tfMap = {
 
-/* RESPONSE */
+"1m":"1min",
+"5m":"5min",
+"15m":"15min"
+
+};
+
+const tf =
+tfMap[interval] || "1min";
+
+const url =
+`https://api.twelvedata.com/time_series?symbol=${cleanSymbol(symbol)}&interval=${tf}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+
+const response =
+await axios.get(url);
+
+if(
+!response.data ||
+response.data.status === "error"
+){
+
+console.log("❌ API ERROR");
+
+return null;
+
+}
+
+if(
+!response.data.values ||
+response.data.values.length < 30
+){
+
+console.log("❌ NOT ENOUGH DATA");
+
+return null;
+
+}
+
+/* =========================================
+   FORMAT DATA
+========================================= */
+
+return response.data.values
+.reverse()
+.map(c=>({
+
+close:Number(c.close),
+high:Number(c.high),
+low:Number(c.low),
+open:Number(c.open)
+
+}));
+
+}catch(err){
+
+console.log("API ERROR:",err.message);
+
+return null;
+
+}
+
+}
+
+/* =========================================
+   RSI
+========================================= */
+
+function RSI(data,period=14){
+
+if(!data || data.length < period)
+return 50;
+
+let gains = 0;
+let losses = 0;
+
+for(let i=1;i<period;i++){
+
+const diff =
+data[i].close - data[i-1].close;
+
+if(diff >= 0){
+
+gains += diff;
+
+}else{
+
+losses += Math.abs(diff);
+
+}
+
+}
+
+const rs =
+gains / (losses || 1);
+
+return Number(
+(
+100 - (100 / (1 + rs))
+).toFixed(2)
+);
+
+}
+
+/* =========================================
+   EMA
+========================================= */
+
+function EMA(data,period){
+
+if(!data || data.length < period)
+return 0;
+
+const k = 2 / (period + 1);
+
+let ema = data[0].close;
+
+for(let i=1;i<data.length;i++){
+
+ema =
+data[i].close * k +
+ema * (1-k);
+
+}
+
+return Number(ema.toFixed(2));
+
+}
+
+/* =========================================
+   CANDLE PATTERNS
+========================================= */
+
+function detectPattern(data){
+
+if(!data || data.length < 3)
+return "NONE";
+
+const last =
+data[data.length - 1];
+
+const prev =
+data[data.length - 2];
+
+const body =
+Math.abs(last.close - last.open);
+
+const candle =
+last.high - last.low;
+
+/* 🔥 HAMMER */
+
+if(
+
+body < candle * 0.3 &&
+(last.open - last.low) > body * 2
+
+){
+
+return "HAMMER";
+
+}
+
+/* 🔥 SHOOTING STAR */
+
+if(
+
+body < candle * 0.3 &&
+(last.high - last.close) > body * 2
+
+){
+
+return "SHOOTING_STAR";
+
+}
+
+/* 🔥 ENGULFING BUY */
+
+if(
+
+last.close > last.open &&
+prev.close < prev.open &&
+last.close > prev.open
+
+){
+
+return "BULLISH_ENGULFING";
+
+}
+
+/* 🔥 ENGULFING SELL */
+
+if(
+
+last.close < last.open &&
+prev.close > prev.open &&
+last.open > prev.close
+
+){
+
+return "BEARISH_ENGULFING";
+
+}
+
+return "NONE";
+
+}
+
+/* =========================================
+   SMART API
+========================================= */
+
+app.get("/api/:symbol/:interval",async(req,res)=>{
+
+try{
+
+const symbol =
+req.params.symbol;
+
+const interval =
+req.params.interval;
+
+const data =
+await getData(symbol,interval);
+
+if(!data){
+
+return res.json({
+
+signal:"WAIT",
+score:0,
+probability:0,
+trend:"NO DATA"
+
+});
+
+}
+
+/* =========================================
+   INDICATORS
+========================================= */
+
+const price =
+data[data.length - 1].close;
+
+const rsi =
+RSI(data);
+
+const emaFast =
+EMA(data,9);
+
+const emaSlow =
+EMA(data,21);
+
+const momentum =
+price -
+data[data.length - 5].close;
+
+const pattern =
+detectPattern(data);
+
+/* =========================================
+   SCORE ENGINE
+========================================= */
+
+let score = 0;
+
+/* 🔥 EMA */
+
+if(emaFast > emaSlow){
+
+score += 35;
+
+}else{
+
+score -= 35;
+
+}
+
+/* 🔥 RSI */
+
+if(rsi < 30){
+
+score += 25;
+
+}
+
+if(rsi > 70){
+
+score -= 25;
+
+}
+
+/* 🔥 MOMENTUM */
+
+if(momentum > 0){
+
+score += 20;
+
+}
+
+if(momentum < 0){
+
+score -= 20;
+
+}
+
+/* 🔥 PATTERNS */
+
+if(
+pattern === "HAMMER" ||
+pattern === "BULLISH_ENGULFING"
+){
+
+score += 20;
+
+}
+
+if(
+pattern === "SHOOTING_STAR" ||
+pattern === "BEARISH_ENGULFING"
+){
+
+score -= 20;
+
+}
+
+/* =========================================
+   SIGNAL
+========================================= */
+
+let signal = "WAIT";
+
+if(score >= 55){
+
+signal = "BUY";
+
+}
+
+if(score <= -55){
+
+signal = "SELL";
+
+}
+
+/* =========================================
+   PROBABILITY
+========================================= */
+
+let probability =
+Math.min(
+95,
+Math.max(
+50,
+Math.abs(score)
+)
+);
+
+/* =========================================
+   TREND
+========================================= */
+
+const trend =
+emaFast > emaSlow
+? "BULLISH"
+: "BEARISH";
+
+/* =========================================
+   RESPONSE
+========================================= */
+
 res.json({
+
 symbol,
 interval,
-price: Number(price.toFixed(2)),
-rsi: Number(rsi.toFixed(2)),
-trend,
-score: Number(score.toFixed(2)),
 signal,
-strength: Math.min(100, Math.abs(score)),
+
+price,
+
+rsi,
+
+emaFast,
+emaSlow,
+
+momentum,
+
+pattern,
+
+trend,
+
+score,
+
 probability
+
 });
 
 }catch(err){
 
-console.log("SERVER ERROR:", err.message);
+console.log("SERVER ERROR:",err.message);
 
 res.json({
-symbol:"ERROR",
-interval:"ERROR",
-price:0,
-rsi:50,
-trend:"ERROR",
-score:0,
+
 signal:"WAIT",
-strength:0,
+score:0,
 probability:0
+
 });
 
 }
 
 });
 
-/* ================= START ================= */
-app.listen(PORT, ()=>{
-console.log("🚀 SNIPER AI V37 RUNNING ON", PORT);
+/* =========================================
+   START SERVER
+========================================= */
+
+app.listen(PORT,()=>{
+
+console.log(
+`🚀 SERVER RUNNING ON ${PORT}`
+);
+
 });
