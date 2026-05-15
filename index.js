@@ -10,7 +10,7 @@ app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V30 - LIVE ENGINE");
+res.send("🚀 SNIPER PRO V30 - SMART ENGINE LIVE");
 });
 
 /* ================= CLEAN SYMBOL ================= */
@@ -19,12 +19,12 @@ if(!symbol) return "EUR/USD";
 
 symbol = symbol.toUpperCase().trim();
 
-return symbol.includes("/")
-? symbol
-: symbol.slice(0,3) + "/" + symbol.slice(3);
+if(symbol.includes("/")) return symbol;
+
+return symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= FETCH DATA ================= */
+/* ================= DATA FETCH ================= */
 async function getData(symbol, interval){
 
 try {
@@ -38,10 +38,12 @@ const map = {
 "15m":"5min"
 };
 
-const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+const url =
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
+/* SAFE CHECK */
 if(!res.data || res.data.status === "error") return null;
 if(!res.data.values || res.data.values.length < 20) return null;
 
@@ -60,8 +62,7 @@ return null;
 function RSI(data){
 if(!data || data.length < 14) return 50;
 
-let gain = 0;
-let loss = 0;
+let gain=0, loss=0;
 
 for(let i=1;i<14;i++){
 const diff = data[i] - data[i-1];
@@ -89,17 +90,17 @@ ema = data[i] * k + ema * (1 - k);
 return ema;
 }
 
-/* ================= API MAIN SIGNAL ================= */
+/* ================= API ================= */
 app.get("/api/:symbol/:interval", async (req,res)=>{
 
 try {
 
-const symbol = cleanSymbol(req.params.symbol);
-const interval = req.params.interval;
+let symbol = cleanSymbol(req.params.symbol);
+let interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK ================= */
+/* ================= FALLBACK SAFE ================= */
 if(!data || data.length < 20){
 return res.json({
 symbol,
@@ -119,7 +120,7 @@ liquidity:{buySweep:false,sellSweep:false}
 }
 
 /* ================= PRICE ================= */
-const price = data.at(-1);
+const price = data.at(-1) || 0;
 
 /* ================= INDICATORS ================= */
 const rsi = RSI(data);
@@ -130,7 +131,7 @@ const trend =
 emaFast > emaSlow ? "BULLISH" :
 emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
 
-/* ================= STRUCTURE BOS / CHoCH ================= */
+/* ================= STRUCTURE ================= */
 const recentHigh = Math.max(...data.slice(-10));
 const recentLow = Math.min(...data.slice(-10));
 const prevHigh = Math.max(...data.slice(-20, -10));
@@ -209,7 +210,7 @@ resistance,
 liquidity
 });
 
-} catch(err){
+} catch (err) {
 
 console.log("SERVER ERROR:", err.message);
 
@@ -230,48 +231,7 @@ liquidity:{buySweep:false,sellSweep:false}
 
 });
 
-/* ================= LIVE CANDLES API ================= */
-app.get("/api/candles/:symbol/:interval", async (req,res)=>{
-
-try {
-
-const symbol = cleanSymbol(req.params.symbol);
-const interval = req.params.interval;
-
-const map = {
-"1m":"1min",
-"5m":"5min",
-"15m":"15min"
-};
-
-const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=50&apikey=${process.env.TWELVE_API_KEY}`;
-
-const response = await axios.get(url);
-
-if(!response.data || !response.data.values){
-return res.json([]);
-}
-
-const candles = response.data.values
-.reverse()
-.map(c => ({
-time: c.datetime,
-open: Number(c.open),
-high: Number(c.high),
-low: Number(c.low),
-close: Number(c.close)
-}));
-
-res.json(candles);
-
-} catch(err){
-console.log("CANDLE ERROR:", err.message);
-res.json([]);
-}
-
-});
-
 /* ================= START ================= */
 app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V30 LIVE RUNNING ON PORT", PORT);
+console.log("🚀 SNIPER PRO V30 RUNNING ON PORT", PORT);
 });
