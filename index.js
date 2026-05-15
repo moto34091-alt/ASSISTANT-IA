@@ -1,59 +1,17 @@
 require("dotenv").config();
-
 const express = require("express");
 const axios = require("axios");
-const path = require("path");
 
 const app = express();
 
-/* =========================================
-   PORT
-========================================= */
-
 const PORT = process.env.PORT || 8080;
-
-/* =========================================
-   MIDDLEWARE
-========================================= */
 
 app.use(express.json());
 app.use(express.static("public"));
 
-/* =========================================
-   START LOG
-========================================= */
+console.log("🔥 SNIPER AI STABLE ENGINE STARTED");
 
-console.log("🔥 SNIPER AI PRO V10 STARTED");
-
-/* =========================================
-   HEALTH
-========================================= */
-
-app.get("/health",(req,res)=>{
-
-res.json({
-status:"OK",
-server:"SNIPER AI PRO V10",
-time:new Date()
-});
-
-});
-
-/* =========================================
-   HOME
-========================================= */
-
-app.get("/",(req,res)=>{
-
-res.sendFile(
-path.join(__dirname,"public","index.html")
-);
-
-});
-
-/* =========================================
-   CLEAN SYMBOL
-========================================= */
+/* ================= CLEAN SYMBOL ================= */
 
 function cleanSymbol(symbol){
 
@@ -62,463 +20,187 @@ if(!symbol) return "EUR/USD";
 symbol = symbol.toUpperCase().trim();
 
 const map = {
-
-"EURUSD":"EUR/USD",
-"GBPUSD":"GBP/USD",
-"USDJPY":"USD/JPY",
-"USDCHF":"USD/CHF",
-"USDCAD":"USD/CAD",
-
-"AUDUSD":"AUD/USD",
-"NZDUSD":"NZD/USD",
-
-"EURJPY":"EUR/JPY",
-"GBPJPY":"GBP/JPY",
-
-"XAUUSD":"XAU/USD"
-
+EURUSD:"EUR/USD",
+GBPUSD:"GBP/USD",
+USDJPY:"USD/JPY",
+USDCHF:"USD/CHF",
+USDCAD:"USD/CAD",
+AUDUSD:"AUD/USD",
+NZDUSD:"NZD/USD",
+XAUUSD:"XAU/USD"
 };
 
 return map[symbol] || symbol;
 
 }
 
-/* =========================================
-   GET MARKET DATA
-========================================= */
+/* ================= FETCH DATA ================= */
 
-async function getData(symbol,interval){
+async function getData(symbol){
 
 try{
 
 if(!process.env.TWELVE_API_KEY){
-
-console.log("❌ API KEY MISSING");
-
 return null;
-
 }
-
-const tfMap = {
-
-"1m":"1min",
-"5m":"5min",
-"15m":"15min"
-
-};
-
-const tf =
-tfMap[interval] || "1min";
 
 const url =
-`https://api.twelvedata.com/time_series?symbol=${cleanSymbol(symbol)}&interval=${tf}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=80&apikey=${process.env.TWELVE_API_KEY}`;
 
-const response =
-await axios.get(url);
-
-if(
-!response.data ||
-response.data.status === "error"
-){
-
-console.log("❌ API ERROR");
-
-return null;
-
-}
+const res = await axios.get(url);
 
 if(
-!response.data.values ||
-response.data.values.length < 30
+!res.data ||
+!res.data.values ||
+res.data.values.length < 20
 ){
-
-console.log("❌ NOT ENOUGH DATA");
-
 return null;
-
 }
 
-/* =========================================
-   FORMAT DATA
-========================================= */
-
-return response.data.values
+return res.data.values
 .reverse()
-.map(c=>({
-
-close:Number(c.close),
-high:Number(c.high),
-low:Number(c.low),
-open:Number(c.open)
-
-}));
+.map(c => Number(c.close))
+.filter(v => !isNaN(v));
 
 }catch(err){
-
-console.log("API ERROR:",err.message);
-
 return null;
-
 }
 
 }
 
-/* =========================================
-   RSI
-========================================= */
+/* ================= RSI ================= */
 
-function RSI(data,period=14){
+function RSI(data){
 
-if(!data || data.length < period)
+if(!data || data.length < 14){
 return 50;
+}
 
-let gains = 0;
-let losses = 0;
+let gain = 0;
+let loss = 0;
 
-for(let i=1;i<period;i++){
+for(let i=1;i<14;i++){
 
-const diff =
-data[i].close - data[i-1].close;
+const diff = data[i] - data[i-1];
 
-if(diff >= 0){
-
-gains += diff;
-
-}else{
-
-losses += Math.abs(diff);
+diff > 0 ? gain += diff : loss += Math.abs(diff);
 
 }
 
-}
+const rs = gain / (loss || 1);
 
-const rs =
-gains / (losses || 1);
-
-return Number(
-(
-100 - (100 / (1 + rs))
-).toFixed(2)
-);
+return 100 - (100 / (1 + rs));
 
 }
 
-/* =========================================
-   EMA
-========================================= */
+/* ================= EMA ================= */
 
 function EMA(data,period){
 
-if(!data || data.length < period)
-return 0;
+if(!data || data.length < period){
+return data?.at(-1) || 0;
+}
 
 const k = 2 / (period + 1);
 
-let ema = data[0].close;
+let ema = data[0];
 
 for(let i=1;i<data.length;i++){
+ema = data[i] * k + ema * (1 - k);
+}
 
-ema =
-data[i].close * k +
-ema * (1-k);
+return ema;
 
 }
 
-return Number(ema.toFixed(2));
+/* ================= API ================= */
 
-}
+app.get("/api/:symbol", async (req,res)=>{
 
-/* =========================================
-   CANDLE PATTERNS
-========================================= */
+const symbol = cleanSymbol(req.params.symbol);
 
-function detectPattern(data){
+const data = await getData(symbol);
 
-if(!data || data.length < 3)
-return "NONE";
-
-const last =
-data[data.length - 1];
-
-const prev =
-data[data.length - 2];
-
-const body =
-Math.abs(last.close - last.open);
-
-const candle =
-last.high - last.low;
-
-/* 🔥 HAMMER */
-
-if(
-
-body < candle * 0.3 &&
-(last.open - last.low) > body * 2
-
-){
-
-return "HAMMER";
-
-}
-
-/* 🔥 SHOOTING STAR */
-
-if(
-
-body < candle * 0.3 &&
-(last.high - last.close) > body * 2
-
-){
-
-return "SHOOTING_STAR";
-
-}
-
-/* 🔥 ENGULFING BUY */
-
-if(
-
-last.close > last.open &&
-prev.close < prev.open &&
-last.close > prev.open
-
-){
-
-return "BULLISH_ENGULFING";
-
-}
-
-/* 🔥 ENGULFING SELL */
-
-if(
-
-last.close < last.open &&
-prev.close > prev.open &&
-last.open > prev.close
-
-){
-
-return "BEARISH_ENGULFING";
-
-}
-
-return "NONE";
-
-}
-
-/* =========================================
-   SMART API
-========================================= */
-
-app.get("/api/:symbol/:interval",async(req,res)=>{
-
-try{
-
-const symbol =
-req.params.symbol;
-
-const interval =
-req.params.interval;
-
-const data =
-await getData(symbol,interval);
+/* ================= NO DATA SAFE MODE ================= */
 
 if(!data){
 
 return res.json({
-
+symbol,
 signal:"WAIT",
 score:0,
-probability:0,
+probability:50,
 trend:"NO DATA"
-
 });
 
 }
 
-/* =========================================
-   INDICATORS
-========================================= */
+const price = data.at(-1);
 
-const price =
-data[data.length - 1].close;
+const rsi = RSI(data);
 
-const rsi =
-RSI(data);
+const emaFast = EMA(data.slice(-30),9);
 
-const emaFast =
-EMA(data,9);
-
-const emaSlow =
-EMA(data,21);
-
-const momentum =
-price -
-data[data.length - 5].close;
-
-const pattern =
-detectPattern(data);
-
-/* =========================================
-   SCORE ENGINE
-========================================= */
+const emaSlow = EMA(data.slice(-30),21);
 
 let score = 0;
 
-/* 🔥 EMA */
+/* EMA */
 
-if(emaFast > emaSlow){
+if(emaFast > emaSlow) score += 30;
+else score -= 30;
 
-score += 35;
+/* RSI */
 
-}else{
+if(rsi < 30) score += 20;
+if(rsi > 70) score -= 20;
 
-score -= 35;
+/* MOMENTUM */
 
+const momentum =
+price - (data.at(-3) || price);
+
+if(momentum > 0) score += 15;
+if(momentum < 0) score -= 15;
+
+/* ================= NORMALIZE SCORE ================= */
+
+if(Math.abs(score) < 10){
+score = 10; // 🔥 avoid ZERO weak signals
 }
 
-/* 🔥 RSI */
+/* ================= PROBABILITY ================= */
 
-if(rsi < 30){
+let probability =
+60 + Math.min(35, Math.abs(score));
 
-score += 25;
-
-}
-
-if(rsi > 70){
-
-score -= 25;
-
-}
-
-/* 🔥 MOMENTUM */
-
-if(momentum > 0){
-
-score += 20;
-
-}
-
-if(momentum < 0){
-
-score -= 20;
-
-}
-
-/* 🔥 PATTERNS */
-
-if(
-pattern === "HAMMER" ||
-pattern === "BULLISH_ENGULFING"
-){
-
-score += 20;
-
-}
-
-if(
-pattern === "SHOOTING_STAR" ||
-pattern === "BEARISH_ENGULFING"
-){
-
-score -= 20;
-
-}
-
-/* =========================================
-   SIGNAL
-========================================= */
+/* ================= SIGNAL ================= */
 
 let signal = "WAIT";
 
-if(score >= 55){
+if(score >= 45) signal = "BUY";
+if(score <= -45) signal = "SELL";
 
-signal = "BUY";
-
-}
-
-if(score <= -55){
-
-signal = "SELL";
-
-}
-
-/* =========================================
-   PROBABILITY
-========================================= */
-
-let probability =
-Math.min(
-95,
-Math.max(
-50,
-Math.abs(score)
-)
-);
-
-/* =========================================
-   TREND
-========================================= */
-
-const trend =
-emaFast > emaSlow
-? "BULLISH"
-: "BEARISH";
-
-/* =========================================
-   RESPONSE
-========================================= */
+/* ================= FINAL SAFE RESPONSE ================= */
 
 res.json({
-
 symbol,
-interval,
-signal,
-
 price,
-
 rsi,
-
 emaFast,
 emaSlow,
-
-momentum,
-
-pattern,
-
-trend,
-
 score,
-
-probability
+probability,
+signal,
+trend: emaFast > emaSlow ? "BULLISH" : "BEARISH"
+});
 
 });
 
-}catch(err){
-
-console.log("SERVER ERROR:",err.message);
-
-res.json({
-
-signal:"WAIT",
-score:0,
-probability:0
-
-});
-
-}
-
-});
-
-/* =========================================
-   START SERVER
-========================================= */
+/* ================= START ================= */
 
 app.listen(PORT,()=>{
 
-console.log(
-`🚀 SERVER RUNNING ON ${PORT}`
-);
+console.log("🚀 RUNNING ON",PORT);
 
 });
