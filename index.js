@@ -4,22 +4,27 @@ const axios = require("axios");
 
 const app = express();
 
-/* ================= PORT ================= */
-const PORT = process.env.PORT || 3000;
+/* ================= PORT (FIX RAILWAY) ================= */
+const PORT = process.env.PORT || 8080;
+
+/* ================= START LOG ================= */
+console.log("🔥 INDEX.JS STARTING...");
+console.log("📡 PORT:", PORT);
 
 /* ================= MIDDLEWARE ================= */
 app.use(express.json());
 app.use(express.static("public"));
 
-/* ================= DEBUG (IMPORTANT) ================= */
-console.log("🔥 INDEX.JS OFFICIAL STARTED");
-
-/* ================= HEALTH CHECK (RAILWAY FIX) ================= */
+/* ================= HEALTH CHECK ================= */
 app.get("/health", (req,res)=>{
-res.json({ status:"OK", server:"SNIPER V37 ACTIVE" });
+res.json({
+status:"OK",
+server:"SNIPER AI V37",
+time: new Date()
+});
 });
 
-/* ================= HOME (NO MORE WHITE SCREEN) ================= */
+/* ================= HOME (ANTI PAGE BLANCHE) ================= */
 app.get("/", (req, res) => {
 res.send(`
 <!DOCTYPE html>
@@ -81,10 +86,10 @@ to{box-shadow:0 0 25px #00ff9d;}
 
 <div class="card">
 <h1>🚀 SNIPER AI V37</h1>
-<p>SMART ENGINE LIVE ACTIVE</p>
+<p>SMART ENGINE ACTIVE</p>
 
-<button onclick="window.location.href='/api/BTCUSD/1m'">
-📊 TEST SIGNAL
+<button onclick="window.location.href='/health'">
+CHECK SERVER
 </button>
 
 </div>
@@ -94,7 +99,7 @@ to{box-shadow:0 0 25px #00ff9d;}
 `);
 });
 
-/* ================= CLEAN SYMBOL ================= */
+/* ================= SYMBOL CLEAN ================= */
 function cleanSymbol(symbol){
 if(!symbol) return "EUR/USD";
 
@@ -105,10 +110,15 @@ return symbol.includes("/")
 : symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= DATA FETCH ================= */
+/* ================= DATA FETCH (SAFE) ================= */
 async function getData(symbol, interval){
 
 try {
+
+if(!process.env.TWELVE_API_KEY){
+console.log("❌ MISSING API KEY");
+return null;
+}
 
 const map = {
 "30s":"1min",
@@ -139,6 +149,7 @@ return null;
 
 /* ================= RSI ================= */
 function RSI(data){
+
 if(!data || data.length < 14) return 50;
 
 let gain = 0;
@@ -150,14 +161,19 @@ diff > 0 ? gain += diff : loss += Math.abs(diff);
 }
 
 const rs = gain / (loss || 1);
+
 return Number((100 - (100 / (1 + rs))).toFixed(2));
+
 }
 
 /* ================= EMA ================= */
 function EMA(data, period){
-if(!data || data.length < period) return data.at(-1) || 0;
+
+if(!data || data.length < period)
+return data.at(-1) || 0;
 
 const k = 2 / (period + 1);
+
 let ema = data[0];
 
 for(let i=1;i<data.length;i++){
@@ -165,6 +181,7 @@ ema = data[i] * k + ema * (1 - k);
 }
 
 return ema;
+
 }
 
 /* ================= API ================= */
@@ -177,12 +194,9 @@ const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK ================= */
 if(!data || data.length < 20){
 return res.json({
 status:"NO_DATA",
-symbol,
-interval,
 signal:"WAIT",
 price:0,
 rsi:50,
