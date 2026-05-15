@@ -11,10 +11,15 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static("public"));
 
-/* ================= LOG DEBUG ================= */
-console.log("🔥 INDEX.JS LOADED SUCCESSFULLY");
+/* ================= DEBUG (IMPORTANT) ================= */
+console.log("🔥 INDEX.JS OFFICIAL STARTED");
 
-/* ================= HOME (FIX SCREEN BLANC) ================= */
+/* ================= HEALTH CHECK (RAILWAY FIX) ================= */
+app.get("/health", (req,res)=>{
+res.json({ status:"OK", server:"SNIPER V37 ACTIVE" });
+});
+
+/* ================= HOME (NO MORE WHITE SCREEN) ================= */
 app.get("/", (req, res) => {
 res.send(`
 <!DOCTYPE html>
@@ -34,7 +39,7 @@ align-items:center;
 height:100vh;
 }
 
-.box{
+.card{
 background:#0c1224;
 padding:30px;
 border-radius:20px;
@@ -44,13 +49,8 @@ box-shadow:0 0 25px #00ff9d33;
 animation: glow 2s infinite alternate;
 }
 
-h1{
-color:#00ff9d;
-}
-
-p{
-color:#aaa;
-}
+h1{color:#00ff9d;}
+p{color:#aaa;}
 
 button{
 margin-top:20px;
@@ -79,7 +79,7 @@ to{box-shadow:0 0 25px #00ff9d;}
 
 <body>
 
-<div class="box">
+<div class="card">
 <h1>🚀 SNIPER AI V37</h1>
 <p>SMART ENGINE LIVE ACTIVE</p>
 
@@ -96,23 +96,19 @@ to{box-shadow:0 0 25px #00ff9d;}
 
 /* ================= CLEAN SYMBOL ================= */
 function cleanSymbol(symbol){
-
 if(!symbol) return "EUR/USD";
 
 symbol = symbol.toUpperCase().trim();
 
-if(symbol.includes("/")) return symbol;
-
-return symbol.slice(0,3) + "/" + symbol.slice(3);
-
+return symbol.includes("/")
+? symbol
+: symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
 /* ================= DATA FETCH ================= */
 async function getData(symbol, interval){
 
 try {
-
-symbol = cleanSymbol(symbol);
 
 const map = {
 "30s":"1min",
@@ -121,13 +117,11 @@ const map = {
 "15m":"5min"
 };
 
-/* FIX API URL */
 const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${cleanSymbol(symbol)}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-/* SAFE CHECK */
 if(!res.data || res.data.status === "error") return null;
 if(!res.data.values || res.data.values.length < 20) return null;
 
@@ -145,7 +139,6 @@ return null;
 
 /* ================= RSI ================= */
 function RSI(data){
-
 if(!data || data.length < 14) return 50;
 
 let gain = 0;
@@ -153,32 +146,25 @@ let loss = 0;
 
 for(let i=1;i<14;i++){
 const diff = data[i] - data[i-1];
-if(diff > 0) gain += diff;
-else loss += Math.abs(diff);
+diff > 0 ? gain += diff : loss += Math.abs(diff);
 }
 
 const rs = gain / (loss || 1);
-
 return Number((100 - (100 / (1 + rs))).toFixed(2));
-
 }
 
 /* ================= EMA ================= */
 function EMA(data, period){
-
-if(!data || data.length < period)
-return data.at(-1) || 0;
+if(!data || data.length < period) return data.at(-1) || 0;
 
 const k = 2 / (period + 1);
-
-let ema = data[0] || 0;
+let ema = data[0];
 
 for(let i=1;i<data.length;i++){
 ema = data[i] * k + ema * (1 - k);
 }
 
 return ema;
-
 }
 
 /* ================= API ================= */
@@ -191,10 +177,10 @@ const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* FALLBACK SAFE */
+/* ================= FALLBACK ================= */
 if(!data || data.length < 20){
-
 return res.json({
+status:"NO_DATA",
 symbol,
 interval,
 signal:"WAIT",
@@ -204,10 +190,9 @@ trend:"NO DATA",
 score:0,
 strength:0
 });
-
 }
 
-const price = data.at(-1) || 0;
+const price = data.at(-1);
 
 const rsi = RSI(data);
 const emaFast = EMA(data.slice(-30), 9);
