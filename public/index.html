@@ -26,7 +26,23 @@ max-width:420px;
 background:#0c1224;
 border-radius:20px;
 padding:15px;
-box-shadow:0 0 20px #00ff9d22;
+}
+
+/* TOP OPTIONS */
+.top{
+display:flex;
+justify-content:space-between;
+gap:10px;
+margin-bottom:10px;
+}
+
+select{
+flex:1;
+padding:10px;
+border-radius:10px;
+border:none;
+background:#111a33;
+color:white;
 }
 
 /* TITLE */
@@ -60,7 +76,7 @@ font-weight:bold;
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
 
-/* SCORE */
+/* INFO */
 .info{
 text-align:center;
 font-size:18px;
@@ -95,7 +111,27 @@ transition:0.5s;
 
 <h2>📊 SNIPER AI PRO</h2>
 
-<button onclick="analyze()">🔄 NOUVELLE ANALYSE</button>
+<!-- 🔥 OPTIONS MARKET + TIME -->
+<div class="top">
+
+<select id="market">
+<option value="BTCUSD">BTCUSD</option>
+<option value="ETHUSD">ETHUSD</option>
+<option value="EURUSD">EURUSD</option>
+<option value="GBPUSD">GBPUSD</option>
+<option value="XAUUSD">GOLD</option>
+<option value="NAS100">NAS100</option>
+</select>
+
+<select id="time">
+<option value="1m">1 MIN</option>
+<option value="5m">5 MIN</option>
+<option value="15m">15 MIN</option>
+</select>
+
+</div>
+
+<button onclick="analyze()">🔄 ANALYSER</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
@@ -110,15 +146,22 @@ transition:0.5s;
 
 <script>
 
-let symbol = "BTCUSD";
+let market = "BTCUSD";
 let tf = "1m";
 
-/* ================= ANALYZE ================= */
+/* UPDATE OPTIONS */
+document.getElementById("market").onchange = (e)=>{
+market = e.target.value;
+}
+
+document.getElementById("time").onchange = (e)=>{
+tf = e.target.value;
+}
+
+/* ANALYZE */
 async function analyze(){
 
-try{
-
-const res = await fetch(`/api/analyze/${symbol}/${tf}`);
+const res = await fetch(`/api/analyze/${market}/${tf}`);
 const data = await res.json();
 
 /* SIGNAL */
@@ -126,17 +169,14 @@ const signal = document.getElementById("signal");
 const score = document.getElementById("score");
 const prob = document.getElementById("prob");
 
-/* BUY / SELL */
 if(data.signal === "BUY"){
 signal.innerText = "🟢 BUY";
 signal.className = "signal buy";
 }
-
 else if(data.signal === "SELL"){
 signal.innerText = "🔴 SELL";
 signal.className = "signal sell";
 }
-
 else{
 signal.innerText = "🟡 WAIT";
 signal.className = "signal wait";
@@ -145,16 +185,12 @@ signal.className = "signal wait";
 /* SCORE */
 score.innerText = "SCORE: " + (data.score || 0);
 
-/* PROBABILITY */
+/* PROB */
 prob.innerText = "PROB: " + (data.probability || 0) + "%";
 
 /* BAR */
 document.getElementById("fill").style.width =
 (data.probability || 0) + "%";
-
-}catch(err){
-console.log(err);
-}
 
 }
 
