@@ -8,72 +8,43 @@ const PORT = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.static("public"));
 
-console.log("🚀 V15 ENGINE STARTED");
+console.log("🚀 V15 UPGRADED ENGINE START");
 
 /* ================= CLEAN SYMBOL ================= */
 
 function cleanSymbol(symbol){
-
-if(!symbol) return "EUR/USD";
-
-const map = {
-EURUSD:"EUR/USD",
-GBPUSD:"GBP/USD",
-USDJPY:"USD/JPY",
-USDCHF:"USD/CHF",
-USDCAD:"USD/CAD",
-AUDUSD:"AUD/USD",
-NZDUSD:"NZD/USD",
-EURGBP:"EUR/GBP",
-EURJPY:"EUR/JPY",
-GBPJPY:"GBP/JPY",
-XAUUSD:"XAU/USD"
-};
-
-return map[symbol.toUpperCase()] || "EUR/USD";
-
+return symbol || "EUR/USD";
 }
 
-/* ================= SAFE FETCH ================= */
+/* ================= FETCH DATA ================= */
 
-async function getData(symbol){
+async function getData(symbol, interval){
 
 try{
 
 if(!process.env.TWELVE_API_KEY){
-console.log("NO API KEY");
 return null;
 }
 
 const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=50&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=80&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-/* SAFE CHECK */
-if(!res.data || !res.data.values){
-return null;
-}
+if(!res.data?.values) return null;
 
-const values = res.data.values
+return res.data.values
 .reverse()
-.map(x => Number(x.close))
-.filter(x => !isNaN(x));
+.map(c => Number(c.close))
+.filter(v => !isNaN(v));
 
-if(values.length < 20){
-return null;
-}
-
-return values;
-
-}catch(err){
-console.log("FETCH ERROR:", err.message);
+}catch(e){
 return null;
 }
 
 }
 
-/* ================= INDICATORS ================= */
+/* ================= RSI ================= */
 
 function RSI(data){
 
@@ -93,7 +64,9 @@ return 100 - (100 / (1 + rs));
 
 }
 
-function EMA(data,period){
+/* ================= EMA ================= */
+
+function EMA(data, period){
 
 if(!data || data.length < period){
 return data?.at(-1) || 0;
@@ -111,9 +84,9 @@ return ema;
 
 }
 
-/* ================= SCORE ENGINE ================= */
+/* ================= ENGINE ================= */
 
-function calculateScore(price,data,rsi,emaFast,emaSlow){
+function engine(price,data,rsi,emaFast,emaSlow){
 
 let score = 0;
 
@@ -122,44 +95,43 @@ if(emaFast > emaSlow) score += 35;
 if(emaFast < emaSlow) score -= 35;
 
 /* RSI */
-if(rsi < 35) score += 25;
-if(rsi > 65) score -= 25;
+if(rsi < 30) score += 30;
+if(rsi > 70) score -= 30;
 
 /* MOMENTUM */
-const momentum = price - (data.at(-2) || price);
+const momentum = price - (data.at(-3) || price);
 
 if(momentum > 0) score += 20;
 if(momentum < 0) score -= 20;
 
-/* MIN FORCE */
-if(Math.abs(score) < 8){
-score = score > 0 ? 10 : -10;
+/* STABILIZE */
+if(Math.abs(score) < 10){
+score = score > 0 ? 12 : -12;
 }
 
 return score;
 
 }
 
-/* ================= API (FULL SAFE) ================= */
+/* ================= API ================= */
 
-app.get("/api/:symbol", async (req,res)=>{
-
-try{
+app.get("/api/:symbol/:interval", async (req,res)=>{
 
 const symbol = cleanSymbol(req.params.symbol);
+const interval = req.params.interval;
 
-const data = await getData(symbol);
+const data = await getData(symbol, interval);
 
-/* FALLBACK SAFE MODE */
 if(!data){
 
 return res.json({
 symbol,
 signal:"WAIT",
-score:10,
-probability:55,
-trend:"NO DATA",
-price:0
+score:0,
+probability:50,
+rsi:50,
+momentum:0,
+trend:"NO DATA"
 });
 
 }
@@ -172,10 +144,13 @@ const emaFast = EMA(data.slice(-30),9);
 
 const emaSlow = EMA(data.slice(-30),21);
 
-const score = calculateScore(price,data,rsi,emaFast,emaSlow);
+const score = engine(price,data,rsi,emaFast,emaSlow);
 
 /* PROBABILITY */
-const probability = Math.min(95, 50 + Math.abs(score));
+const probability = Math.min(95, 55 + Math.abs(score));
+
+/* MOMENTUM */
+const momentum = price - (data.at(-2) || price);
 
 /* SIGNAL */
 let signal = "WAIT";
@@ -183,37 +158,19 @@ let signal = "WAIT";
 if(score >= 40) signal = "BUY";
 if(score <= -40) signal = "SELL";
 
-/* RESPONSE SAFE */
 res.json({
 symbol,
 price,
-rsi,
-emaFast,
-emaSlow,
+rsi: Number(rsi.toFixed(2)),
+momentum: Number(momentum.toFixed(5)),
 score,
 probability,
 signal,
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH"
 });
 
-}catch(err){
-
-console.log("SERVER CRASH SAFE FIX:", err.message);
-
-res.json({
-signal:"WAIT",
-score:0,
-probability:50,
-trend:"ERROR",
-price:0
 });
 
-}
-
-});
-
-/* ================= START SERVER ================= */
-
-app.listen(PORT, () => {
-console.log("🔥 V15 RUNNING ON PORT", PORT);
+app.listen(PORT,()=>{
+console.log("🔥 V15 UPGRADED RUNNING");
 });
