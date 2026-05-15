@@ -1,16 +1,20 @@
 require("dotenv").config();
+
 const express = require("express");
 const axios = require("axios");
 
 const app = express();
+
+/* ================= PORT RAILWAY ================= */
 const PORT = process.env.PORT || 3000;
 
+/* ================= MIDDLEWARE ================= */
 app.use(express.json());
 app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V30 - SMART ENGINE LIVE");
+res.send("🚀 SNIPER PRO V30 - ONLINE");
 });
 
 /* ================= CLEAN SYMBOL ================= */
@@ -19,12 +23,12 @@ if(!symbol) return "EUR/USD";
 
 symbol = symbol.toUpperCase().trim();
 
-if(symbol.includes("/")) return symbol;
-
-return symbol.slice(0,3) + "/" + symbol.slice(3);
+return symbol.includes("/")
+? symbol
+: symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= DATA FETCH ================= */
+/* ================= FETCH SAFE DATA ================= */
 async function getData(symbol, interval){
 
 try {
@@ -58,11 +62,12 @@ return null;
 }
 }
 
-/* ================= RSI ================= */
+/* ================= RSI SAFE ================= */
 function RSI(data){
 if(!data || data.length < 14) return 50;
 
-let gain=0, loss=0;
+let gain = 0;
+let loss = 0;
 
 for(let i=1;i<14;i++){
 const diff = data[i] - data[i-1];
@@ -76,7 +81,7 @@ const rsi = 100 - (100 / (1 + rs));
 return Number(rsi.toFixed(2));
 }
 
-/* ================= EMA ================= */
+/* ================= EMA SAFE ================= */
 function EMA(data, period){
 if(!data || data.length < period) return data.at(-1) || 0;
 
@@ -95,8 +100,8 @@ app.get("/api/:symbol/:interval", async (req,res)=>{
 
 try {
 
-let symbol = cleanSymbol(req.params.symbol);
-let interval = req.params.interval;
+const symbol = req.params.symbol;
+const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
@@ -119,14 +124,14 @@ liquidity:{buySweep:false,sellSweep:false}
 });
 }
 
-/* ================= PRICE ================= */
+/* ================= VALUES ================= */
 const price = data.at(-1) || 0;
-
-/* ================= INDICATORS ================= */
 const rsi = RSI(data);
+
 const emaFast = EMA(data.slice(-30), 9);
 const emaSlow = EMA(data.slice(-30), 21);
 
+/* ================= TREND ================= */
 const trend =
 emaFast > emaSlow ? "BULLISH" :
 emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
@@ -210,7 +215,7 @@ resistance,
 liquidity
 });
 
-} catch (err) {
+} catch(err){
 
 console.log("SERVER ERROR:", err.message);
 
@@ -231,7 +236,7 @@ liquidity:{buySweep:false,sellSweep:false}
 
 });
 
-/* ================= START ================= */
+/* ================= START SERVER ================= */
 app.listen(PORT, () => {
 console.log("🚀 SNIPER PRO V30 RUNNING ON PORT", PORT);
 });
