@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,54 +18,64 @@ align-items:center;
 height:100vh;
 }
 
+/* APP */
 .app{
 width:95%;
 max-width:420px;
 background:#0c1224;
-border-radius:25px;
+border-radius:20px;
 padding:20px;
-border:1px solid #00ff9d22;
-box-shadow:0 0 25px #00ff9d22;
 }
 
-/* BUTTONS */
+/* SCREEN */
+.screen{
+display:none;
+animation:fade 0.3s ease;
+}
+
+.screen.active{
+display:block;
+}
+
+@keyframes fade{
+from{opacity:0;transform:scale(0.98);}
+to{opacity:1;transform:scale(1);}
+}
+
+/* BUTTON */
 button{
 width:100%;
 padding:14px;
 margin-top:10px;
 border:none;
-border-radius:14px;
+border-radius:12px;
 background:#00ff9d;
 font-weight:bold;
 cursor:pointer;
 }
 
-/* LIST */
-.list{
-margin-top:15px;
-max-height:250px;
-overflow:auto;
-}
-
+/* ITEM */
 .item{
 padding:12px;
-margin-bottom:8px;
+margin:8px 0;
 background:#111a33;
-border-radius:12px;
-display:flex;
-justify-content:space-between;
+border-radius:10px;
 cursor:pointer;
-border:1px solid transparent;
 }
 
 .item.active{
 border:1px solid #00ff9d;
 }
 
-/* TIMER BAR */
+/* SIGNAL */
+.signal{
+font-size:55px;
+text-align:center;
+margin-top:20px;
+}
+
 .bar{
 height:8px;
-width:100%;
 background:#1a1f35;
 border-radius:20px;
 overflow:hidden;
@@ -76,24 +86,13 @@ margin-top:15px;
 height:100%;
 width:100%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
-animation:none;
+animation:load 5s linear forwards;
 }
 
-/* RESULT */
-.signal{
-font-size:55px;
-text-align:center;
-margin-top:20px;
-animation:pulse 1s infinite;
+@keyframes load{
+from{width:100%;}
+to{width:0%;}
 }
-
-@keyframes pulse{
-0%{opacity:1;}
-50%{opacity:0.4;}
-100%{opacity:1;}
-}
-
-.hidden{display:none;}
 
 </style>
 
@@ -103,31 +102,38 @@ animation:pulse 1s infinite;
 
 <div class="app">
 
-<h3>🚀 SNIPER AI SCANNER</h3>
+<!-- SCREEN 1 -->
+<div class="screen active" id="screen1">
+<h3>🔄 ACTUALISER MARCHÉS</h3>
+<button onclick="loadMarkets()">SCAN</button>
+<div id="markets"></div>
+</div>
 
-<button onclick="scan()">🔄 ACTUALISER MARCHÉS</button>
+<!-- SCREEN 2 -->
+<div class="screen" id="screen2">
+<h3>📊 CHOIX MARCHÉ</h3>
+<div id="marketList"></div>
+</div>
 
-<div id="list" class="list hidden"></div>
-
-<div id="step2" class="hidden">
+<!-- SCREEN 3 -->
+<div class="screen" id="screen3">
 <h3>⏱ TIMEFRAME</h3>
-<button onclick="setTime('1m')">1M</button>
-<button onclick="setTime('5m')">5M</button>
-<button onclick="setTime('15m')">15M</button>
+<button onclick="setTime('1m')">1 MIN</button>
+<button onclick="setTime('5m')">5 MIN</button>
+<button onclick="setTime('15m')">15 MIN</button>
 </div>
 
-<div id="step3" class="hidden">
+<!-- SCREEN 4 -->
+<div class="screen" id="screen4">
 <h3>🧠 ANALYSE</h3>
-
-<div class="bar">
-<div class="fill" id="bar"></div>
-</div>
-
+<div class="bar"><div class="fill"></div></div>
 <button onclick="analyze()">START ANALYSE</button>
 </div>
 
-<div id="result" class="hidden">
+<!-- SCREEN 5 -->
+<div class="screen" id="screen5">
 <div class="signal" id="signal">---</div>
+<button onclick="restart()">🔁 NOUVELLE ANALYSE</button>
 </div>
 
 </div>
@@ -138,72 +144,67 @@ let markets = [];
 let selected = "";
 let time = "";
 
-/* ================= SCAN ================= */
-function scan(){
+/* ================= SCREEN ================= */
+function go(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+/* ================= LOAD MARKETS ================= */
+function loadMarkets(){
 
 markets = [
 "BTCUSD","ETHUSD","EURUSD","GBPUSD","USDJPY",
-"GOLD","NAS100","SPX500","GER40","AUDUSD"
+"GOLD","NAS100","SPX500","GER40","AUDUSD",
+"NZDUSD","USDCAD","XAUUSD","XAGUSD","BTCUSDT"
 ];
 
-let list = document.getElementById("list");
-list.classList.remove("hidden");
-list.innerHTML = "";
+let div = document.getElementById("marketList");
+div.innerHTML = "";
 
 markets.forEach(m=>{
+let el=document.createElement("div");
+el.className="item";
+el.innerText=m;
 
-let div = document.createElement("div");
-div.className="item";
-div.innerHTML = `<span>${m}</span><span>🔥</span>`;
-
-div.onclick = ()=>{
-document.querySelectorAll(".item").forEach(x=>x.classList.remove("active"));
-div.classList.add("active");
-selected = m;
-document.getElementById("step2").classList.remove("hidden");
+el.onclick=()=>{
+selected=m;
+go("screen3");
 };
 
-list.appendChild(div);
-
+div.appendChild(el);
 });
 
+go("screen2");
 }
 
 /* ================= TIME ================= */
 function setTime(t){
-time = t;
-document.getElementById("step3").classList.remove("hidden");
+time=t;
+go("screen4");
 }
 
 /* ================= ANALYSE ================= */
 async function analyze(){
 
-const bar = document.getElementById("bar");
-bar.style.animation = "none";
-void bar.offsetWidth;
-bar.style.animation = "shrink 5s linear forwards";
+let res = await fetch(`/api/${selected}/${time}`);
+let data = await res.json();
 
-const res = await fetch(`/api/${selected}/${time}`);
-const data = await res.json();
+document.getElementById("signal").innerText =
+data.signal + " " + (data.strength || 0) + "%";
 
 setTimeout(()=>{
+go("screen5");
+},3000);
 
-document.getElementById("result").classList.remove("hidden");
-document.getElementById("signal").innerText =
-data.signal + " (" + data.strength + "%)";
+}
 
-},5000);
-
+/* ================= RESTART ================= */
+function restart(){
+go("screen1");
 }
 
 </script>
-
-<style>
-@keyframes shrink{
-from{width:100%;}
-to{width:0%;}
-}
-</style>
 
 </body>
 </html>
