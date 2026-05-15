@@ -104,7 +104,7 @@ font-weight:bold;
 
 <div class="app">
 
-<h2>SNIPER AI PRO V3</h2>
+<h2>SNIPER AI PRO SMC</h2>
 
 <select id="market">
 <option>EUR/USD</option>
@@ -136,6 +136,7 @@ font-weight:bold;
 </select>
 
 <button onclick="analyze()">ANALYZE</button>
+<button onclick="autoMode()">AUTO MODE</button>
 
 <div id="icon" class="icon">🟡</div>
 <div id="signal" class="signal wait">WAIT</div>
@@ -143,7 +144,6 @@ font-weight:bold;
 <div class="entry" id="entry">ENTRY POINT: -</div>
 <div class="price" id="price">PRICE: --</div>
 
-<div class="info" id="score">SCORE: 0</div>
 <div class="info" id="prob">PROB: 0%</div>
 <div class="info" id="winrate">WINRATE: 0%</div>
 
@@ -155,133 +155,186 @@ font-weight:bold;
 
 <script>
 
+let interval=null;
 let timer=null;
+let lastSignalCache={};
 
-/* PRICE SIM */
-function getPrice(market){
-let base = 50 + Math.random()*50;
-if(market.includes("JPY")) base = 100 + Math.random()*50;
-if(market.includes("BTC")) base = 60000 + Math.random()*2000;
-if(market.includes("XAU")) base = 2300 + Math.random()*50;
+/* =========================
+   PRICE SIM
+========================= */
+function getPrice(m){
+let base=1+Math.random()*100;
+if(m.includes("JPY")) base=100+Math.random()*50;
+if(m.includes("BTC")) base=60000+Math.random()*2000;
+if(m.includes("XAU")) base=2300+Math.random()*50;
 return base.toFixed(2);
 }
 
-/* 🧠 IA SNIPER PRO V3 */
-function ai(){
-
-let price = 50 + Math.random()*50;
-
-/* TIMEFRAMES */
-let tf1 = Math.random()*2-1;
-let tf5 = Math.random()*2-1;
-
-/* RSI */
-let rsi = 30 + Math.random()*40;
-
-/* MOMENTUM */
-let momentum = Math.random()*2-1;
-
-/* SUPPORT / RESISTANCE */
-let support = 40;
-let resistance = 90;
-
-let supportZone = price < support + 5 ? 1 : 0;
-let resistanceZone = price > resistance - 5 ? 1 : 0;
-
-/* RSI DIVERGENCE */
-let rsiBuy = (momentum < 0 && rsi > 55) ? 1 : 0;
-let rsiSell = (momentum > 0 && rsi < 45) ? 1 : 0;
-
-/* MULTI TF */
-let tfBuy = (tf1 > 0 && tf5 > 0) ? 1 : 0;
-let tfSell = (tf1 < 0 && tf5 < 0) ? 1 : 0;
-
-/* FAKE BREAKOUT */
-let breakout = Math.abs(momentum) > 0.9;
-let volume = Math.random();
-
-let fakeBreakout = breakout && volume < 0.4;
-
-/* BLOCK FAKE */
-if(fakeBreakout){
-return {
-signal:"WAIT",
-score:0,
-prob:45,
-winrate:45,
-entry:"FAKE BREAKOUT BLOCKED ❌"
-};
+/* =========================
+   CANDLE
+========================= */
+function candle(){
+let open=Math.random()*100;
+let close=Math.random()*100;
+let high=Math.max(open,close)+Math.random()*10;
+let low=Math.min(open,close)-Math.random()*10;
+return {open,close,high,low};
 }
 
-/* SCORES */
-let buyScore =
-(rsiBuy*2) +
-(tfBuy*2) +
-(supportZone*1.5) +
-(momentum>0?1:0);
+/* =========================
+   SMC AI ENGINE
+========================= */
+function ai(){
 
-let sellScore =
-(rsiSell*2) +
-(tfSell*2) +
-(resistanceZone*1.5) +
-(momentum<0?1:0);
+let c1=candle();
+let c2=candle();
+let c3=candle();
+
+/* STRUCTURE */
+let HH = c3.high > c2.high && c2.high > c1.high ? 1 : 0;
+let HL = c3.low > c2.low ? 1 : 0;
+
+let LH = c3.high < c2.high ? 1 : 0;
+let LL = c3.low < c2.low && c2.low < c1.low ? 1 : 0;
+
+/* LIQUIDITY */
+let upperWick = c3.high - Math.max(c3.open,c3.close);
+let lowerWick = Math.min(c3.open,c3.close) - c3.low;
+
+let buyLiquidity = lowerWick > upperWick*2 ? 1 : 0;
+let sellLiquidity = upperWick > lowerWick*2 ? 1 : 0;
+
+/* ORDER BLOCK */
+let bullishOB = c2.close < c2.open && c3.close > c3.high ? 1 : 0;
+let bearishOB = c2.close > c2.open && c3.close < c3.low ? 1 : 0;
+
+/* SCORE */
+let buyScore = HH+HL+buyLiquidity+bullishOB;
+let sellScore = LH+LL+sellLiquidity+bearishOB;
 
 /* SIGNAL */
 let signal="WAIT";
 
-if(buyScore >= 4) signal="BUY";
-else if(sellScore >= 4) signal="SELL";
+if(buyScore>=3 && buyScore>sellScore) signal="BUY";
+else if(sellScore>=3 && sellScore>buyScore) signal="SELL";
 
 /* PROB */
-let prob = Math.min(92, 50 + Math.max(buyScore,sellScore)*10);
+let prob = 50 + Math.max(buyScore,sellScore)*10;
+if(prob>95) prob=95;
 
 /* WINRATE */
 let winrate = 50 + Math.max(buyScore,sellScore)*8;
-
-if(tfBuy || tfSell) winrate += 5;
-if(supportZone || resistanceZone) winrate += 3;
-
-if(winrate > 90) winrate = 90;
-if(winrate < 45) winrate = 45;
+if(winrate>90) winrate=90;
 
 /* ENTRY */
 let entry =
-signal=="BUY" ? "SNIPER BUY ENTRY 🔼" :
-signal=="SELL" ? "SNIPER SELL ENTRY 🔽" : "-";
+signal=="BUY" ? "LIQUIDITY BUY ZONE 🔼" :
+signal=="SELL" ? "LIQUIDITY SELL ZONE 🔽" : "-";
 
-return {price,signal,prob,winrate,entry};
+return {signal,prob,winrate,entry};
 }
 
-/* APPLY */
+/* =========================
+   ANALYZE (STABLE SIGNAL)
+========================= */
+function analyze(){
+
+let m=document.getElementById("market").value;
+let key=m;
+
+if(lastSignalCache[key]){
+apply(lastSignalCache[key],m);
+return;
+}
+
+document.getElementById("icon").innerText="🧠";
+document.getElementById("signal").innerText="ANALYZING...";
+document.getElementById("signal").className="signal wait";
+
+setTimeout(()=>{
+
+let d=ai();
+lastSignalCache[key]=d;
+
+apply(d,m);
+startTimer(d.signal);
+
+},700);
+}
+
+/* =========================
+   APPLY
+========================= */
 function apply(d,m){
 
-document.getElementById("icon").innerText =
-d.signal=="BUY"?"🟢":d.signal=="SELL"?"🔴":"🟡";
+let icon=document.getElementById("icon");
+let s=document.getElementById("signal");
 
-document.getElementById("signal").innerText = d.signal;
-document.getElementById("signal").className =
-"signal " + (d.signal=="BUY"?"buy":d.signal=="SELL"?"sell":"wait");
+if(d.signal=="BUY"){
+icon.innerText="🟢";
+s.innerText="BUY";
+s.className="signal buy";
+}
+else if(d.signal=="SELL"){
+icon.innerText="🔴";
+s.innerText="SELL";
+s.className="signal sell";
+}
+else{
+icon.innerText="🟡";
+s.innerText="WAIT";
+s.className="signal wait";
+}
 
 document.getElementById("entry").innerText="ENTRY POINT: "+d.entry;
 document.getElementById("price").innerText="PRICE: "+getPrice(m);
 document.getElementById("prob").innerText="PROB: "+d.prob+"%";
 document.getElementById("winrate").innerText="WINRATE: "+d.winrate.toFixed(1)+"%";
+
+/* hide timer if WAIT */
+if(d.signal=="WAIT"){
+document.getElementById("timer").style.display="none";
+}
 }
 
-/* ANALYZE */
-function analyze(){
+/* =========================
+   TIMER
+========================= */
+function startTimer(signal){
 
-let m=document.getElementById("market").value;
+clearInterval(timer);
+if(signal=="WAIT") return;
 
-document.getElementById("icon").innerText="🧠";
-document.getElementById("signal").innerText="ANALYZING...";
+document.getElementById("timer").style.display="block";
 
-setTimeout(()=>{
+let r=60;
 
-let d=ai();
-apply(d,m);
+timer=setInterval(()=>{
 
-},600);
+r--;
+document.getElementById("fill").style.width=(r/60*100)+"%";
+document.getElementById("timer").innerText=r+" SEC";
+
+if(r<=0){
+clearInterval(timer);
+document.getElementById("timer").style.display="none";
+}
+
+},1000);
+}
+
+/* =========================
+   AUTO MODE
+========================= */
+function autoMode(){
+
+if(interval){
+clearInterval(interval);
+interval=null;
+return;
+}
+
+interval=setInterval(()=>analyze(),3000);
 }
 
 </script>
