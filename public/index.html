@@ -80,7 +80,7 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 text-align:center;
 margin-top:8px;
 font-size:14px;
-display:none; /* caché par défaut */
+display:none;
 }
 
 .price{
@@ -156,16 +156,10 @@ font-weight:bold;
 
 <script>
 
-let lock=false;
 let interval=null;
 let timer=null;
 
-let lastKey="";
-let lastData=null;
-
-/* =========================
-   💰 PRICE SIMULATION
-========================= */
+/* PRICE */
 function getPrice(market){
 let base = 1 + Math.random()*100;
 if(market.includes("JPY")) base = 100 + Math.random()*50;
@@ -174,65 +168,39 @@ if(market.includes("XAU")) base = 2300 + Math.random()*50;
 return base.toFixed(2);
 }
 
-/* =========================
-   🧠 IA ULTRA SIMPLE PRO
-========================= */
+/* IA */
 function ai(){
 
 let rsi = Math.random()*100;
 let trend = Math.random()*2-1;
 let volume = Math.random()*100;
 
-/* RSI */
 let rsiS = rsi<30?1:rsi>70?-1:0;
-
-/* TREND */
 let trendS = trend>0.25?1:trend<-0.25?-1:0;
-
-/* VOLUME FILTER */
 let volS = volume>65?1:volume<35?-1:0;
 
-/* DOUBLE CONFIRMATION */
-let confirm = (rsiS + trendS);
+let confirm = rsiS + trendS;
 
-/* SCORE FINAL */
 let score = (rsiS*0.5) + (trendS*0.4) + (volS*0.1);
 
-/* SIGNAL */
 let signal="WAIT";
 if(confirm>=2 && score>0.35) signal="BUY";
 else if(confirm<=-2 && score<-0.35) signal="SELL";
 
-/* PROB */
 let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 55));
-
-/* WINRATE SIM */
 let winrate = signal=="WAIT" ? 50 : 65 + Math.random()*20;
 
-/* ENTRY POINT */
-let entry = signal=="WAIT" ? "-" : (signal=="BUY" ? "BUY ZONE 🔼" : "SELL ZONE 🔽");
+let entry = signal=="BUY" ? "BUY ZONE 🔼" :
+            signal=="SELL" ? "SELL ZONE 🔽" : "-";
 
-return {rsi,trend,volume,score,signal,prob,winrate,entry};
+return {score,signal,prob,winrate,entry};
 }
 
-/* =========================
-   ANALYZE
-========================= */
+/* ANALYZE (NO BLOCK) */
 function analyze(){
 
 let m=document.getElementById("market").value;
 let t=document.getElementById("time").value;
-let key=m+"_"+t;
-
-if(lock && key===lastKey){
-apply(lastData,m);
-return;
-}
-
-if(lock && key!==lastKey) return;
-
-lock=true;
-lastKey=key;
 
 document.getElementById("icon").innerText="🧠";
 document.getElementById("signal").innerText="ANALYZING...";
@@ -240,59 +208,42 @@ document.getElementById("signal").className="signal wait";
 
 setTimeout(()=>{
 
-let data=ai();
-lastData=data;
+let d=ai();
 
-apply(data,m);
-startTimer(t,data.signal);
+apply(d,m);
+startTimer(t,d.signal);
 
-},900);
+},600);
 }
 
-/* =========================
-   APPLY SIGNAL
-========================= */
-function apply(d,market){
+/* APPLY */
+function apply(d,m){
 
 let icon=document.getElementById("icon");
 let s=document.getElementById("signal");
 
 if(d.signal=="BUY"){
-icon.innerText="🟢";
-s.innerText="BUY";
-s.className="signal buy";
+icon.innerText="🟢";s.innerText="BUY";s.className="signal buy";
 }
 else if(d.signal=="SELL"){
-icon.innerText="🔴";
-s.innerText="SELL";
-s.className="signal sell";
+icon.innerText="🔴";s.innerText="SELL";s.className="signal sell";
 }
 else{
-icon.innerText="🟡";
-s.innerText="WAIT";
-s.className="signal wait";
+icon.innerText="🟡";s.innerText="WAIT";s.className="signal wait";
 }
 
-/* ENTRY */
 document.getElementById("entry").innerText="ENTRY POINT: "+d.entry;
-
-/* PRICE */
-document.getElementById("price").innerText="PRICE: "+getPrice(market);
-
-/* INFO */
+document.getElementById("price").innerText="PRICE: "+getPrice(m);
 document.getElementById("score").innerText="SCORE: "+d.score.toFixed(2);
 document.getElementById("prob").innerText="PROB: "+d.prob+"%";
 document.getElementById("winrate").innerText="WINRATE: "+d.winrate.toFixed(1)+"%";
 
-/* TIMER SHOW ONLY IF SIGNAL */
 if(d.signal=="WAIT"){
 document.getElementById("timer").style.display="none";
 }
 }
 
-/* =========================
-   TIMER (ONLY SIGNAL)
-========================= */
+/* TIMER */
 function startTimer(sec,signal){
 
 clearInterval(timer);
@@ -312,7 +263,6 @@ document.getElementById("timer").innerText=r+" SEC";
 
 if(r<=0){
 clearInterval(timer);
-lock=false;
 document.getElementById("timer").innerText="READY";
 document.getElementById("timer").style.display="none";
 }
@@ -320,22 +270,17 @@ document.getElementById("timer").style.display="none";
 },1000);
 }
 
-/* =========================
-   AUTO MODE
-========================= */
+/* AUTO */
 function autoMode(){
 
 if(interval){
 clearInterval(interval);
 interval=null;
-alert("STOP AUTO");
 return;
 }
 
-alert("START AUTO");
-
 interval=setInterval(()=>{
-if(!lock) analyze();
+analyze();
 },3000);
 }
 
