@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI V15</title>
+<title>SNIPER AI V15 UPGRADE</title>
 
 <style>
 
@@ -34,12 +34,12 @@ color:#00ff9d;
 
 select{
 width:100%;
-padding:14px;
+padding:12px;
 margin-top:10px;
 background:#111a33;
 color:white;
 border:none;
-border-radius:12px;
+border-radius:10px;
 }
 
 button{
@@ -52,18 +52,13 @@ font-weight:bold;
 cursor:pointer;
 }
 
-.analyze{
-background:#00ff9d;
-}
-
-.auto{
-background:#00c3ff;
-}
+.analyze{background:#00ff9d;}
+.auto{background:#00c3ff;}
 
 .signal{
 text-align:center;
-font-size:65px;
-margin-top:15px;
+font-size:60px;
+margin-top:10px;
 }
 
 .buy{color:#00ff9d;}
@@ -72,7 +67,7 @@ margin-top:15px;
 
 .info{
 text-align:center;
-margin-top:10px;
+margin-top:8px;
 color:#aaa;
 }
 
@@ -81,21 +76,20 @@ height:16px;
 background:#1a1f35;
 border-radius:20px;
 overflow:hidden;
-margin-top:15px;
+margin-top:12px;
 }
 
 .fill{
 height:100%;
 width:50%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:0.4s;
 }
 
 .status{
 text-align:center;
 margin-top:10px;
+font-size:12px;
 color:#888;
-font-size:13px;
 }
 
 </style>
@@ -106,8 +100,9 @@ font-size:13px;
 
 <div class="app">
 
-<h2>📊 SNIPER AI V15</h2>
+<h2>📊 SNIPER AI V15 PRO</h2>
 
+<!-- MARKET -->
 <select id="market">
 <option value="EURUSD">EUR/USD</option>
 <option value="GBPUSD">GBP/USD</option>
@@ -117,14 +112,23 @@ font-size:13px;
 <option value="XAUUSD">GOLD</option>
 </select>
 
-<button class="analyze" onclick="analyze()">
-🔄 ANALYZE MARKET
-</button>
+<!-- TIME -->
+<select id="time">
+<option value="1min">1 MIN</option>
+<option value="5min">5 MIN</option>
+<option value="15min">15 MIN</option>
+</select>
+
+<button class="analyze" onclick="analyze()">🔄 ANALYZE</button>
+
+<button class="auto" onclick="autoMode()">🤖 AUTO MODE</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
 <div class="info" id="score">SCORE: 0</div>
 <div class="info" id="prob">PROB: 50%</div>
+<div class="info" id="rsi">RSI: 0</div>
+<div class="info" id="momentum">MOMENTUM: 0</div>
 
 <div class="bar">
 <div id="fill" class="fill"></div>
@@ -136,55 +140,75 @@ font-size:13px;
 
 <script>
 
+let auto = false;
+let loop;
+
+/* ANALYZE */
 async function analyze(){
 
-try{
-
 const market = document.getElementById("market").value;
+const time = document.getElementById("time").value;
 
-document.getElementById("status").innerText =
-"ANALYZING...";
-
-const res = await fetch(`/api/${market}`);
-
+const res = await fetch(`/api/${market}/${time}`);
 const data = await res.json();
 
-/* SAFE UI */
+/* UI */
 document.getElementById("score").innerText =
-"SCORE: " + (data.score ?? 0);
+"SCORE: " + data.score;
 
 document.getElementById("prob").innerText =
-"PROB: " + (data.probability ?? 50) + "%";
+"PROB: " + data.probability + "%";
 
-const signal = document.getElementById("signal");
+document.getElementById("rsi").innerText =
+"RSI: " + data.rsi;
+
+document.getElementById("momentum").innerText =
+"MOM: " + data.momentum;
+
+/* SIGNAL */
+const s = document.getElementById("signal");
 
 if(data.signal === "BUY"){
-signal.innerText = "🟢 BUY";
-signal.className = "signal buy";
+s.innerText = "🟢 BUY";
+s.className = "signal buy";
 }
 
 else if(data.signal === "SELL"){
-signal.innerText = "🔴 SELL";
-signal.className = "signal sell";
+s.innerText = "🔴 SELL";
+s.className = "signal sell";
 }
 
 else{
-signal.innerText = "🟡 WAIT";
-signal.className = "signal wait";
+s.innerText = "🟡 WAIT";
+s.className = "signal wait";
 }
 
 document.getElementById("fill").style.width =
-(data.probability ?? 50) + "%";
+data.probability + "%";
 
 document.getElementById("status").innerText =
-"READY ✔ " + new Date().toLocaleTimeString();
+"UPDATED " + new Date().toLocaleTimeString();
 
-}catch(err){
+}
+
+/* AUTO MODE */
+function autoMode(){
+
+auto = !auto;
+
+if(auto){
+
+loop = setInterval(analyze, 3000);
 
 document.getElementById("status").innerText =
-"ERROR - SERVER";
+"AUTO MODE ON";
 
-console.log(err);
+}else{
+
+clearInterval(loop);
+
+document.getElementById("status").innerText =
+"AUTO MODE OFF";
 
 }
 
