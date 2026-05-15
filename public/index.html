@@ -1,272 +1,242 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER PRO WEB APP</title>
+require("dotenv").config();
 
-<style>
+const express = require("express");
+const axios = require("axios");
 
-body{
-margin:0;
-font-family:Arial;
-background:linear-gradient(180deg,#070b18,#0b1226);
-color:white;
-overflow:hidden;
+const app = express();
+
+/* ================= PORT RAILWAY ================= */
+const PORT = process.env.PORT || 3000;
+
+/* ================= MIDDLEWARE ================= */
+app.use(express.json());
+app.use(express.static("public"));
+
+/* ================= HOME ================= */
+app.get("/", (req, res) => {
+res.send("🚀 SNIPER PRO V30 - ONLINE");
+});
+
+/* ================= CLEAN SYMBOL ================= */
+function cleanSymbol(symbol){
+if(!symbol) return "EUR/USD";
+
+symbol = symbol.toUpperCase().trim();
+
+return symbol.includes("/")
+? symbol
+: symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= CONTAINER ================= */
-.screen{
-display:none;
-height:100vh;
-width:100%;
-align-items:center;
-justify-content:center;
-flex-direction:column;
-animation:fade 0.5s ease;
+/* ================= FETCH SAFE DATA ================= */
+async function getData(symbol, interval){
+
+try {
+
+symbol = cleanSymbol(symbol);
+
+const map = {
+"30s":"1min",
+"1m":"1min",
+"5m":"5min",
+"15m":"5min"
+};
+
+const url =
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+
+const res = await axios.get(url);
+
+/* SAFE CHECK */
+if(!res.data || res.data.status === "error") return null;
+if(!res.data.values || res.data.values.length < 20) return null;
+
+return res.data.values
+.reverse()
+.map(c => Number(c.close))
+.filter(v => !isNaN(v));
+
+} catch(err){
+console.log("API ERROR:", err.message);
+return null;
+}
 }
 
-.screen.active{
-display:flex;
+/* ================= RSI SAFE ================= */
+function RSI(data){
+if(!data || data.length < 14) return 50;
+
+let gain = 0;
+let loss = 0;
+
+for(let i=1;i<14;i++){
+const diff = data[i] - data[i-1];
+if(diff > 0) gain += diff;
+else loss += Math.abs(diff);
 }
 
-/* ================= ANIMATION ================= */
-@keyframes fade{
-from{opacity:0; transform:translateY(10px);}
-to{opacity:1; transform:translateY(0);}
+const rs = gain / (loss || 1);
+const rsi = 100 - (100 / (1 + rs));
+
+return Number(rsi.toFixed(2));
 }
 
-/* ================= CARD ================= */
-.card{
-width:90%;
-max-width:420px;
-background:#0f172a;
-padding:20px;
-border-radius:20px;
-box-shadow:0 0 25px rgba(0,255,157,0.15);
-border:1px solid rgba(0,255,157,0.2);
-text-align:center;
+/* ================= EMA SAFE ================= */
+function EMA(data, period){
+if(!data || data.length < period) return data.at(-1) || 0;
+
+const k = 2 / (period + 1);
+let ema = data[0] || 0;
+
+for(let i=1;i<data.length;i++){
+ema = data[i] * k + ema * (1 - k);
 }
 
-/* ================= TITLE ================= */
-h2{
-margin-bottom:15px;
-color:#00ff9d;
+return ema;
 }
 
-/* ================= BUTTONS ================= */
-button{
-width:100%;
-padding:15px;
-margin-top:10px;
-border:none;
-border-radius:12px;
-background:#00ff9d;
-font-weight:bold;
-font-size:16px;
-cursor:pointer;
-transition:0.2s;
-box-shadow:0 0 10px rgba(0,255,157,0.3);
+/* ================= API ================= */
+app.get("/api/:symbol/:interval", async (req,res)=>{
+
+try {
+
+const symbol = req.params.symbol;
+const interval = req.params.interval;
+
+const data = await getData(symbol, interval);
+
+/* ================= FALLBACK SAFE ================= */
+if(!data || data.length < 20){
+return res.json({
+symbol,
+interval,
+signal:"WAIT",
+price:0,
+rsi:50,
+trend:"NO DATA",
+score:0,
+strength:0,
+BOS:{bullish:false,bearish:false},
+CHoCH:{bullish:false,bearish:false},
+support:0,
+resistance:0,
+liquidity:{buySweep:false,sellSweep:false}
+});
 }
 
-button:active{
-transform:scale(0.95);
-box-shadow:0 0 25px rgba(0,255,157,0.7);
-}
+/* ================= VALUES ================= */
+const price = data.at(-1) || 0;
+const rsi = RSI(data);
 
-/* ================= SELECT ================= */
-select{
-width:100%;
-padding:15px;
-margin-top:10px;
-border-radius:12px;
-border:none;
-background:#111827;
-color:white;
-font-size:16px;
-outline:none;
-}
+const emaFast = EMA(data.slice(-30), 9);
+const emaSlow = EMA(data.slice(-30), 21);
 
-/* ================= RESULT ================= */
-.result{
-margin-top:20px;
-font-size:18px;
-line-height:1.8;
-}
+/* ================= TREND ================= */
+const trend =
+emaFast > emaSlow ? "BULLISH" :
+emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
+
+/* ================= STRUCTURE ================= */
+const recentHigh = Math.max(...data.slice(-10));
+const recentLow = Math.min(...data.slice(-10));
+const prevHigh = Math.max(...data.slice(-20, -10));
+const prevLow = Math.min(...data.slice(-20, -10));
+
+const BOS = {
+bullish: recentHigh > prevHigh,
+bearish: recentLow < prevLow
+};
+
+const CHoCH = {
+bullish: trend === "BULLISH" && BOS.bullish,
+bearish: trend === "BEARISH" && BOS.bearish
+};
+
+/* ================= SUPPORT / RESISTANCE ================= */
+const support = Math.min(...data.slice(-30));
+const resistance = Math.max(...data.slice(-30));
+
+/* ================= LIQUIDITY ================= */
+const liquidity = {
+buySweep: price < support,
+sellSweep: price > resistance
+};
+
+/* ================= SCORE ================= */
+let score = 0;
+
+if (emaFast > emaSlow) score += 30;
+if (emaFast < emaSlow) score -= 30;
+
+if (rsi < 30) score += 25;
+if (rsi > 70) score -= 25;
+
+if (BOS.bullish) score += 20;
+if (BOS.bearish) score -= 20;
+
+if (CHoCH.bullish) score += 30;
+if (CHoCH.bearish) score -= 30;
+
+if (liquidity.buySweep) score += 20;
+if (liquidity.sellSweep) score -= 20;
+
+const momentum = price - (data.at(data.length - 3) || price);
+if (momentum > 0) score += 10;
+if (momentum < 0) score -= 10;
 
 /* ================= SIGNAL ================= */
-.signal{
-font-size:28px;
-font-weight:bold;
-margin-top:10px;
-animation:pulse 1s infinite;
+let signal = "WAIT";
+
+if (score >= 55) signal = "BUY";
+if (score <= -55) signal = "SELL";
+
+if (Math.abs(score) < 20){
+signal = trend === "BULLISH"
+? "BUY"
+: trend === "BEARISH"
+? "SELL"
+: "WAIT";
 }
 
-@keyframes pulse{
-0%{transform:scale(1);}
-50%{transform:scale(1.05);}
-100%{transform:scale(1);}
+/* ================= RESPONSE ================= */
+res.json({
+symbol,
+interval,
+signal,
+price,
+rsi,
+trend,
+score,
+strength: Math.min(100, Math.abs(score)),
+BOS,
+CHoCH,
+support,
+resistance,
+liquidity
+});
+
+} catch(err){
+
+console.log("SERVER ERROR:", err.message);
+
+res.json({
+signal:"WAIT",
+price:0,
+rsi:50,
+trend:"ERROR",
+score:0,
+strength:0,
+BOS:{bullish:false,bearish:false},
+CHoCH:{bullish:false,bearish:false},
+support:0,
+resistance:0,
+liquidity:{buySweep:false,sellSweep:false}
+});
 }
 
-/* ================= COLORS ================= */
-.buy{color:#00ff9d;}
-.sell{color:#ff3b5c;}
-.wait{color:#facc15;}
+});
 
-/* ================= LOADING ================= */
-.loading{
-color:#aaa;
-font-size:14px;
-margin-top:10px;
-}
-
-/* ================= SMALL TEXT ================= */
-.small{
-font-size:12px;
-color:#888;
-margin-top:10px;
-}
-
-</style>
-</head>
-
-<body>
-
-<!-- ================= SCREEN 1 : MARKET ================= -->
-<div class="screen active" id="s1">
-
-<div class="card">
-
-<h2>📊 CHOISIR MARCHÉ</h2>
-
-<select id="symbol">
-<option value="EURUSD">EUR/USD</option>
-<option value="GBPUSD">GBP/USD</option>
-<option value="USDJPY">USD/JPY</option>
-<option value="USDCHF">USD/CHF</option>
-<option value="AUDUSD">AUD/USD</option>
-<option value="USDCAD">USD/CAD</option>
-<option value="NZDUSD">NZD/USD</option>
-</select>
-
-<button onclick="setSymbol()">CONTINUER ➜</button>
-
-</div>
-
-</div>
-
-<!-- ================= SCREEN 2 : TIME ================= -->
-<div class="screen" id="s2">
-
-<div class="card">
-
-<h2>⏱ CHOISIR TIMEFRAME</h2>
-
-<button onclick="setTime('1m')">1 MIN</button>
-<button onclick="setTime('5m')">5 MIN</button>
-<button onclick="setTime('15m')">15 MIN</button>
-
-</div>
-
-</div>
-
-<!-- ================= SCREEN 3 : LOADING ================= -->
-<div class="screen" id="s3">
-
-<div class="card">
-
-<h2>📡 ANALYSE EN COURS</h2>
-
-<div class="loading">Scanning market structure...</div>
-
-</div>
-
-</div>
-
-<!-- ================= SCREEN 4 : RESULT ================= -->
-<div class="screen" id="s4">
-
-<div class="card">
-
-<h2>📊 RÉSULTAT</h2>
-
-<div id="signal" class="signal wait">WAIT</div>
-
-<div class="result">
-<div id="price">PRICE: -</div>
-<div id="rsi">RSI: -</div>
-<div id="trend">TREND: -</div>
-<div id="strength">STRENGTH: -</div>
-</div>
-
-<button onclick="reset()">🔁 NOUVELLE ANALYSE</button>
-
-<div class="small">SNIPER PRO WEB APP</div>
-
-</div>
-
-</div>
-
-<script>
-
-let symbol = "";
-let time = "";
-
-/* ================= NAVIGATION ================= */
-function show(id){
-document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
-
-/* ================= STEP 1 ================= */
-function setSymbol(){
-symbol = document.getElementById("symbol").value;
-show("s2");
-}
-
-/* ================= STEP 2 ================= */
-function setTime(t){
-time = t;
-run();
-}
-
-/* ================= ANALYSE ================= */
-async function run(){
-
-show("s3");
-
-/* animation delay */
-setTimeout(async ()=>{
-
-const res = await fetch(`/api/${symbol}/${time}`);
-const d = await res.json();
-
-/* SIGNAL */
-let colorClass = "wait";
-if(d.signal === "BUY") colorClass = "buy";
-if(d.signal === "SELL") colorClass = "sell";
-
-document.getElementById("signal").className = "signal " + colorClass;
-document.getElementById("signal").innerText = d.signal;
-
-/* DATA */
-document.getElementById("price").innerText = "PRICE: " + d.price;
-document.getElementById("rsi").innerText = "RSI: " + d.rsi;
-document.getElementById("trend").innerText = "TREND: " + d.trend;
-document.getElementById("strength").innerText = "STRENGTH: " + d.strength;
-
-/* show result */
-show("s4");
-
-}, 1200);
-}
-
-/* ================= RESET ================= */
-function reset(){
-show("s1");
-}
-
-</script>
-
-</body>
-</html>
+/* ================= START SERVER ================= */
+app.listen(PORT, () => {
+console.log("🚀 SNIPER PRO V30 RUNNING ON PORT", PORT);
+});
