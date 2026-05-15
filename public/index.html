@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI PRO V6</title>
+<title>SNIPER AI PRO V8</title>
 
 <style>
 
@@ -28,30 +28,30 @@ padding:15px;
 box-shadow:0 0 25px #00ff9d22;
 }
 
-.top{
-display:flex;
-gap:8px;
-margin-bottom:10px;
-}
-
-select{
-flex:1;
-padding:10px;
-border-radius:10px;
-background:#111a33;
-color:white;
-border:none;
-}
-
+/* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
+margin-bottom:10px;
+}
+
+/* SELECT */
+select{
+width:100%;
+padding:12px;
+margin-top:8px;
+border:none;
+border-radius:12px;
+background:#111a33;
+color:white;
+font-weight:bold;
 }
 
 /* BUTTON */
 button{
 width:100%;
 padding:14px;
+margin-top:10px;
 border:none;
 border-radius:12px;
 background:#00ff9d;
@@ -71,7 +71,6 @@ font-size:60px;
 text-align:center;
 margin:15px 0;
 font-weight:bold;
-transition:0.3s;
 }
 
 .buy{color:#00ff9d;}
@@ -83,17 +82,17 @@ transition:0.3s;
 text-align:center;
 color:#aaa;
 margin:5px 0;
-font-size:18px;
+font-size:16px;
 }
 
-/* BARRE AGRANDIE */
+/* BAR */
 .bar{
 width:100%;
 height:10px;
 background:#1a1f35;
 border-radius:20px;
 overflow:hidden;
-margin-top:15px;
+margin-top:12px;
 }
 
 .fill{
@@ -106,8 +105,9 @@ transition:1s linear;
 /* TIMER */
 .timer{
 text-align:center;
-margin-top:10px;
+margin-top:8px;
 color:#aaa;
+font-size:14px;
 }
 
 </style>
@@ -118,26 +118,40 @@ color:#aaa;
 
 <div class="app">
 
-<h2>📊 SNIPER AI PRO V6</h2>
+<h2>📊 SNIPER AI PRO V8</h2>
 
-<div class="top">
-
+<!-- 📊 REAL MARKET ONLY -->
 <select id="market">
-<option value="BTCUSD">BTCUSD</option>
-<option value="ETHUSD">ETHUSD</option>
-<option value="EURUSD">EURUSD</option>
-<option value="XAUUSD">GOLD</option>
+
+<option value="EURUSD">EUR/USD</option>
+<option value="GBPUSD">GBP/USD</option>
+<option value="USDJPY">USD/JPY</option>
+<option value="USDCHF">USD/CHF</option>
+<option value="USDCAD">USD/CAD</option>
+<option value="AUDUSD">AUD/USD</option>
+<option value="NZDUSD">NZD/USD</option>
+
+<option value="EURJPY">EUR/JPY</option>
+<option value="GBPJPY">GBP/JPY</option>
+
+<option value="XAUUSD">GOLD (XAU/USD)</option>
+
+<option value="NAS100">NASDAQ 100</option>
+<option value="SPX500">S&P 500</option>
+<option value="DOWJONES">DOW JONES</option>
+
 </select>
 
+<!-- TIMEFRAME -->
 <select id="time">
 <option value="60">1 MIN</option>
 <option value="300">5 MIN</option>
 <option value="900">15 MIN</option>
 </select>
 
-</div>
-
 <button onclick="analyze()">🔄 ANALYZE SIGNAL</button>
+
+<button onclick="autoMode()">🤖 AUTO MODE</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
@@ -154,100 +168,79 @@ color:#aaa;
 
 <script>
 
-let market="BTCUSD";
-let tf=60;
-
-/* LOCK SYSTEM */
-let lockedSignal=null;
-let lockedProb=0;
-let lockedTime=0;
-let interval;
-
-/* OPTIONS */
-document.getElementById("market").onchange=(e)=>{
-market=e.target.value;
-}
-
-document.getElementById("time").onchange=(e)=>{
-tf=parseInt(e.target.value);
-}
+let intervalAuto;
 
 /* ANALYZE */
 async function analyze(){
 
+const market=document.getElementById("market").value;
+const tf=document.getElementById("time").value;
+
 const res = await fetch(`/api/analyze/${market}/1m`);
 const data = await res.json();
 
-/* LOCK SIGNAL */
-if(!lockedSignal){
-
-lockedSignal = data.signal;
-
-/* PROBABILITY INTELLIGENTE */
-lockedProb = Math.min(95, Math.abs(data.score) + 40);
-
-/* TIME INTELLIGENT */
-if(lockedProb >= 75) lockedTime = 60;
-else if(lockedProb >= 50) lockedTime = 30;
-else lockedTime = 15;
-
-}
-
-/* DISPLAY */
 const signal=document.getElementById("signal");
 const score=document.getElementById("score");
 const prob=document.getElementById("prob");
 
-if(lockedSignal==="BUY"){
+/* SIGNAL */
+if(data.signal==="BUY"){
 signal.innerText="🟢 BUY";
 signal.className="signal buy";
+playSound();
 }
-else if(lockedSignal==="SELL"){
+
+else if(data.signal==="SELL"){
 signal.innerText="🔴 SELL";
 signal.className="signal sell";
+playSound();
 }
+
 else{
 signal.innerText="🟡 WAIT";
 signal.className="signal wait";
 }
 
-/* SCORE */
-score.innerText="SCORE: "+data.score;
+/* DATA */
+score.innerText="SCORE: "+(data.score || 0);
+prob.innerText="PROB: "+(data.probability || 0)+"%";
 
-/* PROB */
-prob.innerText="PROB: "+lockedProb+"%";
-
-/* TIMER */
-clearInterval(interval);
-
-let t=lockedTime;
-
-interval=setInterval(()=>{
-
-t--;
-
-/* BAR PROGRESS */
+/* BAR */
 document.getElementById("fill").style.width =
-(t/lockedTime)*100 + "%";
+(data.probability || 0) + "%";
 
-document.getElementById("timer").innerText =
-"VALIDITY: " + t + "s";
-
-if(t<=0){
-clearInterval(interval);
-
-lockedSignal=null;
-lockedProb=0;
-lockedTime=0;
-
-document.getElementById("timer").innerText =
-"EXPIRED - READY NEW SIGNAL";
-
-document.getElementById("fill").style.width="0%";
 }
 
-},1000);
+/* 🤖 AUTO MODE */
+function autoMode(){
 
+if(intervalAuto){
+clearInterval(intervalAuto);
+intervalAuto=null;
+alert("AUTO STOPPED");
+return;
+}
+
+alert("AUTO STARTED");
+
+intervalAuto=setInterval(()=>{
+analyze();
+vibrate();
+},5000);
+
+}
+
+/* 🔊 SOUND ALERT */
+function playSound(){
+let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+audio.play();
+}
+
+/* 📳 VIBRATION */
+function vibrate(){
+if(navigator.vibrate){
+navigator.vibrate(200);
+}
 }
 
 </script>
