@@ -4,243 +4,523 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI PRO V8</title>
+
+<title>D-FLAM BOT TRADING</title>
 
 <style>
 
-body{
+*{
 margin:0;
-font-family:Arial;
+padding:0;
+box-sizing:border-box;
+font-family:Arial, sans-serif;
+}
+
+body{
 background:#050816;
-color:white;
+min-height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-height:100vh;
+padding:90px 10px 30px;
+overflow-x:hidden;
+color:white;
 }
 
+/* BACKGROUND */
+body::before{
+content:"";
+position:fixed;
+width:500px;
+height:500px;
+background:#00ff9d15;
+filter:blur(120px);
+top:-150px;
+right:-100px;
+z-index:-1;
+}
+
+/* BRAND */
+.brand{
+position:absolute;
+top:20px;
+width:100%;
+text-align:center;
+font-size:30px;
+font-weight:bold;
+color:#00ff9d;
+text-shadow:0 0 15px #00ff9d;
+letter-spacing:2px;
+}
+
+/* APP */
 .app{
-width:95%;
+width:100%;
 max-width:420px;
 background:#0c1224;
-border-radius:20px;
-padding:15px;
-box-shadow:0 0 25px #00ff9d22;
+border-radius:25px;
+padding:20px;
+border:1px solid #1f2b4d;
+box-shadow:
+0 0 25px #00ff9d22,
+0 0 60px #000 inset;
 }
 
 /* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
-margin-bottom:10px;
+font-size:34px;
+margin-bottom:18px;
 }
 
 /* SELECT */
 select{
 width:100%;
-padding:12px;
-margin-top:8px;
+padding:16px;
+margin-top:12px;
 border:none;
-border-radius:12px;
-background:#111a33;
+outline:none;
+border-radius:16px;
+background:#121d38;
 color:white;
+font-size:18px;
 font-weight:bold;
+border:2px solid transparent;
+}
+
+select:focus{
+border:2px solid #facc15;
 }
 
 /* BUTTON */
 button{
 width:100%;
-padding:14px;
-margin-top:10px;
+padding:16px;
+margin-top:14px;
 border:none;
-border-radius:12px;
+border-radius:16px;
 background:#00ff9d;
 color:black;
+font-size:20px;
 font-weight:bold;
 cursor:pointer;
-transition:0.3s;
+transition:0.2s;
+box-shadow:0 0 18px #00ff9d55;
 }
 
 button:active{
-transform:scale(0.96);
+transform:scale(0.97);
+}
+
+/* ICON */
+.icon{
+font-size:90px;
+text-align:center;
+margin-top:25px;
+}
+
+/* SPIN */
+.spin{
+animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+from{
+transform:rotate(0deg);
+}
+to{
+transform:rotate(360deg);
+}
 }
 
 /* SIGNAL */
 .signal{
-font-size:60px;
-text-align:center;
-margin:15px 0;
+font-size:75px;
 font-weight:bold;
+text-align:center;
+margin-top:8px;
 }
 
-.buy{color:#00ff9d;}
-.sell{color:#ff3b5c;}
-.wait{color:#facc15;}
+.buy{
+color:#00ff9d;
+text-shadow:0 0 20px #00ff9d;
+}
+
+.sell{
+color:#ff3b5c;
+text-shadow:0 0 20px #ff3b5c;
+}
+
+.wait{
+color:#facc15;
+text-shadow:0 0 20px #facc15;
+}
 
 /* INFO */
 .info{
 text-align:center;
-color:#aaa;
-margin:5px 0;
-font-size:16px;
+margin-top:10px;
+font-size:24px;
+color:#d0d0d0;
 }
 
 /* BAR */
 .bar{
 width:100%;
-height:10px;
-background:#1a1f35;
+height:16px;
+background:#1d2746;
 border-radius:20px;
 overflow:hidden;
-margin-top:12px;
+margin-top:20px;
 }
 
 .fill{
 height:100%;
-width:0%;
+width:100%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:1s linear;
+transition:width 1s linear;
 }
 
 /* TIMER */
 .timer{
 text-align:center;
-margin-top:8px;
+margin-top:10px;
+font-size:18px;
 color:#aaa;
+}
+
+/* FOOTER */
+.footer{
+margin-top:18px;
+text-align:center;
 font-size:14px;
+color:#666;
+}
+
+/* TELEGRAM */
+.telegram{
+position:fixed;
+right:20px;
+bottom:20px;
+width:65px;
+height:65px;
+background:#0088cc;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:34px;
+text-decoration:none;
+box-shadow:0 0 25px #0088cc;
+animation:pulse 1.5s infinite;
+z-index:999;
+}
+
+@keyframes pulse{
+0%{
+transform:scale(1);
+}
+50%{
+transform:scale(1.1);
+}
+100%{
+transform:scale(1);
+}
 }
 
 </style>
-
 </head>
 
 <body>
 
+<!-- BRAND -->
+<div class="brand">
+🔥 D-FLAM BOT TRADING
+</div>
+
+<!-- APP -->
 <div class="app">
 
-<h2>📊 SNIPER AI PRO V8</h2>
+<h2>📊 SNIPER AI PRO</h2>
 
-<!-- 📊 REAL MARKET ONLY -->
+<!-- MARKET -->
 <select id="market">
 
-<option value="EURUSD">EUR/USD</option>
-<option value="GBPUSD">GBP/USD</option>
-<option value="USDJPY">USD/JPY</option>
-<option value="USDCHF">USD/CHF</option>
-<option value="USDCAD">USD/CAD</option>
+<option value="AUDNZD">AUD/NZD</option>
 <option value="AUDUSD">AUD/USD</option>
-<option value="NZDUSD">NZD/USD</option>
-
+<option value="EURCHF">EUR/CHF</option>
 <option value="EURJPY">EUR/JPY</option>
+<option value="GBPAUD">GBP/AUD</option>
+<option value="EURGBP">EUR/GBP</option>
+<option value="USDCAD">USD/CAD</option>
+<option value="CADJPY">CAD/JPY</option>
+<option value="EURUSD">EUR/USD</option>
+<option value="AUDCAD">AUD/CAD</option>
+<option value="CHFJPY">CHF/JPY</option>
+<option value="USDSGD">USD/SGD</option>
+<option value="NZDJPY">NZD/JPY</option>
+<option value="NZDUSD">NZD/USD</option>
+<option value="USDCHF">USD/CHF</option>
 <option value="GBPJPY">GBP/JPY</option>
-
-<option value="XAUUSD">GOLD (XAU/USD)</option>
-
-<option value="NAS100">NASDAQ 100</option>
-<option value="SPX500">S&P 500</option>
-<option value="DOWJONES">DOW JONES</option>
+<option value="GBPUSD">GBP/USD</option>
+<option value="AUDJPY">AUD/JPY</option>
+<option value="GBPCHF">GBP/CHF</option>
+<option value="EURAUD">EUR/AUD</option>
+<option value="EURCAD">EUR/CAD</option>
+<option value="USDJPY">USD/JPY</option>
+<option value="AUDCHF">AUD/CHF</option>
 
 </select>
 
-<!-- TIMEFRAME -->
+<!-- TIME -->
 <select id="time">
+
 <option value="60">1 MIN</option>
 <option value="300">5 MIN</option>
-<option value="900">15 MIN</option>
+<option value="900" selected>15 MIN</option>
+
 </select>
 
-<button onclick="analyze()">🔄 ANALYZE SIGNAL</button>
+<!-- BUTTON -->
+<button onclick="analyze()">
+🔄 ANALYZE SIGNAL
+</button>
 
-<button onclick="autoMode()">🤖 AUTO MODE</button>
+<button onclick="autoMode()">
+🤖 AUTO MODE
+</button>
 
-<div id="signal" class="signal wait">WAIT</div>
+<!-- ICON -->
+<div id="signalIcon" class="icon">
+🟡
+</div>
 
-<div class="info" id="score">SCORE: 0</div>
-<div class="info" id="prob">PROB: 0%</div>
+<!-- SIGNAL -->
+<div id="signal" class="signal wait">
+WAIT
+</div>
 
+<!-- INFO -->
+<div class="info" id="score">
+SCORE: 0
+</div>
+
+<div class="info" id="prob">
+PROB: 0%
+</div>
+
+<!-- BAR -->
 <div class="bar">
 <div class="fill" id="fill"></div>
 </div>
 
-<div class="timer" id="timer">READY</div>
+<!-- TIMER -->
+<div class="timer" id="timer">
+READY
+</div>
+
+<div class="footer">
+POWERED BY D-FLAM AI ENGINE
+</div>
 
 </div>
 
+<!-- TELEGRAM -->
+<a href="https://t.me/Mr_dflam"
+class="telegram"
+target="_blank">
+📩
+</a>
+
 <script>
 
-let intervalAuto;
+let signalLocked = false;
+let autoInterval = null;
+let candleTimer = null;
+let remaining = 0;
 
 /* ANALYZE */
 async function analyze(){
 
-const market=document.getElementById("market").value;
-const tf=document.getElementById("time").value;
-
-const res = await fetch(`/api/analyze/${market}/1m`);
-const data = await res.json();
-
-const signal=document.getElementById("signal");
-const score=document.getElementById("score");
-const prob=document.getElementById("prob");
-
-/* SIGNAL */
-if(data.signal==="BUY"){
-signal.innerText="🟢 BUY";
-signal.className="signal buy";
-playSound();
-}
-
-else if(data.signal==="SELL"){
-signal.innerText="🔴 SELL";
-signal.className="signal sell";
-playSound();
-}
-
-else{
-signal.innerText="🟡 WAIT";
-signal.className="signal wait";
-}
-
-/* DATA */
-score.innerText="SCORE: "+(data.score || 0);
-prob.innerText="PROB: "+(data.probability || 0)+"%";
-
-/* BAR */
-document.getElementById("fill").style.width =
-(data.probability || 0) + "%";
-
-}
-
-/* 🤖 AUTO MODE */
-function autoMode(){
-
-if(intervalAuto){
-clearInterval(intervalAuto);
-intervalAuto=null;
-alert("AUTO STOPPED");
+if(signalLocked){
 return;
 }
 
-alert("AUTO STARTED");
+signalLocked = true;
 
-intervalAuto=setInterval(()=>{
+const market =
+document.getElementById("market").value;
+
+const tf =
+parseInt(document.getElementById("time").value);
+
+const signal =
+document.getElementById("signal");
+
+const icon =
+document.getElementById("signalIcon");
+
+/* ANALYZING */
+icon.innerText = "🌀";
+icon.classList.add("spin");
+
+signal.innerText = "ANALYZING...";
+signal.className = "signal wait";
+
+/* FETCH */
+const res =
+await fetch(`/api/analyze/${market}/${tf}`);
+
+const data =
+await res.json();
+
+/* DELAY */
+setTimeout(()=>{
+
+icon.classList.remove("spin");
+
+/* BUY */
+if(data.signal === "BUY"){
+
+icon.innerText = "🟢";
+
+signal.innerText = "BUY";
+
+signal.className = "signal buy";
+
+playSound();
+
+}
+
+/* SELL */
+else if(data.signal === "SELL"){
+
+icon.innerText = "🔴";
+
+signal.innerText = "SELL";
+
+signal.className = "signal sell";
+
+playSound();
+
+}
+
+/* WAIT */
+else{
+
+icon.innerText = "🟡";
+
+signal.innerText = "WAIT";
+
+signal.className = "signal wait";
+
+}
+
+/* DATA */
+document.getElementById("score").innerText =
+"SCORE: " + data.score;
+
+document.getElementById("prob").innerText =
+"PROB: " + data.probability + "%";
+
+/* START TIMER */
+startCandle(tf);
+
+},2000);
+
+}
+
+/* TIMER */
+function startCandle(seconds){
+
+clearInterval(candleTimer);
+
+remaining = seconds;
+
+const fill =
+document.getElementById("fill");
+
+fill.style.width = "100%";
+
+candleTimer = setInterval(()=>{
+
+remaining--;
+
+const percent =
+(remaining / seconds) * 100;
+
+fill.style.width =
+percent + "%";
+
+document.getElementById("timer").innerText =
+remaining + " SEC";
+
+if(remaining <= 0){
+
+clearInterval(candleTimer);
+
+signalLocked = false;
+
+document.getElementById("timer").innerText =
+"READY";
+
+}
+
+},1000);
+
+}
+
+/* AUTO MODE */
+function autoMode(){
+
+if(autoInterval){
+
+clearInterval(autoInterval);
+
+autoInterval = null;
+
+alert("AUTO MODE STOPPED");
+
+return;
+
+}
+
+alert("AUTO MODE STARTED");
+
+autoInterval = setInterval(()=>{
+
+if(!signalLocked){
+
 analyze();
+
 vibrate();
-},5000);
 
 }
 
-/* 🔊 SOUND ALERT */
+},3000);
+
+}
+
+/* SOUND */
 function playSound(){
-let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+let audio =
+new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
 audio.play();
+
 }
 
-/* 📳 VIBRATION */
+/* VIBRATE */
 function vibrate(){
+
 if(navigator.vibrate){
+
 navigator.vibrate(200);
+
 }
+
 }
 
 </script>
