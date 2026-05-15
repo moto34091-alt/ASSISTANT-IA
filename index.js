@@ -1,20 +1,16 @@
 require("dotenv").config();
-
 const express = require("express");
 const axios = require("axios");
 
 const app = express();
-
-/* ================= PORT RAILWAY ================= */
 const PORT = process.env.PORT || 3000;
 
-/* ================= MIDDLEWARE ================= */
 app.use(express.json());
 app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V30 - ONLINE");
+res.send("🚀 SNIPER PRO V30 - LIVE ENGINE");
 });
 
 /* ================= CLEAN SYMBOL ================= */
@@ -28,7 +24,7 @@ return symbol.includes("/")
 : symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
-/* ================= FETCH SAFE DATA ================= */
+/* ================= FETCH DATA ================= */
 async function getData(symbol, interval){
 
 try {
@@ -42,12 +38,10 @@ const map = {
 "15m":"5min"
 };
 
-const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-/* SAFE CHECK */
 if(!res.data || res.data.status === "error") return null;
 if(!res.data.values || res.data.values.length < 20) return null;
 
@@ -62,7 +56,7 @@ return null;
 }
 }
 
-/* ================= RSI SAFE ================= */
+/* ================= RSI ================= */
 function RSI(data){
 if(!data || data.length < 14) return 50;
 
@@ -81,7 +75,7 @@ const rsi = 100 - (100 / (1 + rs));
 return Number(rsi.toFixed(2));
 }
 
-/* ================= EMA SAFE ================= */
+/* ================= EMA ================= */
 function EMA(data, period){
 if(!data || data.length < period) return data.at(-1) || 0;
 
@@ -95,17 +89,17 @@ ema = data[i] * k + ema * (1 - k);
 return ema;
 }
 
-/* ================= API ================= */
+/* ================= API MAIN SIGNAL ================= */
 app.get("/api/:symbol/:interval", async (req,res)=>{
 
 try {
 
-const symbol = req.params.symbol;
+const symbol = cleanSymbol(req.params.symbol);
 const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK SAFE ================= */
+/* ================= FALLBACK ================= */
 if(!data || data.length < 20){
 return res.json({
 symbol,
@@ -124,19 +118,19 @@ liquidity:{buySweep:false,sellSweep:false}
 });
 }
 
-/* ================= VALUES ================= */
-const price = data.at(-1) || 0;
-const rsi = RSI(data);
+/* ================= PRICE ================= */
+const price = data.at(-1);
 
+/* ================= INDICATORS ================= */
+const rsi = RSI(data);
 const emaFast = EMA(data.slice(-30), 9);
 const emaSlow = EMA(data.slice(-30), 21);
 
-/* ================= TREND ================= */
 const trend =
 emaFast > emaSlow ? "BULLISH" :
 emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
 
-/* ================= STRUCTURE ================= */
+/* ================= STRUCTURE BOS / CHoCH ================= */
 const recentHigh = Math.max(...data.slice(-10));
 const recentLow = Math.min(...data.slice(-10));
 const prevHigh = Math.max(...data.slice(-20, -10));
@@ -236,7 +230,48 @@ liquidity:{buySweep:false,sellSweep:false}
 
 });
 
-/* ================= START SERVER ================= */
+/* ================= LIVE CANDLES API ================= */
+app.get("/api/candles/:symbol/:interval", async (req,res)=>{
+
+try {
+
+const symbol = cleanSymbol(req.params.symbol);
+const interval = req.params.interval;
+
+const map = {
+"1m":"1min",
+"5m":"5min",
+"15m":"15min"
+};
+
+const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${map[interval] || "1min"}&outputsize=50&apikey=${process.env.TWELVE_API_KEY}`;
+
+const response = await axios.get(url);
+
+if(!response.data || !response.data.values){
+return res.json([]);
+}
+
+const candles = response.data.values
+.reverse()
+.map(c => ({
+time: c.datetime,
+open: Number(c.open),
+high: Number(c.high),
+low: Number(c.low),
+close: Number(c.close)
+}));
+
+res.json(candles);
+
+} catch(err){
+console.log("CANDLE ERROR:", err.message);
+res.json([]);
+}
+
+});
+
+/* ================= START ================= */
 app.listen(PORT, () => {
-console.log("🚀 SNIPER PRO V30 RUNNING ON PORT", PORT);
+console.log("🚀 SNIPER PRO V30 LIVE RUNNING ON PORT", PORT);
 });
