@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI V16 LIVE</title>
+<title>SNIPER AI PRO V8</title>
 
 <style>
 
@@ -23,65 +23,72 @@ height:100vh;
 width:95%;
 max-width:420px;
 background:#0c1224;
-padding:18px;
 border-radius:20px;
+padding:15px;
+box-shadow:0 0 25px #00ff9d22;
 }
 
+/* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
+margin-bottom:10px;
 }
 
+/* SELECT */
 select{
 width:100%;
 padding:12px;
-margin-top:10px;
+margin-top:8px;
+border:none;
+border-radius:12px;
 background:#111a33;
 color:white;
-border:none;
-border-radius:10px;
+font-weight:bold;
 }
 
+/* BUTTON */
 button{
 width:100%;
 padding:14px;
 margin-top:10px;
 border:none;
 border-radius:12px;
+background:#00ff9d;
+color:black;
 font-weight:bold;
 cursor:pointer;
-}
-
-.analyze{
-background:#00ff9d;
-animation:pulse 1.5s infinite;
-}
-
-@keyframes pulse{
-0%{transform:scale(1);}
-50%{transform:scale(1.03);}
-100%{transform:scale(1);}
-}
-
-.signal{
-text-align:center;
-font-size:65px;
-margin-top:10px;
 transition:0.3s;
+}
+
+button:active{
+transform:scale(0.96);
+}
+
+/* SIGNAL */
+.signal{
+font-size:60px;
+text-align:center;
+margin:15px 0;
+font-weight:bold;
 }
 
 .buy{color:#00ff9d;}
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
 
+/* INFO */
 .info{
 text-align:center;
-margin-top:8px;
 color:#aaa;
+margin:5px 0;
+font-size:16px;
 }
 
+/* BAR */
 .bar{
-height:18px;
+width:100%;
+height:10px;
 background:#1a1f35;
 border-radius:20px;
 overflow:hidden;
@@ -90,16 +97,17 @@ margin-top:12px;
 
 .fill{
 height:100%;
-width:50%;
+width:0%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:0.3s;
+transition:1s linear;
 }
 
-.status{
+/* TIMER */
+.timer{
 text-align:center;
-margin-top:10px;
-font-size:12px;
-color:#888;
+margin-top:8px;
+color:#aaa;
+font-size:14px;
 }
 
 </style>
@@ -110,112 +118,132 @@ color:#888;
 
 <div class="app">
 
-<h2>📊 V16 REAL LIVE ENGINE</h2>
+<h2>📊 SNIPER AI PRO V8</h2>
 
+<!-- 📊 REAL MARKET ONLY -->
 <select id="market">
+
 <option value="EURUSD">EUR/USD</option>
 <option value="GBPUSD">GBP/USD</option>
 <option value="USDJPY">USD/JPY</option>
 <option value="USDCHF">USD/CHF</option>
 <option value="USDCAD">USD/CAD</option>
-<option value="XAUUSD">GOLD</option>
+<option value="AUDUSD">AUD/USD</option>
+<option value="NZDUSD">NZD/USD</option>
+
+<option value="EURJPY">EUR/JPY</option>
+<option value="GBPJPY">GBP/JPY</option>
+
+<option value="XAUUSD">GOLD (XAU/USD)</option>
+
+<option value="NAS100">NASDAQ 100</option>
+<option value="SPX500">S&P 500</option>
+<option value="DOWJONES">DOW JONES</option>
+
 </select>
 
+<!-- TIMEFRAME -->
 <select id="time">
-<option value="1min">1 MIN</option>
-<option value="5min">5 MIN</option>
-<option value="15min">15 MIN</option>
+<option value="60">1 MIN</option>
+<option value="300">5 MIN</option>
+<option value="900">15 MIN</option>
 </select>
 
-<button class="analyze" onclick="startAuto()">
-🔄 AUTO ANALYZE LIVE
-</button>
+<button onclick="analyze()">🔄 ANALYZE SIGNAL</button>
+
+<button onclick="autoMode()">🤖 AUTO MODE</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
 <div class="info" id="score">SCORE: 0</div>
-<div class="info" id="prob">PROB: 50%</div>
-<div class="info" id="rsi">RSI: 50</div>
-<div class="info" id="mom">MOM: 0</div>
+<div class="info" id="prob">PROB: 0%</div>
 
 <div class="bar">
-<div id="fill" class="fill"></div>
+<div class="fill" id="fill"></div>
 </div>
 
-<div class="status" id="status">READY</div>
+<div class="timer" id="timer">READY</div>
 
 </div>
 
 <script>
 
-let loop;
+let intervalAuto;
 
 /* ANALYZE */
 async function analyze(){
 
-const market = document.getElementById("market").value;
-const time = document.getElementById("time").value;
+const market=document.getElementById("market").value;
+const tf=document.getElementById("time").value;
 
-const res = await fetch(`/api/${market}/${time}`);
+const res = await fetch(`/api/analyze/${market}/1m`);
 const data = await res.json();
 
-/* UI LIVE */
-document.getElementById("score").innerText =
-"SCORE: " + data.score;
-
-document.getElementById("prob").innerText =
-"PROB: " + data.probability + "%";
-
-document.getElementById("rsi").innerText =
-"RSI: " + data.rsi;
-
-document.getElementById("mom").innerText =
-"MOM: " + data.momentum;
+const signal=document.getElementById("signal");
+const score=document.getElementById("score");
+const prob=document.getElementById("prob");
 
 /* SIGNAL */
-const s = document.getElementById("signal");
-
-if(data.signal === "BUY"){
-s.innerText = "🟢 BUY";
-s.className = "signal buy";
+if(data.signal==="BUY"){
+signal.innerText="🟢 BUY";
+signal.className="signal buy";
+playSound();
 }
 
-else if(data.signal === "SELL"){
-s.innerText = "🔴 SELL";
-s.className = "signal sell";
+else if(data.signal==="SELL"){
+signal.innerText="🔴 SELL";
+signal.className="signal sell";
+playSound();
 }
 
 else{
-s.innerText = "🟡 WAIT";
-s.className = "signal wait";
+signal.innerText="🟡 WAIT";
+signal.className="signal wait";
 }
 
+/* DATA */
+score.innerText="SCORE: "+(data.score || 0);
+prob.innerText="PROB: "+(data.probability || 0)+"%";
+
+/* BAR */
 document.getElementById("fill").style.width =
-data.probability + "%";
-
-document.getElementById("status").innerText =
-"LIVE " + new Date().toLocaleTimeString();
+(data.probability || 0) + "%";
 
 }
 
-/* AUTO MODE LIVE */
-function startAuto(){
+/* 🤖 AUTO MODE */
+function autoMode(){
 
-clearInterval(loop);
+if(intervalAuto){
+clearInterval(intervalAuto);
+intervalAuto=null;
+alert("AUTO STOPPED");
+return;
+}
 
-loop = setInterval(()=>{
+alert("AUTO STARTED");
+
+intervalAuto=setInterval(()=>{
 analyze();
-}, 1500);
+vibrate();
+},5000);
 
-document.getElementById("status").innerText =
-"AUTO LIVE ON";
+}
 
-analyze();
+/* 🔊 SOUND ALERT */
+function playSound(){
+let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+audio.play();
+}
 
+/* 📳 VIBRATION */
+function vibrate(){
+if(navigator.vibrate){
+navigator.vibrate(200);
+}
 }
 
 </script>
 
 </body>
-
 </html>
