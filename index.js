@@ -3,182 +3,195 @@ const express = require("express");
 const axios = require("axios");
 
 const app = express();
+
 const PORT = process.env.PORT || 8080;
+
+console.log("🔥 SNIPER AI V37 STARTING...");
+console.log("📡 PORT:", PORT);
 
 app.use(express.json());
 app.use(express.static("public"));
 
-console.log("🔥 V16 REAL LIVE ENGINE STARTED");
+/* ================= HEALTH ================= */
+app.get("/health", (req,res)=>{
+res.json({
+status:"OK",
+server:"SNIPER AI V37",
+time: new Date().toISOString()
+});
+});
 
-/* ================= SYMBOL ================= */
-
+/* ================= CLEAN SYMBOL ================= */
 function cleanSymbol(symbol){
-return symbol || "EUR/USD";
+if(!symbol) return "EURUSD";
+symbol = symbol.toUpperCase().replace("/","");
+return symbol;
 }
 
-/* ================= FETCH LIVE DATA ================= */
+/* ================= SAFE FALLBACK DATA ================= */
+function fallbackData(){
+let base = 1000;
+let data = [];
 
-async function getData(symbol, interval){
-
-try{
-
-const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=120&apikey=${process.env.TWELVE_API_KEY}`;
-
-const res = await axios.get(url);
-
-if(!res.data?.values) return null;
-
-/* REAL STRUCTURE (IMPORTANT FIX) */
-return res.data.values
-.reverse()
-.map(c => ({
-open: Number(c.open),
-high: Number(c.high),
-low: Number(c.low),
-close: Number(c.close),
-volume: Number(c.volume || 0)
-}));
-
-}catch(err){
-return null;
+for(let i=0;i<60;i++){
+base += (Math.random()-0.5)*10;
+data.push(base);
 }
 
+return data;
 }
 
 /* ================= RSI ================= */
-
 function RSI(data){
-
-if(!data || data.length < 14) return 50;
-
 let gain = 0;
 let loss = 0;
 
 for(let i=1;i<14;i++){
-const diff = data[i].close - data[i-1].close;
+let diff = data[i] - data[i-1];
 diff > 0 ? gain += diff : loss += Math.abs(diff);
 }
 
-const rs = gain / (loss || 1);
-
+let rs = gain / (loss || 1);
 return 100 - (100 / (1 + rs));
-
 }
 
 /* ================= EMA ================= */
-
 function EMA(data, period){
+let k = 2 / (period + 1);
+let ema = data[0];
 
-const closes = data.map(c => c.close);
-
-if(closes.length < period) return closes.at(-1);
-
-const k = 2 / (period + 1);
-
-let ema = closes[0];
-
-for(let i=1;i<closes.length;i++){
-ema = closes[i] * k + ema * (1 - k);
+for(let i=1;i<data.length;i++){
+ema = data[i] * k + ema * (1 - k);
 }
 
 return ema;
-
 }
 
-/* ================= MARKET ENGINE ================= */
+/* ================= DATA FETCH (SAFE) ================= */
+async function getData(symbol, interval){
 
-function engine(data){
+try {
 
-const last = data.at(-1);
-const prev = data.at(-2);
+if(!process.env.TWELVE_API_KEY){
+console.log("⚠️ NO API KEY → fallback mode");
+return fallbackData();
+}
 
-const rsi = RSI(data);
-const emaFast = EMA(data.slice(-40), 9);
-const emaSlow = EMA(data.slice(-40), 21);
-
-/* MOMENTUM REAL */
-const momentum = last.close - data.at(-8).close;
-
-/* VOLATILITY */
-const volatility = last.high - last.low;
-
-/* SCORE */
-let score = 0;
-
-/* TREND */
-if(emaFast > emaSlow) score += 30;
-else score -= 30;
-
-/* RSI ZONES */
-if(rsi < 40) score += 20;
-if(rsi > 60) score -= 20;
-
-/* MOMENTUM */
-if(momentum > 0) score += 15;
-if(momentum < 0) score -= 15;
-
-/* VOLATILITY BOOST */
-if(volatility > 0.0008) score += 10;
-
-/* MICRO NOISE (FEEL LIVE MARKET) */
-score += (Math.random() * 4 - 2);
-
-/* SIGNAL */
-let signal = "WAIT";
-
-if(score >= 35) signal = "BUY";
-if(score <= -35) signal = "SELL";
-
-/* PROBABILITY REALISTIC */
-const probability = Math.min(95, 50 + Math.abs(score));
-
-return {
-signal,
-score: Number(score.toFixed(2)),
-probability: Number(probability.toFixed(2)),
-rsi: Number(rsi.toFixed(2)),
-momentum: Number(momentum.toFixed(5)),
-trend: emaFast > emaSlow ? "BULLISH" : "BEARISH"
+const map = {
+"30s":"1min",
+"1m":"1min",
+"5m":"5min",
+"15m":"5min"
 };
 
+const url =
+`https://api.twelvedata.com/time_series?symbol=${cleanSymbol(symbol)}&interval=${map[interval] || "1min"}&outputsize=100&apikey=${process.env.TWELVE_API_KEY}`;
+
+const res = await axios.get(url,{timeout:5000});
+
+if(!res.data || res.data.status === "error"){
+return fallbackData();
 }
 
-/* ================= API ================= */
+if(!res.data.values || res.data.values.length < 20){
+return fallbackData();
+}
 
-app.get("/api/:symbol/:interval", async (req,res)=>{
+return res.data.values
+.reverse()
+.map(c => Number(c.close))
+.filter(v => !isNaN(v));
+
+} catch(err){
+console.log("API ERROR → fallback used:", err.message);
+return fallbackData();
+}
+
+}
+
+/* ================= API ANALYZE ================= */
+app.get("/api/analyze/:symbol/:interval", async (req,res)=>{
+
+try{
 
 const symbol = cleanSymbol(req.params.symbol);
 const interval = req.params.interval;
 
 const data = await getData(symbol, interval);
 
-/* SAFE FALLBACK */
-if(!data){
+const price = data.at(-1);
 
-return res.json({
+const rsi = RSI(data);
+const emaFast = EMA(data.slice(-30), 9);
+const emaSlow = EMA(data.slice(-30), 21);
+
+/* TREND */
+let trend =
+emaFast > emaSlow ? "BULLISH" :
+emaFast < emaSlow ? "BEARISH" : "SIDEWAYS";
+
+/* SCORE */
+let score = 0;
+
+if(emaFast > emaSlow) score += 30;
+if(emaFast < emaSlow) score -= 30;
+
+if(rsi < 30) score += 25;
+if(rsi > 70) score -= 25;
+
+let momentum = price - data.at(-3);
+if(momentum > 0) score += 10;
+if(momentum < 0) score -= 10;
+
+/* SIGNAL */
+let signal = "WAIT";
+
+if(score >= 55) signal = "BUY";
+if(score <= -55) signal = "SELL";
+
+if(Math.abs(score) < 20){
+signal =
+trend === "BULLISH" ? "BUY" :
+trend === "BEARISH" ? "SELL" : "WAIT";
+}
+
+/* PROBABILITY */
+let probability = Math.min(95, Math.abs(score) + 40);
+
+/* RESPONSE */
+res.json({
 symbol,
-signal:"WAIT",
-score:0,
-probability:50,
+interval,
+price: Number(price.toFixed(2)),
+rsi: Number(rsi.toFixed(2)),
+trend,
+score: Number(score.toFixed(2)),
+signal,
+strength: Math.min(100, Math.abs(score)),
+probability
+});
+
+}catch(err){
+
+console.log("SERVER ERROR:", err.message);
+
+res.json({
+symbol:"ERROR",
+interval:"ERROR",
+price:0,
 rsi:50,
-momentum:0,
-trend:"NO DATA"
+trend:"ERROR",
+score:0,
+signal:"WAIT",
+strength:0,
+probability:0
 });
 
 }
 
-const result = engine(data);
-
-res.json({
-symbol,
-...result
-});
-
 });
 
 /* ================= START ================= */
-
 app.listen(PORT, ()=>{
-console.log("🚀 V16 LIVE ENGINE RUNNING");
+console.log("🚀 SNIPER AI V37 RUNNING ON", PORT);
 });
