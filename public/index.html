@@ -159,12 +159,6 @@ font-weight:bold;
 let interval=null;
 let timer=null;
 
-/* 🔒 CACHE SIGNAL (IMPORTANT) */
-let lastSignal = "WAIT";
-let lastMarket = "";
-let lastProb = 0;
-let lastData = null;
-
 /* PRICE */
 function getPrice(market){
 let base = 1 + Math.random()*100;
@@ -174,44 +168,68 @@ if(market.includes("XAU")) base = 2300 + Math.random()*50;
 return base.toFixed(2);
 }
 
-/* IA */
+/* 🧠 IA + WINRATE RÉEL SIMULÉ */
 function ai(){
 
 let rsi = Math.random()*100;
 let trend = Math.random()*2-1;
 let volume = Math.random()*100;
 
+/* RSI */
 let rsiS = rsi<30?1:rsi>70?-1:0;
+
+/* TREND */
 let trendS = trend>0.25?1:trend<-0.25?-1:0;
+
+/* VOLUME */
 let volS = volume>65?1:volume<35?-1:0;
 
+/* CONFIRMATION */
 let confirm = rsiS + trendS;
+
+/* SCORE */
 let score = (rsiS*0.5) + (trendS*0.4) + (volS*0.1);
 
+/* SIGNAL */
 let signal="WAIT";
 if(confirm>=2 && score>0.35) signal="BUY";
 else if(confirm<=-2 && score<-0.35) signal="SELL";
 
+/* PROB */
 let prob = Math.min(100, Math.floor(Math.abs(score)*100 + 55));
-let winrate = signal=="WAIT" ? 50 : 65 + Math.random()*20;
 
+/* WINRATE INTELLIGENT */
+let winrate = 50;
+
+if(signal !== "WAIT"){
+    winrate = 55 + Math.abs(score)*70;
+
+    if(rsi < 20 || rsi > 80){
+        winrate += 5;
+    }
+
+    if(Math.abs(trend) > 0.7){
+        winrate += 5;
+    }
+
+    if(winrate > 91) winrate = 91;
+    if(winrate < 50) winrate = 50;
+}else{
+    winrate = 40 + Math.random()*10;
+}
+
+/* ENTRY */
 let entry = signal=="BUY" ? "BUY ZONE 🔼" :
             signal=="SELL" ? "SELL ZONE 🔽" : "-";
 
 return {score,signal,prob,winrate,entry};
 }
 
-/* ANALYZE (SIGNAL FIXE) */
+/* ANALYZE */
 function analyze(){
 
 let m=document.getElementById("market").value;
 let t=document.getElementById("time").value;
-
-/* 🔥 IMPORTANT : si même marché + signal existe → NE PAS CHANGER */
-if(m === lastMarket && lastSignal !== "WAIT"){
-apply(lastData,m);
-return;
-}
 
 document.getElementById("icon").innerText="🧠";
 document.getElementById("signal").innerText="ANALYZING...";
@@ -220,20 +238,6 @@ document.getElementById("signal").className="signal wait";
 setTimeout(()=>{
 
 let d=ai();
-
-/* 🔒 FIX SIGNAL */
-if(lastSignal !== "WAIT" && m === lastMarket){
-d.signal = lastSignal;
-d.prob = lastProb;
-d.score = lastData.score;
-d.winrate = lastData.winrate;
-d.entry = lastData.entry;
-}
-
-lastData=d;
-lastSignal=d.signal;
-lastMarket=m;
-lastProb=d.prob;
 
 apply(d,m);
 startTimer(t,d.signal);
@@ -289,10 +293,6 @@ if(r<=0){
 clearInterval(timer);
 document.getElementById("timer").innerText="READY";
 document.getElementById("timer").style.display="none";
-
-/* reset signal après expiration */
-lastSignal="WAIT";
-lastMarket="";
 }
 
 },1000);
