@@ -1,11 +1,16 @@
 const { Telegraf } = require("telegraf");
 require("dotenv").config();
 
+/* ================= BOT INIT ================= */
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-/* ================= START ================= */
+/* ================= SAFETY FIX (RAILWAY) ================= */
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+/* ================= START COMMAND ================= */
 bot.start((ctx) => {
-ctx.reply("🚀 SNIPER WEB APP", {
+ctx.reply("🚀 SNIPER WEB APP READY", {
 reply_markup: {
 inline_keyboard: [
 [
@@ -21,14 +26,14 @@ url: "https://binanc18bot.up.railway.app/"
 });
 });
 
-/* ================= COMMAND ================= */
+/* ================= APP COMMAND ================= */
 bot.command("app", (ctx) => {
-ctx.reply("🚀 Ouvre la Web App :", {
+ctx.reply("🚀 ACCÈS WEB APP", {
 reply_markup: {
 inline_keyboard: [
 [
 {
-text: "OPEN TRADING",
+text: "OPEN TRADING APP",
 web_app: {
 url: "https://binanc18bot.up.railway.app/"
 }
@@ -39,7 +44,16 @@ url: "https://binanc18bot.up.railway.app/"
 });
 });
 
-/* ================= LAUNCH ================= */
-bot.launch();
+/* ================= ERROR HANDLING ================= */
+bot.catch((err, ctx) => {
+console.log("❌ BOT ERROR:", err);
+});
 
-console.log("🚀 Telegram bot actif");
+/* ================= LAUNCH SAFE ================= */
+bot.launch()
+.then(() => {
+console.log("🚀 BOT STARTED SUCCESSFULLY");
+})
+.catch(err => {
+console.log("❌ BOT FAILED TO START:", err);
+});
