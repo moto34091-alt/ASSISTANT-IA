@@ -1,270 +1,206 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER PRO WEB APP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SNIPER PRO V30</title>
 
 <style>
 
 body{
 margin:0;
 font-family:Arial;
-background:linear-gradient(180deg,#070b18,#0b1226);
+background:#050816;
 color:white;
-overflow:hidden;
 }
 
-/* ================= CONTAINER ================= */
-.screen{
-display:none;
-height:100vh;
-width:100%;
-align-items:center;
-justify-content:center;
-flex-direction:column;
-animation:fade 0.5s ease;
-}
-
-.screen.active{
-display:flex;
-}
-
-/* ================= ANIMATION ================= */
-@keyframes fade{
-from{opacity:0; transform:translateY(10px);}
-to{opacity:1; transform:translateY(0);}
-}
-
-/* ================= CARD ================= */
-.card{
-width:90%;
-max-width:420px;
-background:#0f172a;
+header{
+text-align:center;
 padding:20px;
-border-radius:20px;
-box-shadow:0 0 25px rgba(0,255,157,0.15);
-border:1px solid rgba(0,255,157,0.2);
+background:#0b1220;
+border-bottom:1px solid #00ff9d33;
+}
+
+header h1{
+color:#00ff9d;
+font-size:22px;
+}
+
+.container{
+padding:15px;
+}
+
+.select-box{
+display:flex;
+gap:10px;
+margin-bottom:15px;
+}
+
+select{
+flex:1;
+padding:10px;
+border-radius:10px;
+border:none;
+background:#0f172a;
+color:white;
+}
+
+.signal{
+text-align:center;
+padding:20px;
+margin:10px 0;
+border-radius:15px;
+background:#0c1224;
+border:1px solid #00ff9d33;
+font-size:30px;
+font-weight:bold;
+transition:0.3s;
+}
+
+.buy{ color:#00ff9d; }
+.sell{ color:#ff3b5c; }
+.wait{ color:#facc15; }
+
+.cards{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.card{
+background:#0c1224;
+padding:15px;
+border-radius:15px;
+border:1px solid #00ff9d22;
 text-align:center;
 }
 
-/* ================= TITLE ================= */
-h2{
-margin-bottom:15px;
-color:#00ff9d;
+.label{
+font-size:12px;
+color:#888;
 }
 
-/* ================= BUTTONS ================= */
+.value{
+font-size:20px;
+font-weight:bold;
+margin-top:5px;
+}
+
 button{
 width:100%;
-padding:15px;
-margin-top:10px;
-border:none;
-border-radius:12px;
+margin-top:15px;
+padding:12px;
 background:#00ff9d;
+border:none;
+border-radius:10px;
 font-weight:bold;
-font-size:16px;
 cursor:pointer;
-transition:0.2s;
-box-shadow:0 0 10px rgba(0,255,157,0.3);
 }
 
 button:active{
-transform:scale(0.95);
-box-shadow:0 0 25px rgba(0,255,157,0.7);
-}
-
-/* ================= SELECT ================= */
-select{
-width:100%;
-padding:15px;
-margin-top:10px;
-border-radius:12px;
-border:none;
-background:#111827;
-color:white;
-font-size:16px;
-outline:none;
-}
-
-/* ================= RESULT ================= */
-.result{
-margin-top:20px;
-font-size:18px;
-line-height:1.8;
-}
-
-/* ================= SIGNAL ================= */
-.signal{
-font-size:28px;
-font-weight:bold;
-margin-top:10px;
-animation:pulse 1s infinite;
-}
-
-@keyframes pulse{
-0%{transform:scale(1);}
-50%{transform:scale(1.05);}
-100%{transform:scale(1);}
-}
-
-/* ================= COLORS ================= */
-.buy{color:#00ff9d;}
-.sell{color:#ff3b5c;}
-.wait{color:#facc15;}
-
-/* ================= LOADING ================= */
-.loading{
-color:#aaa;
-font-size:14px;
-margin-top:10px;
-}
-
-/* ================= SMALL TEXT ================= */
-.small{
-font-size:12px;
-color:#888;
-margin-top:10px;
+transform:scale(0.98);
 }
 
 </style>
+
 </head>
 
 <body>
 
-<!-- ================= SCREEN 1 : MARKET ================= -->
-<div class="screen active" id="s1">
+<header>
+<h1>🚀 SNIPER PRO V30 LIVE</h1>
+</header>
 
-<div class="card">
+<div class="container">
 
-<h2>📊 CHOISIR MARCHÉ</h2>
-
+<!-- SELECT -->
+<div class="select-box">
 <select id="symbol">
-<option value="EURUSD">EUR/USD</option>
-<option value="GBPUSD">GBP/USD</option>
-<option value="USDJPY">USD/JPY</option>
-<option value="USDCHF">USD/CHF</option>
-<option value="AUDUSD">AUD/USD</option>
-<option value="USDCAD">USD/CAD</option>
-<option value="NZDUSD">NZD/USD</option>
+<option>EURUSD</option>
+<option>GBPUSD</option>
+<option>BTCUSD</option>
+<option>ETHUSD</option>
 </select>
 
-<button onclick="setSymbol()">CONTINUER ➜</button>
-
+<select id="interval">
+<option value="1m">1 MIN</option>
+<option value="5m">5 MIN</option>
+<option value="15m">15 MIN</option>
+</select>
 </div>
 
-</div>
-
-<!-- ================= SCREEN 2 : TIME ================= -->
-<div class="screen" id="s2">
-
-<div class="card">
-
-<h2>⏱ CHOISIR TIMEFRAME</h2>
-
-<button onclick="setTime('1m')">1 MIN</button>
-<button onclick="setTime('5m')">5 MIN</button>
-<button onclick="setTime('15m')">15 MIN</button>
-
-</div>
-
-</div>
-
-<!-- ================= SCREEN 3 : LOADING ================= -->
-<div class="screen" id="s3">
-
-<div class="card">
-
-<h2>📡 ANALYSE EN COURS</h2>
-
-<div class="loading">Scanning market structure...</div>
-
-</div>
-
-</div>
-
-<!-- ================= SCREEN 4 : RESULT ================= -->
-<div class="screen" id="s4">
-
-<div class="card">
-
-<h2>📊 RÉSULTAT</h2>
-
+<!-- SIGNAL -->
 <div id="signal" class="signal wait">WAIT</div>
 
-<div class="result">
-<div id="price">PRICE: -</div>
-<div id="rsi">RSI: -</div>
-<div id="trend">TREND: -</div>
-<div id="strength">STRENGTH: -</div>
+<!-- CARDS -->
+<div class="cards">
+
+<div class="card">
+<div class="label">PRICE</div>
+<div class="value" id="price">0</div>
 </div>
 
-<button onclick="reset()">🔁 NOUVELLE ANALYSE</button>
+<div class="card">
+<div class="label">RSI</div>
+<div class="value" id="rsi">50</div>
+</div>
 
-<div class="small">SNIPER PRO WEB APP</div>
+<div class="card">
+<div class="label">TREND</div>
+<div class="value" id="trend">---</div>
+</div>
+
+<div class="card">
+<div class="label">STRENGTH</div>
+<div class="value" id="strength">0</div>
+</div>
 
 </div>
+
+<button onclick="loadData()">🔁 REFRESH</button>
 
 </div>
 
 <script>
 
-let symbol = "";
-let time = "";
+async function loadData(){
 
-/* ================= NAVIGATION ================= */
-function show(id){
-document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
+const symbol = document.getElementById("symbol").value;
+const interval = document.getElementById("interval").value;
 
-/* ================= STEP 1 ================= */
-function setSymbol(){
-symbol = document.getElementById("symbol").value;
-show("s2");
-}
+try {
 
-/* ================= STEP 2 ================= */
-function setTime(t){
-time = t;
-run();
-}
+const res = await fetch(`/api/${symbol}/${interval}`);
+const data = await res.json();
 
-/* ================= ANALYSE ================= */
-async function run(){
+console.log("DATA:", data);
 
-show("s3");
-
-/* animation delay */
-setTimeout(async ()=>{
-
-const res = await fetch(`/api/${symbol}/${time}`);
-const d = await res.json();
+/* UPDATE UI */
+document.getElementById("price").innerText = data.price || 0;
+document.getElementById("rsi").innerText = data.rsi || 50;
+document.getElementById("trend").innerText = data.trend || "NO DATA";
+document.getElementById("strength").innerText = data.strength || 0;
 
 /* SIGNAL */
-let colorClass = "wait";
-if(d.signal === "BUY") colorClass = "buy";
-if(d.signal === "SELL") colorClass = "sell";
+const signal = document.getElementById("signal");
 
-document.getElementById("signal").className = "signal " + colorClass;
-document.getElementById("signal").innerText = d.signal;
+signal.innerText = data.signal || "WAIT";
 
-/* DATA */
-document.getElementById("price").innerText = "PRICE: " + d.price;
-document.getElementById("rsi").innerText = "RSI: " + d.rsi;
-document.getElementById("trend").innerText = "TREND: " + d.trend;
-document.getElementById("strength").innerText = "STRENGTH: " + d.strength;
+signal.className = "signal " + (
+data.signal === "BUY" ? "buy" :
+data.signal === "SELL" ? "sell" : "wait"
+);
 
-/* show result */
-show("s4");
-
-}, 1200);
+} catch(err){
+console.log("ERROR:", err.message);
 }
 
-/* ================= RESET ================= */
-function reset(){
-show("s1");
 }
+
+/* AUTO LIVE */
+setInterval(loadData, 3000);
+loadData();
 
 </script>
 
