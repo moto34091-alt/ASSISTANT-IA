@@ -1,199 +1,180 @@
-<!DOCTYPE html>
-<html lang="fr">
+<!-- 🔥 ANALYZE BUTTON -->
+<button id="analyzeBtn" onclick="analyze()">
+<div class="loader" id="loader"></div>
+<span id="btnText">🔄 ANALYZE MARKET</span>
+</button>
 
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI PRO V8</title>
-
-<style>
-
-body{
-margin:0;
-font-family:Arial;
-background:#050816;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
-
-.app{
-width:95%;
-max-width:420px;
-background:#0c1224;
-border-radius:20px;
-padding:15px;
-box-shadow:0 0 25px #00ff9d22;
-}
-
-/* TITLE */
-h2{
-text-align:center;
-color:#00ff9d;
-margin-bottom:10px;
-}
-
-/* SELECT */
-select{
-width:100%;
-padding:12px;
-margin-top:8px;
-border:none;
-border-radius:12px;
-background:#111a33;
-color:white;
-font-weight:bold;
-}
-
-/* BUTTON */
-button{
-width:100%;
-padding:14px;
-margin-top:10px;
-border:none;
-border-radius:12px;
-background:#00ff9d;
-color:black;
-font-weight:bold;
-cursor:pointer;
-transition:0.3s;
-}
-
-button:active{
-transform:scale(0.96);
-}
-
-/* SIGNAL */
-.signal{
-font-size:60px;
-text-align:center;
-margin:15px 0;
-font-weight:bold;
-}
-
-.buy{color:#00ff9d;}
-.sell{color:#ff3b5c;}
-.wait{color:#facc15;}
-
-/* INFO */
-.info{
-text-align:center;
-color:#aaa;
-margin:5px 0;
-font-size:16px;
-}
-
-/* BAR */
-.bar{
-width:100%;
-height:10px;
-background:#1a1f35;
-border-radius:20px;
-overflow:hidden;
-margin-top:12px;
-}
-
-.fill{
-height:100%;
-width:0%;
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:1s linear;
-}
-
-/* TIMER */
-.timer{
-text-align:center;
-margin-top:8px;
-color:#aaa;
-font-size:14px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="app">
-
-<h2>📊 SNIPER AI PRO V8</h2>
-
-<!-- 📊 REAL MARKET ONLY -->
-<select id="market">
-
-<option value="EURUSD">EUR/USD</option>
-<option value="GBPUSD">GBP/USD</option>
-<option value="USDJPY">USD/JPY</option>
-<option value="USDCHF">USD/CHF</option>
-<option value="USDCAD">USD/CAD</option>
-<option value="AUDUSD">AUD/USD</option>
-<option value="NZDUSD">NZD/USD</option>
-
-<option value="EURJPY">EUR/JPY</option>
-<option value="GBPJPY">GBP/JPY</option>
-
-<option value="XAUUSD">GOLD (XAU/USD)</option>
-
-<option value="NAS100">NASDAQ 100</option>
-<option value="SPX500">S&P 500</option>
-<option value="DOWJONES">DOW JONES</option>
-
-</select>
-
-<!-- TIMEFRAME -->
-<select id="time">
-<option value="60">1 MIN</option>
-<option value="300">5 MIN</option>
-<option value="900">15 MIN</option>
-</select>
-
-<button onclick="analyze()">🔄 ANALYZE SIGNAL</button>
-
-<button onclick="autoMode()">🤖 AUTO MODE</button>
-
+<!-- SIGNAL -->
 <div id="signal" class="signal wait">WAIT</div>
 
+<!-- SCORE -->
 <div class="info" id="score">SCORE: 0</div>
+
+<!-- PROB -->
 <div class="info" id="prob">PROB: 0%</div>
+
+<!-- ENTRY STATUS -->
+<div class="entry-status" id="entryStatus">
+WAIT SIGNAL...
+</div>
+
+<!-- EXPIRY BAR -->
+<div class="expiry-box" id="expiryBox" style="display:none;">
+
+<div class="expiry-header">
+⏳ ENTRY WINDOW
+</div>
 
 <div class="bar">
 <div class="fill" id="fill"></div>
 </div>
 
-<div class="timer" id="timer">READY</div>
+<div class="expiry-text" id="expiryText">
+GOOD ENTRY
+</div>
 
 </div>
 
+<style>
+
+/* 🔥 ANALYZE BUTTON */
+#analyzeBtn{
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+border-radius:14px;
+background:#00ff9d;
+color:black;
+font-weight:bold;
+font-size:16px;
+cursor:pointer;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+transition:0.3s;
+}
+
+#analyzeBtn:active{
+transform:scale(0.96);
+}
+
+/* LOADER */
+.loader{
+width:18px;
+height:18px;
+border:3px solid #00000044;
+border-top:3px solid black;
+border-radius:50%;
+display:none;
+animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+100%{
+transform:rotate(360deg);
+}
+}
+
+/* ENTRY STATUS */
+.entry-status{
+text-align:center;
+margin-top:10px;
+font-size:14px;
+color:#00ff9d;
+}
+
+/* EXPIRY */
+.expiry-box{
+margin-top:15px;
+}
+
+.expiry-header{
+font-size:13px;
+color:#aaa;
+margin-bottom:6px;
+text-align:center;
+}
+
+.bar{
+width:100%;
+height:14px;
+background:#1a1f35;
+border-radius:20px;
+overflow:hidden;
+}
+
+.fill{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+transition:1s linear;
+}
+
+.expiry-text{
+text-align:center;
+margin-top:8px;
+font-size:14px;
+font-weight:bold;
+}
+
+.good{
+color:#00ff9d;
+}
+
+.mid{
+color:#facc15;
+}
+
+.bad{
+color:#ff3b5c;
+}
+
+</style>
+
 <script>
 
-let intervalAuto;
+let expiryInterval;
 
-/* ANALYZE */
+/* 🔥 ANALYZE */
 async function analyze(){
 
+const btn=document.getElementById("analyzeBtn");
+const loader=document.getElementById("loader");
+const btnText=document.getElementById("btnText");
+
+loader.style.display="block";
+btnText.innerText="ANALYZING...";
+
+btn.disabled=true;
+
+/* API */
 const market=document.getElementById("market").value;
-const tf=document.getElementById("time").value;
 
 const res = await fetch(`/api/analyze/${market}/1m`);
 const data = await res.json();
 
-const signal=document.getElementById("signal");
-const score=document.getElementById("score");
-const prob=document.getElementById("prob");
+loader.style.display="none";
+btnText.innerText="🔄 ANALYZE MARKET";
+
+btn.disabled=false;
 
 /* SIGNAL */
+const signal=document.getElementById("signal");
+
 if(data.signal==="BUY"){
 signal.innerText="🟢 BUY";
 signal.className="signal buy";
 playSound();
+vibrate();
 }
 
 else if(data.signal==="SELL"){
 signal.innerText="🔴 SELL";
 signal.className="signal sell";
 playSound();
+vibrate();
 }
 
 else{
@@ -201,49 +182,112 @@ signal.innerText="🟡 WAIT";
 signal.className="signal wait";
 }
 
-/* DATA */
-score.innerText="SCORE: "+(data.score || 0);
-prob.innerText="PROB: "+(data.probability || 0)+"%";
+/* SCORE */
+document.getElementById("score").innerText =
+"SCORE: " + data.score;
 
-/* BAR */
-document.getElementById("fill").style.width =
-(data.probability || 0) + "%";
+/* PROB */
+document.getElementById("prob").innerText =
+"PROB: " + data.probability + "%";
 
-}
+/* 🔥 FILTER */
+if(data.probability < 70){
 
-/* 🤖 AUTO MODE */
-function autoMode(){
+document.getElementById("entryStatus").innerText =
+"❌ LOW PROBABILITY";
 
-if(intervalAuto){
-clearInterval(intervalAuto);
-intervalAuto=null;
-alert("AUTO STOPPED");
+document.getElementById("expiryBox").style.display="none";
+
 return;
 }
 
-alert("AUTO STARTED");
+/* ENTRY READY */
+document.getElementById("entryStatus").innerText =
+"✅ GOOD ENTRY FOUND";
 
-intervalAuto=setInterval(()=>{
-analyze();
-vibrate();
-},5000);
+/* START EXPIRY */
+startExpiry(60);
 
 }
 
-/* 🔊 SOUND ALERT */
+/* ⏳ EXPIRY */
+function startExpiry(seconds){
+
+clearInterval(expiryInterval);
+
+const box=document.getElementById("expiryBox");
+box.style.display="block";
+
+let time=seconds;
+
+expiryInterval=setInterval(()=>{
+
+time--;
+
+const percent=(time/seconds)*100;
+
+document.getElementById("fill").style.width =
+percent + "%";
+
+/* STATUS */
+if(percent > 70){
+
+document.getElementById("expiryText").innerHTML =
+"🟢 PERFECT ENTRY";
+
+document.getElementById("expiryText").className =
+"expiry-text good";
+
+}
+
+else if(percent > 40){
+
+document.getElementById("expiryText").innerHTML =
+"🟡 ENTRY STILL POSSIBLE";
+
+document.getElementById("expiryText").className =
+"expiry-text mid";
+
+}
+
+else{
+
+document.getElementById("expiryText").innerHTML =
+"🔴 TOO LATE";
+
+document.getElementById("expiryText").className =
+"expiry-text bad";
+
+}
+
+if(time <= 0){
+
+clearInterval(expiryInterval);
+
+document.getElementById("expiryText").innerHTML =
+"⌛ SIGNAL EXPIRED";
+
+document.getElementById("fill").style.width="0%";
+
+}
+
+},1000);
+
+}
+
+/* 🔊 SOUND */
 function playSound(){
-let audio=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+let audio=new Audio(
+"https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+);
 audio.play();
 }
 
 /* 📳 VIBRATION */
 function vibrate(){
 if(navigator.vibrate){
-navigator.vibrate(200);
+navigator.vibrate([200,100,200]);
 }
 }
 
 </script>
-
-</body>
-</html>
