@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080;
 app.use(express.json());
 app.use(express.static("public"));
 
-console.log("🚀 SNIPER AI V14 FULL ENGINE STARTED");
+console.log("🚀 V15 ENGINE STARTED");
 
 /* ================= CLEAN SYMBOL ================= */
 
@@ -30,41 +30,50 @@ GBPJPY:"GBP/JPY",
 XAUUSD:"XAU/USD"
 };
 
-return map[symbol.toUpperCase()] || symbol;
+return map[symbol.toUpperCase()] || "EUR/USD";
 
 }
 
-/* ================= FETCH DATA ================= */
+/* ================= SAFE FETCH ================= */
 
 async function getData(symbol){
 
 try{
 
 if(!process.env.TWELVE_API_KEY){
+console.log("NO API KEY");
 return null;
 }
 
 const url =
-`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=80&apikey=${process.env.TWELVE_API_KEY}`;
+`https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=50&apikey=${process.env.TWELVE_API_KEY}`;
 
 const res = await axios.get(url);
 
-if(!res.data || !res.data.values || res.data.values.length < 25){
+/* SAFE CHECK */
+if(!res.data || !res.data.values){
 return null;
 }
 
-return res.data.values
+const values = res.data.values
 .reverse()
-.map(c => Number(c.close))
-.filter(v => !isNaN(v));
+.map(x => Number(x.close))
+.filter(x => !isNaN(x));
+
+if(values.length < 20){
+return null;
+}
+
+return values;
 
 }catch(err){
+console.log("FETCH ERROR:", err.message);
 return null;
 }
 
 }
 
-/* ================= RSI ================= */
+/* ================= INDICATORS ================= */
 
 function RSI(data){
 
@@ -83,8 +92,6 @@ const rs = gain / (loss || 1);
 return 100 - (100 / (1 + rs));
 
 }
-
-/* ================= EMA ================= */
 
 function EMA(data,period){
 
@@ -111,36 +118,39 @@ function calculateScore(price,data,rsi,emaFast,emaSlow){
 let score = 0;
 
 /* TREND */
-if(emaFast > emaSlow) score += 40;
-if(emaFast < emaSlow) score -= 40;
+if(emaFast > emaSlow) score += 35;
+if(emaFast < emaSlow) score -= 35;
 
 /* RSI */
-if(rsi < 35) score += 30;
-if(rsi > 65) score -= 30;
+if(rsi < 35) score += 25;
+if(rsi > 65) score -= 25;
 
 /* MOMENTUM */
-const momentum = price - (data.at(-3) || price);
-if(momentum > 0) score += 25;
-if(momentum < 0) score -= 25;
+const momentum = price - (data.at(-2) || price);
 
-/* FORCE MIN */
-if(Math.abs(score) < 10){
-score = score > 0 ? 15 : -15;
+if(momentum > 0) score += 20;
+if(momentum < 0) score -= 20;
+
+/* MIN FORCE */
+if(Math.abs(score) < 8){
+score = score > 0 ? 10 : -10;
 }
 
 return score;
 
 }
 
-/* ================= API ================= */
+/* ================= API (FULL SAFE) ================= */
 
 app.get("/api/:symbol", async (req,res)=>{
+
+try{
 
 const symbol = cleanSymbol(req.params.symbol);
 
 const data = await getData(symbol);
 
-/* SAFE MODE */
+/* FALLBACK SAFE MODE */
 if(!data){
 
 return res.json({
@@ -148,7 +158,8 @@ symbol,
 signal:"WAIT",
 score:10,
 probability:55,
-trend:"NO DATA"
+trend:"NO DATA",
+price:0
 });
 
 }
@@ -161,19 +172,18 @@ const emaFast = EMA(data.slice(-30),9);
 
 const emaSlow = EMA(data.slice(-30),21);
 
-const score =
-calculateScore(price,data,rsi,emaFast,emaSlow);
+const score = calculateScore(price,data,rsi,emaFast,emaSlow);
 
 /* PROBABILITY */
-const probability =
-60 + Math.min(35, Math.abs(score));
+const probability = Math.min(95, 50 + Math.abs(score));
 
 /* SIGNAL */
 let signal = "WAIT";
 
-if(score >= 45) signal = "BUY";
-if(score <= -45) signal = "SELL";
+if(score >= 40) signal = "BUY";
+if(score <= -40) signal = "SELL";
 
+/* RESPONSE SAFE */
 res.json({
 symbol,
 price,
@@ -186,10 +196,24 @@ signal,
 trend: emaFast > emaSlow ? "BULLISH" : "BEARISH"
 });
 
+}catch(err){
+
+console.log("SERVER CRASH SAFE FIX:", err.message);
+
+res.json({
+signal:"WAIT",
+score:0,
+probability:50,
+trend:"ERROR",
+price:0
 });
 
-app.listen(PORT,()=>{
+}
 
-console.log("🔥 SERVER RUNNING ON PORT",PORT);
+});
 
+/* ================= START SERVER ================= */
+
+app.listen(PORT, () => {
+console.log("🔥 V15 RUNNING ON PORT", PORT);
 });
