@@ -11,93 +11,60 @@ body{
 margin:0;
 font-family:Arial;
 background:#050816;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 color:white;
 overflow:hidden;
 }
 
-/* ================= APP FRAME ================= */
-.app{
-position:relative;
-width:100%;
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-}
-
-/* ================= PAGES ================= */
-.page{
-position:absolute;
-width:100%;
-height:100%;
-display:flex;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-opacity:0;
-transform:translateX(100px);
-transition:0.4s ease;
-pointer-events:none;
-}
-
-.page.active{
-opacity:1;
-transform:translateX(0);
-pointer-events:auto;
-}
-
 /* ================= CARD ================= */
 .card{
-width:85%;
-max-width:350px;
+width:90%;
+max-width:380px;
 background:#0c1224;
-padding:25px;
 border-radius:25px;
-border:1px solid #00ff9d33;
-box-shadow:0 0 25px #00ff9d22;
+padding:25px;
 text-align:center;
-animation: glow 2s infinite alternate;
+border:1px solid #00ff9d22;
+box-shadow:0 0 30px #00ff9d22;
 }
 
-@keyframes glow{
-from{box-shadow:0 0 10px #00ff9d22;}
-to{box-shadow:0 0 25px #00ff9d55;}
+/* ================= SYMBOL ================= */
+.symbol{
+font-size:14px;
+color:#888;
+margin-bottom:10px;
 }
 
-h1{
-font-size:20px;
-color:#00ff9d;
-}
-
-p{
-color:#aaa;
-font-size:13px;
-}
-
-/* ================= BUTTONS ================= */
-button{
+/* ================= TIMER BAR ================= */
+.timerBar{
 width:100%;
-margin-top:10px;
-padding:14px;
-border:none;
-border-radius:14px;
-background:#00ff9d;
-color:black;
-font-weight:bold;
-cursor:pointer;
-transition:0.2s;
-font-size:15px;
+height:8px;
+background:#1a1f35;
+border-radius:20px;
+overflow:hidden;
+margin-top:20px;
 }
 
-button:active{
-transform:scale(0.96);
+.fill{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+animation: shrink linear forwards;
+}
+
+@keyframes shrink{
+from{width:100%;}
+to{width:0%;}
 }
 
 /* ================= SIGNAL ================= */
 .signal{
-font-size:32px;
-margin-top:20px;
+font-size:55px;
 font-weight:bold;
+margin:15px 0;
 animation:pulse 1s infinite;
 }
 
@@ -107,12 +74,28 @@ animation:pulse 1s infinite;
 100%{opacity:1;}
 }
 
-/* ================= TOP INDICATOR ================= */
-.step{
-position:absolute;
-top:15px;
-font-size:12px;
-color:#777;
+/* ================= STATUS ================= */
+.status{
+font-size:16px;
+color:#aaa;
+}
+
+/* ================= BUTTON ================= */
+button{
+width:100%;
+margin-top:15px;
+padding:14px;
+border:none;
+border-radius:14px;
+background:#00ff9d;
+color:black;
+font-weight:bold;
+font-size:16px;
+cursor:pointer;
+}
+
+button:active{
+transform:scale(0.97);
 }
 
 </style>
@@ -121,115 +104,71 @@ color:#777;
 
 <body>
 
-<div class="app">
-
-<div class="step" id="step">STEP 1/4</div>
-
-<!-- PAGE 1 -->
-<div class="page active" id="p1">
 <div class="card">
-<h1>📊 MARCHÉ</h1>
-<p>Choisir un actif</p>
 
-<button onclick="selectMarket('EURUSD')">EUR/USD</button>
-<button onclick="selectMarket('BTCUSD')">BTC/USD</button>
-<button onclick="selectMarket('GBPUSD')">GBP/USD</button>
+<div class="symbol" id="symbol">SYMBOL: ---</div>
 
-</div>
-</div>
+<div class="status">⌛ ANALYSE EN COURS</div>
 
-<!-- PAGE 2 -->
-<div class="page" id="p2">
-<div class="card">
-<h1>⏱ TIMEFRAME</h1>
+<div class="signal" id="signal">WAIT</div>
 
-<button onclick="selectTime('1m')">1 MIN</button>
-<button onclick="selectTime('5m')">5 MIN</button>
-<button onclick="selectTime('15m')">15 MIN</button>
+<div class="status" id="details">RSI / MOMENTUM LOADING...</div>
 
-</div>
+<div class="timerBar">
+<div class="fill" id="bar"></div>
 </div>
 
-<!-- PAGE 3 -->
-<div class="page" id="p3">
-<div class="card">
-<h1>⚡ ANALYSE</h1>
-
-<div class="signal" id="live">WAIT</div>
-
-<button onclick="getSignal()">DÉMARRER ANALYSE</button>
-
-</div>
-</div>
-
-<!-- PAGE 4 -->
-<div class="page" id="p4">
-<div class="card">
-<h1>📈 SIGNAL FINAL</h1>
-
-<div class="signal" id="final">---</div>
-<div id="emoji" style="font-size:60px;margin-top:15px;">⚪</div>
-
-<button onclick="restart()">RESTART</button>
-
-</div>
-</div>
+<button onclick="startAnalysis()">
+🚀 START ANALYSIS
+</button>
 
 </div>
 
 <script>
 
-let market = "";
-let time = "";
+let market = "BTCUSD";
+let time = "1m";
 
-function show(id, step){
+/* ================= ANALYSE ================= */
+async function startAnalysis(){
 
-document.querySelectorAll(".page").forEach(p=>{
-p.classList.remove("active");
-});
+document.getElementById("bar").style.animation = "none";
+void document.getElementById("bar").offsetWidth;
 
-document.getElementById(id).classList.add("active");
-document.getElementById("step").innerText = step;
+/* restart timer animation */
+document.getElementById("bar").style.animation = "shrink 5s linear forwards";
 
-}
+document.getElementById("symbol").innerText =
+"SYMBOL: " + market;
 
-/* ================= STEP 1 ================= */
-function selectMarket(m){
-market = m;
-show("p2","STEP 2/4");
-}
-
-/* ================= STEP 2 ================= */
-function selectTime(t){
-time = t;
-show("p3","STEP 3/4");
-}
-
-/* ================= STEP 3 ================= */
-async function getSignal(){
-
-document.getElementById("live").innerText = "ANALYZING...";
-
+/* FETCH DATA */
 const res = await fetch(`/api/${market}/${time}`);
 const data = await res.json();
 
-show("p4","STEP 4/4");
+/* SIGNAL */
+document.getElementById("signal").innerText = data.signal;
 
-document.getElementById("final").innerText =
-data.signal;
+/* DETAILS RSI + MOMENTUM */
+document.getElementById("details").innerText =
+`RSI: ${data.rsi || 0} | SCORE: ${data.score || 0}`;
 
-let emoji = "⚪";
+/* END RESULT AFTER TIMER */
+setTimeout(()=>{
 
-if(data.signal === "BUY") emoji = "🟢📈";
-if(data.signal === "SELL") emoji = "🔴📉";
-
-document.getElementById("emoji").innerText = emoji;
-
+if(data.signal === "BUY"){
+document.getElementById("signal").innerText = "🟢 BUY";
 }
 
-/* ================= RESTART ================= */
-function restart(){
-show("p1","STEP 1/4");
+if(data.signal === "SELL"){
+document.getElementById("signal").innerText = "🔴 SELL";
+}
+
+if(data.signal === "WAIT"){
+document.getElementById("signal").innerText = "⌛ WAIT";
+}
+
+},5000);
+
 }
 
 </script>
