@@ -9,15 +9,20 @@ app.use(express.static("public"));
 
 /* ================= HOME ================= */
 app.get("/", (req, res) => {
-res.send("🚀 SNIPER PRO V28 - STABLE FOREX ENGINE");
+res.send("🚀 SNIPER PRO V29 - STABLE ENGINE");
 });
 
-/* ================= SYMBOL FIX ================= */
+/* ================= SYMBOL NORMALIZER ================= */
 function cleanSymbol(symbol){
+symbol = symbol.toUpperCase().trim();
+
+// accepte EURUSD ou EUR/USD
 if(symbol.includes("/")){
-return symbol.replace("/", "");
-}
 return symbol;
+}
+
+// conversion auto EURUSD -> EUR/USD
+return symbol.slice(0,3) + "/" + symbol.slice(3);
 }
 
 /* ================= FETCH DATA ================= */
@@ -96,14 +101,12 @@ app.get("/api/:symbol/:interval", async (req,res)=>{
 
 try {
 
-let symbol = cleanSymbol(req.params.symbol);
+let symbol = req.params.symbol;
 let interval = req.params.interval;
-
-if(interval === "30s") interval = "1m";
 
 const data = await getData(symbol, interval);
 
-/* ================= FALLBACK ANTI CRASH ================= */
+/* ================= FALLBACK ================= */
 if(!data || data.length < 20){
 return res.json({
 symbol,
@@ -224,10 +227,11 @@ support:0,
 resistance:0,
 liquidity:{buySweep:false,sellSweep:false}
 });
+
 }
 
 });
 
 app.listen(PORT, ()=>{
-console.log("🚀 SNIPER PRO V28 STABLE RUNNING");
+console.log("🚀 SNIPER PRO V29 STABLE RUNNING");
 });
