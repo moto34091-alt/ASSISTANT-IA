@@ -3,9 +3,9 @@ require("dotenv").config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-/* ================= START COMMAND ================= */
+/* ================= START ================= */
 bot.start((ctx) => {
-ctx.reply("🚀 SNIPER PRO WEB APP", {
+ctx.reply("🚀 SNIPER WEB APP", {
 reply_markup: {
 inline_keyboard: [
 [
@@ -21,14 +21,14 @@ url: "https://binanc18bot.up.railway.app/"
 });
 });
 
-/* ================= OPTIONAL COMMAND ================= */
+/* ================= COMMAND ================= */
 bot.command("app", (ctx) => {
-ctx.reply("Ouvre ton Web App ici 👇", {
+ctx.reply("🚀 Ouvre la Web App :", {
 reply_markup: {
 inline_keyboard: [
 [
 {
-text: "🚀 OPEN TRADING APP",
+text: "OPEN TRADING",
 web_app: {
 url: "https://binanc18bot.up.railway.app/"
 }
@@ -39,7 +39,7 @@ url: "https://binanc18bot.up.railway.app/"
 });
 });
 
-/* ================= LAUNCH BOT ================= */
+/* ================= LAUNCH ================= */
 bot.launch();
 
-console.log("🚀 Telegram Bot Running...");
+console.log("🚀 Telegram bot actif");
