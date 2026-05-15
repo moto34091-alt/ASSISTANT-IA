@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI PRO</title>
+<title>SNIPER AI V2</title>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
 
 <style>
 
@@ -18,81 +20,62 @@ align-items:center;
 height:100vh;
 }
 
-/* APP */
 .app{
 width:95%;
 max-width:420px;
 background:#0c1224;
 border-radius:20px;
-padding:20px;
+padding:15px;
 }
 
-/* SCREEN */
-.screen{
-display:none;
-animation:fade 0.3s ease;
+/* CHART */
+#chart{
+height:300px;
+border-radius:15px;
+overflow:hidden;
 }
 
-.screen.active{
-display:block;
+/* SIGNAL BOX */
+.signalBox{
+margin-top:10px;
+padding:15px;
+border-radius:15px;
+text-align:center;
+background:#111a33;
 }
 
-@keyframes fade{
-from{opacity:0;transform:scale(0.98);}
-to{opacity:1;transform:scale(1);}
+.signal{
+font-size:45px;
+font-weight:bold;
 }
 
-/* BUTTON */
+.buy{color:#00ff9d;}
+.sell{color:#ff3b5c;}
+.wait{color:#facc15;}
+
 button{
 width:100%;
-padding:14px;
+padding:12px;
 margin-top:10px;
 border:none;
-border-radius:12px;
+border-radius:10px;
 background:#00ff9d;
 font-weight:bold;
-cursor:pointer;
 }
 
-/* ITEM */
+.list{
+margin-top:10px;
+}
+
 .item{
-padding:12px;
-margin:8px 0;
+padding:10px;
+margin:6px 0;
 background:#111a33;
 border-radius:10px;
 cursor:pointer;
 }
 
-.item.active{
-border:1px solid #00ff9d;
-}
-
-/* SIGNAL */
-.signal{
-font-size:55px;
-text-align:center;
-margin-top:20px;
-}
-
-.bar{
-height:8px;
-background:#1a1f35;
-border-radius:20px;
-overflow:hidden;
-margin-top:15px;
-}
-
-.fill{
-height:100%;
-width:100%;
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-animation:load 5s linear forwards;
-}
-
-@keyframes load{
-from{width:100%;}
-to{width:0%;}
-}
+.hidden{display:none;}
 
 </style>
 
@@ -102,106 +85,89 @@ to{width:0%;}
 
 <div class="app">
 
-<!-- SCREEN 1 -->
-<div class="screen active" id="screen1">
-<h3>🔄 ACTUALISER MARCHÉS</h3>
-<button onclick="loadMarkets()">SCAN</button>
-<div id="markets"></div>
+<h3>🚀 SNIPER AI V2</h3>
+
+<button onclick="scanMarkets()">🔄 SCAN MARKETS</button>
+
+<div id="marketList" class="list"></div>
+
+<div id="chart"></div>
+
+<div class="signalBox">
+<div id="signal" class="signal wait">WAIT</div>
+<div id="strength">0%</div>
 </div>
 
-<!-- SCREEN 2 -->
-<div class="screen" id="screen2">
-<h3>📊 CHOIX MARCHÉ</h3>
-<div id="marketList"></div>
-</div>
-
-<!-- SCREEN 3 -->
-<div class="screen" id="screen3">
-<h3>⏱ TIMEFRAME</h3>
-<button onclick="setTime('1m')">1 MIN</button>
-<button onclick="setTime('5m')">5 MIN</button>
-<button onclick="setTime('15m')">15 MIN</button>
-</div>
-
-<!-- SCREEN 4 -->
-<div class="screen" id="screen4">
-<h3>🧠 ANALYSE</h3>
-<div class="bar"><div class="fill"></div></div>
-<button onclick="analyze()">START ANALYSE</button>
-</div>
-
-<!-- SCREEN 5 -->
-<div class="screen" id="screen5">
-<div class="signal" id="signal">---</div>
-<button onclick="restart()">🔁 NOUVELLE ANALYSE</button>
-</div>
+<button onclick="analyze()">🧠 ANALYZE</button>
 
 </div>
 
 <script>
 
-let markets = [];
-let selected = "";
-let time = "";
+let selected="BTCUSD";
 
-/* ================= SCREEN ================= */
-function go(id){
-document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
+/* ================= MARKET LIST ================= */
+function scanMarkets(){
 
-/* ================= LOAD MARKETS ================= */
-function loadMarkets(){
-
-markets = [
-"BTCUSD","ETHUSD","EURUSD","GBPUSD","USDJPY",
-"GOLD","NAS100","SPX500","GER40","AUDUSD",
-"NZDUSD","USDCAD","XAUUSD","XAGUSD","BTCUSDT"
+let markets=[
+"BTCUSD","ETHUSD","EURUSD","GBPUSD",
+"USDJPY","XAUUSD","NAS100","SPX500"
 ];
 
-let div = document.getElementById("marketList");
-div.innerHTML = "";
+let box=document.getElementById("marketList");
+box.innerHTML="";
 
 markets.forEach(m=>{
-let el=document.createElement("div");
-el.className="item";
-el.innerText=m;
+let div=document.createElement("div");
+div.className="item";
+div.innerText=m;
 
-el.onclick=()=>{
+div.onclick=()=>{
 selected=m;
-go("screen3");
+loadChart(m);
 };
 
-div.appendChild(el);
+box.appendChild(div);
 });
 
-go("screen2");
 }
 
-/* ================= TIME ================= */
-function setTime(t){
-time=t;
-go("screen4");
+/* ================= CHART ================= */
+function loadChart(symbol){
+
+document.getElementById("chart").innerHTML="";
+
+new TradingView.widget({
+container_id:"chart",
+width:"100%",
+height:300,
+symbol:"BINANCE:"+symbol,
+interval:"1",
+theme:"dark",
+style:"1",
+locale:"fr",
+hide_top_toolbar:true,
+allow_symbol_change:false
+});
+
 }
 
-/* ================= ANALYSE ================= */
+/* ================= ANALYZE ================= */
 async function analyze(){
 
-let res = await fetch(`/api/${selected}/${time}`);
-let data = await res.json();
+const res = await fetch(`/api/${selected}/1m`);
+const data = await res.json();
 
-document.getElementById("signal").innerText =
-data.signal + " " + (data.strength || 0) + "%";
+let signalEl=document.getElementById("signal");
+let strength=document.getElementById("strength");
 
-setTimeout(()=>{
-go("screen5");
-},3000);
+signalEl.innerText=data.signal;
+strength.innerText=(data.strength||0)+"%";
 
-}
+signalEl.className="signal " +
+(data.signal==="BUY"?"buy":
+data.signal==="SELL"?"sell":"wait");
 
-/* ================= RESTART ================= */
-function restart(){
-go("screen1");
 }
 
 </script>
