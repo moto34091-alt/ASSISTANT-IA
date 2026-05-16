@@ -2,17 +2,11 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>D-FLAM SNIPER AI PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SNIPER AI PRO SYSTEM</title>
 
 <style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
 body{
 background:#050816;
 color:white;
@@ -32,14 +26,8 @@ padding:16px;
 border:1px solid #1f2b4d;
 }
 
-.top{
-display:flex;
-justify-content:space-between;
-margin-bottom:10px;
-}
-
+.top{display:flex;justify-content:space-between;margin-bottom:10px}
 .live{color:#00ff9d;font-weight:bold}
-.timeNow{color:#ccc;font-size:13px}
 
 h2{text-align:center;color:#00ff9d}
 
@@ -52,17 +40,13 @@ background:#121d38;
 color:white;
 }
 
-.buttons{
-display:flex;
-gap:10px;
-margin-top:10px;
-}
+.buttons{display:flex;gap:10px;margin-top:10px}
 
 button{
 flex:1;
 padding:12px;
-border-radius:12px;
 border:none;
+border-radius:12px;
 font-weight:bold;
 cursor:pointer;
 }
@@ -78,7 +62,7 @@ border-radius:20px;
 text-align:center;
 }
 
-.icon{font-size:60px}
+.icon{font-size:55px}
 .signal{font-size:40px;font-weight:bold}
 
 .buy{color:#00ff9d}
@@ -96,6 +80,7 @@ margin-top:10px;
 background:#141f3a;
 padding:10px;
 border-radius:12px;
+font-size:12px;
 }
 
 .bar{
@@ -119,6 +104,20 @@ font-size:13px;
 color:#ccc;
 display:none;
 }
+
+/* FLOAT */
+.float{
+position:fixed;
+bottom:18px;
+left:50%;
+transform:translateX(-50%);
+background:#00ff9d;
+color:black;
+padding:10px 18px;
+border-radius:30px;
+font-weight:bold;
+font-size:13px;
+}
 </style>
 </head>
 
@@ -131,18 +130,16 @@ display:none;
 <div id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO</h2>
+<h2>SNIPER AI SYSTEM</h2>
 
 <select id="market">
+<option>OTC EUR/USD</option>
+<option>OTC GBP/USD</option>
 <option>EUR/USD</option>
 <option>GBP/USD</option>
 <option>USD/JPY</option>
-<option>XAU/USD</option>
 <option>BTC/USD</option>
-</select>
-
-<select disabled>
-<option>15 SEC ENGINE</option>
+<option>ETH/USD</option>
 </select>
 
 <div class="buttons">
@@ -159,10 +156,10 @@ display:none;
 <div id="price">PRICE: --</div>
 
 <div class="grid">
-<div class="card">PROB<br><b id="prob">0%</b></div>
-<div class="card">WIN<br><b id="winrate">0%</b></div>
-<div class="card">TREND<br><b id="trend">NEUTRAL</b></div>
-<div class="card">TF<br><b>1m/5m/15m</b></div>
+<div>PROB<br><b id="prob">0%</b></div>
+<div>WIN<br><b id="winrate">0%</b></div>
+<div>TREND<br><b id="trend">NEUTRAL</b></div>
+<div>TF<br><b>1m / 5m / 15m</b></div>
 </div>
 
 <div class="bar">
@@ -174,6 +171,8 @@ display:none;
 </div>
 
 </div>
+
+<div class="float">@Mr_dflam</div>
 
 <script>
 
@@ -194,29 +193,51 @@ const tf={
 "15m":[]
 };
 
+/* MARKET CLASS */
+function classify(symbol){
+
+if(symbol.includes("OTC")){
+if(symbol.includes("EUR/USD")||symbol.includes("GBP/USD")) return "OTC_HIGH";
+return "OTC_LOW";
+}
+
+if(symbol.includes("BTC")||symbol.includes("ETH")) return "CRYPTO";
+
+return "FOREX";
+}
+
+/* ADJUST */
+function adjust(score,type){
+
+if(type==="OTC_HIGH") return score*1.05;
+if(type==="OTC_LOW") return score*0.80;
+if(type==="CRYPTO") return score*1.15;
+return score*1.10;
+}
+
 /* PRICE */
-function getPrice(m){
+function price(symbol){
 let p=100+Math.random()*10;
-if(m.includes("BTC"))p=60000+Math.random()*1000;
-if(m.includes("XAU"))p=2300+Math.random()*20;
+if(symbol.includes("BTC"))p=60000+Math.random()*1000;
+if(symbol.includes("ETH"))p=3000+Math.random()*100;
 return p;
 }
 
 /* CANDLE */
-function candle(price){
+function candle(p){
 return{
-open:price,
-close:price+(Math.random()-0.5),
-high:price+Math.random(),
-low:price-Math.random()
+open:p,
+close:p+(Math.random()-0.5),
+high:p+Math.random(),
+low:p-Math.random()
 };
 }
 
 /* UPDATE TF */
-function updateTF(price){
-tf["1m"].push(candle(price));
-tf["5m"].push(candle(price));
-tf["15m"].push(candle(price));
+function update(p){
+tf["1m"].push(candle(p));
+tf["5m"].push(candle(p));
+tf["15m"].push(candle(p));
 
 if(tf["1m"].length>30)tf["1m"].shift();
 if(tf["5m"].length>30)tf["5m"].shift();
@@ -225,38 +246,37 @@ if(tf["15m"].length>30)tf["15m"].shift();
 
 /* ANALYZE TF */
 function analyzeTF(data){
-if(data.length<5)return{trend:"NEUTRAL"};
-
-let buy=0,sell=0;
-
+let b=0,s=0;
 for(let i=1;i<data.length;i++){
-data[i].close>data[i-1].close?buy++:sell++;
+data[i].close>data[i-1].close?b++:s++;
 }
-
-return{
-trend:buy>sell?"BUY":sell>buy?"SELL":"NEUTRAL"
-};
+return b>s?"BUY":s>b?"SELL":"NEUTRAL";
 }
 
 /* ENGINE */
-function engine(price){
+function engine(p,symbol){
 
-updateTF(price);
+update(p);
 
 let t1=analyzeTF(tf["1m"]);
 let t5=analyzeTF(tf["5m"]);
 let t15=analyzeTF(tf["15m"]);
 
+let type=classify(symbol);
+
 let buy=0,sell=0;
 
-if(t15.trend=="BUY")buy+=3;
-if(t15.trend=="SELL")sell+=3;
+if(t15==="BUY")buy+=3;
+if(t15==="SELL")sell+=3;
 
-if(t5.trend=="BUY")buy+=2;
-if(t5.trend=="SELL")sell+=2;
+if(t5==="BUY")buy+=2;
+if(t5==="SELL")sell+=2;
 
-if(t1.trend=="BUY")buy++;
-if(t1.trend=="SELL")sell++;
+if(t1==="BUY")buy++;
+if(t1==="SELL")sell++;
+
+buy=adjust(buy,type);
+sell=adjust(sell,type);
 
 let signal="WAIT";
 
@@ -264,34 +284,34 @@ if(buy>=5 && buy>sell)signal="BUY";
 else if(sell>=5 && sell>buy)signal="SELL";
 
 let prob=50+Math.max(buy,sell)*6;
+if(type==="OTC_LOW")prob-=10;
 if(prob>95)prob=95;
 
 return{
 signal,
 prob,
-trend:t15.trend
+trend:t15
 };
 }
 
 /* APPLY */
-function apply(d,price){
+function apply(d,p){
 
 document.getElementById("icon").innerText=
-d.signal=="BUY"?"🟢":d.signal=="SELL"?"🔴":"🟡";
+d.signal==="BUY"?"🟢":d.signal==="SELL"?"🔴":"🟡";
 
 document.getElementById("signal").innerText=d.signal;
-document.getElementById("signal").className=
-"signal "+(d.signal.toLowerCase());
+document.getElementById("signal").className="signal "+d.signal.toLowerCase();
 
 document.getElementById("prob").innerText=d.prob+"%";
-document.getElementById("winrate").innerText=(d.prob-5).toFixed(1)+"%";
+document.getElementById("winrate").innerText=(d.prob-4).toFixed(1)+"%";
 document.getElementById("trend").innerText=d.trend;
 
-document.getElementById("price").innerText="PRICE: "+price.toFixed(2);
-document.getElementById("entry").innerText=
-d.signal=="BUY"?"ENTRY BUY 🔼":
-d.signal=="SELL"?"ENTRY SELL 🔽":"WAIT";
+document.getElementById("price").innerText="PRICE: "+p.toFixed(2);
 
+document.getElementById("entry").innerText=
+d.signal==="BUY"?"ENTRY BUY 🔼":
+d.signal==="SELL"?"ENTRY SELL 🔽":"WAIT";
 }
 
 /* ANALYZE */
@@ -299,37 +319,35 @@ function analyze(){
 if(isRunning)return;
 isRunning=true;
 
-let market=document.getElementById("market").value;
-let price=getPrice(market);
+let m=document.getElementById("market").value;
+let p=price(m);
 
 document.getElementById("signal").innerText="ANALYZING...";
 
 setTimeout(()=>{
-let data=engine(price);
-apply(data,price);
-startTimer(data.signal);
+let d=engine(p,m);
+apply(d,p);
+start(d.signal);
 isRunning=false;
 },600);
 }
 
 /* TIMER */
-function startTimer(signal){
+function start(sig){
 
 clearInterval(timer);
-if(signal=="WAIT")return;
+if(sig==="WAIT")return;
 
-let sec=15;
+let s=60;
 document.getElementById("timer").style.display="block";
 
 timer=setInterval(()=>{
-sec--;
 
-document.getElementById("fill").style.width=(sec/15*100)+"%";
+s--;
+document.getElementById("fill").style.width=(s/60*100)+"%";
+document.getElementById("timer").innerText="TRADE: "+s+"s";
 
-document.getElementById("timer").innerText=
-"TRADE: "+sec+"s";
-
-if(sec<=0){
+if(s<=0){
 clearInterval(timer);
 document.getElementById("timer").style.display="none";
 }
@@ -340,20 +358,18 @@ document.getElementById("timer").style.display="none";
 /* AUTO */
 function autoMode(){
 
-let btn=document.getElementById("autoBtn");
+let b=document.getElementById("autoBtn");
 
 if(auto){
 clearInterval(auto);
 auto=null;
-btn.innerText="AUTO";
+b.innerText="AUTO";
 return;
 }
 
-btn.innerText="AUTO ON";
+b.innerText="AUTO ON";
 
-auto=setInterval(()=>{
-analyze();
-},3000);
+auto=setInterval(()=>analyze(),3500);
 }
 
 </script>
