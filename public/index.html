@@ -1,211 +1,78 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width,
-initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SNIPER AI PRO</title>
 
 <style>
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
 body{
+margin:0;
+font-family:Arial;
 background:#050816;
 color:white;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
-padding:15px;
 }
 
 .app{
-width:100%;
-max-width:430px;
+width:420px;
 background:#0c1224;
-border-radius:25px;
-padding:18px;
+padding:20px;
+border-radius:20px;
 border:1px solid #1f2b4d;
-box-shadow:
-0 0 30px #00ff9d22,
-0 0 80px #000 inset;
 }
 
-.top{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:15px;
-}
-
-.live{
-color:#00ff9d;
-font-size:13px;
-font-weight:bold;
-}
-
-.time{
-font-size:13px;
-color:#ccc;
-}
-
-h1{
+h2{
 text-align:center;
-font-size:28px;
-margin-bottom:15px;
 color:#00ff9d;
-text-shadow:0 0 15px #00ff9d55;
 }
 
-.label{
-font-size:13px;
-margin-top:12px;
-margin-bottom:5px;
-color:#8ea2d9;
+select, button{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
+border:none;
 font-weight:bold;
 }
 
 select{
-width:100%;
-padding:14px;
-border:none;
-outline:none;
-border-radius:15px;
-background:#141f3a;
+background:#121d38;
 color:white;
-font-size:16px;
-font-weight:bold;
-}
-
-.buttons{
-display:flex;
-gap:10px;
-margin-top:15px;
 }
 
 button{
-flex:1;
-padding:14px;
-border:none;
-border-radius:15px;
-font-size:15px;
-font-weight:bold;
-cursor:pointer;
-transition:0.2s;
-}
-
-button:active{
-transform:scale(0.96);
-}
-
-.analyze{
 background:#00ff9d;
 color:black;
-}
-
-.auto{
-background:#1d2d52;
-color:white;
-border:1px solid #324b7c;
-}
-
-.signalBox{
-margin-top:18px;
-background:#111827;
-border-radius:25px;
-padding:20px;
-border:1px solid #1d2d52;
-}
-
-.icon{
-font-size:70px;
-text-align:center;
-}
-
-.signal{
-font-size:52px;
-font-weight:bold;
-text-align:center;
-margin-top:5px;
-}
-
-.buy{
-color:#00ff9d;
-text-shadow:0 0 20px #00ff9d;
-}
-
-.sell{
-color:#ff3b5c;
-text-shadow:0 0 20px #ff3b5c;
-}
-
-.wait{
-color:#facc15;
-text-shadow:0 0 20px #facc15;
-}
-
-.entry{
-text-align:center;
-margin-top:10px;
-font-size:15px;
-font-weight:bold;
-color:#00ff9d;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:16px;
+cursor:pointer;
 }
 
 .card{
-background:#141f3a;
-padding:14px;
-border-radius:16px;
-text-align:center;
+background:#111827;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
 }
 
-.cardTitle{
+.title{
 font-size:12px;
-color:#aaa;
-margin-bottom:5px;
+opacity:0.7;
 }
 
-.cardValue{
+.value{
 font-size:18px;
 font-weight:bold;
+margin-top:5px;
 }
 
-.footer{
-margin-top:18px;
-text-align:center;
-font-size:12px;
-color:#5e6781;
-}
-
-.floatBtn{
-position:fixed;
-bottom:20px;
-right:20px;
-background:#00ff9d;
-color:black;
-padding:14px 18px;
-border-radius:50px;
-font-weight:bold;
-text-decoration:none;
-box-shadow:0 0 20px #00ff9d66;
-}
+.buy{color:#00ff9d;}
+.sell{color:#ff3b3b;}
+.wait{color:#facc15;}
 
 </style>
 </head>
@@ -214,288 +81,103 @@ box-shadow:0 0 20px #00ff9d66;
 
 <div class="app">
 
-<div class="top">
+<h2>SNIPER AI PRO</h2>
 
-<div class="live">
-🟢 LIVE MARKET
-</div>
-
-<div class="time" id="clock">
-00:00:00
-</div>
-
-</div>
-
-<h1>SNIPER AI PRO</h1>
-
-<div class="label">
-MARKET
-</div>
-
+<!-- MARKET -->
 <select id="market">
 
-<option>EURUSD</option>
-<option>GBPUSD</option>
-<option>USDJPY</option>
-<option>BTCUSD</option>
-<option>ETHUSD</option>
-<option>XAUUSD</option>
-<option>AUDUSD</option>
-<option>USDCAD</option>
-<option>USDCHF</option>
-<option>EURJPY</option>
+<option value="EURUSD">EURUSD</option>
+<option value="GBPUSD">GBPUSD</option>
+<option value="USDJPY">USDJPY</option>
+<option value="USDCAD">USDCAD</option>
+<option value="USDCHF">USDCHF</option>
+<option value="AUDUSD">AUDUSD</option>
+<option value="NZDUSD">NZDUSD</option>
+<option value="EURJPY">EURJPY</option>
+<option value="GBPJPY">GBPJPY</option>
+<option value="EURGBP">EURGBP</option>
+
+<option value="BTCUSD">BTCUSD</option>
+<option value="ETHUSD">ETHUSD</option>
+
+<option value="XAUUSD">XAUUSD</option>
+<option value="XAGUSD">XAGUSD</option>
 
 </select>
 
-<div class="label">
-TIMEFRAME
-</div>
-
-<select id="tf">
-
-<option value="1min">1 MINUTE</option>
-<option value="5min">5 MINUTES</option>
-<option value="15min">15 MINUTES</option>
-
-</select>
-
-<div class="buttons">
-
-<button class="analyze"
-onclick="analyze()">
-
-ANALYZE
-
-</button>
-
-<button class="auto"
-onclick="autoMode()"
-id="autoBtn">
-
-AUTO
-
-</button>
-
-</div>
-
-<div class="signalBox">
-
-<div class="icon"
-id="icon">
-
-🟡
-
-</div>
-
-<div class="signal wait"
-id="signal">
-
-WAIT
-
-</div>
-
-<div class="entry"
-id="entry">
-
-ENTRY: WAIT
-
-</div>
-
-<div class="grid">
+<button onclick="analyze()">ANALYZE</button>
 
 <div class="card">
-<div class="cardTitle">
-CONFIDENCE
-</div>
-
-<div class="cardValue"
-id="confidence">
-
-0%
-
-</div>
+<div class="title">SIGNAL</div>
+<div class="value" id="signal">WAIT</div>
 </div>
 
 <div class="card">
-<div class="cardTitle">
-RSI
-</div>
-
-<div class="cardValue"
-id="rsi">
-
-0
-
-</div>
+<div class="title">PRICE</div>
+<div class="value" id="price">--</div>
 </div>
 
 <div class="card">
-<div class="cardTitle">
-MACD
-</div>
-
-<div class="cardValue"
-id="macd">
-
-BEARISH
-
-</div>
+<div class="title">CONFIDENCE</div>
+<div class="value" id="confidence">0%</div>
 </div>
 
 <div class="card">
-<div class="cardTitle">
-QUALITY
+<div class="title">RSI</div>
+<div class="value" id="rsi">0</div>
 </div>
 
-<div class="cardValue"
-id="quality">
-
-LOW
-
-</div>
+<div class="card">
+<div class="title">MACD</div>
+<div class="value" id="macd">--</div>
 </div>
 
-</div>
-
-</div>
-
-<div class="footer">
-
-SMART MONEY CONCEPT ENGINE
-
+<div class="card">
+<div class="title">QUALITY</div>
+<div class="value" id="quality">LOW</div>
 </div>
 
 </div>
-
-<a class="floatBtn"
-href="https://t.me/Mr_dflam">
-
-@Mr_dflam
-
-</a>
 
 <script>
 
-function clock(){
-
-document.getElementById("clock")
-.innerText =
-new Date().toLocaleTimeString();
-
-}
-
-setInterval(clock,1000);
-
-clock();
-
-let auto = null;
-
 async function analyze(){
 
-const market =
-document.getElementById("market").value;
+const symbol = document.getElementById("market").value;
 
-const tf =
-document.getElementById("tf").value;
-
-document.getElementById("signal")
-.innerText = "ANALYZING...";
-
-try{
-
-const res =
-await fetch(`/signal?symbol=${market}&tf=${tf}`);
-
+const res = await fetch("/signal?symbol="+symbol+"&tf=1min");
 const data = await res.json();
 
-console.log(data);
+// SIGNAL
+document.getElementById("signal").innerText = data.signal;
 
-const signal =
-document.getElementById("signal");
+// PRICE
+document.getElementById("price").innerText =
+data.price ? data.price : "--";
 
-const icon =
-document.getElementById("icon");
-
-if(data.signal === "BUY"){
-
-signal.innerText = "BUY";
-signal.className = "signal buy";
-icon.innerText = "🟢";
-
-}
-
-else if(data.signal === "SELL"){
-
-signal.innerText = "SELL";
-signal.className = "signal sell";
-icon.innerText = "🔴";
-
-}
-
-else{
-
-signal.innerText = "WAIT";
-signal.className = "signal wait";
-icon.innerText = "🟡";
-
-}
-
-document.getElementById("entry")
-.innerText =
-"ENTRY: " + data.signal;
-
-document.getElementById("confidence")
-.innerText =
+// CONFIDENCE
+document.getElementById("confidence").innerText =
 (data.confidence || 0) + "%";
 
-document.getElementById("rsi")
-.innerText =
+// RSI
+document.getElementById("rsi").innerText =
 data.rsi || 0;
 
-document.getElementById("macd")
-.innerText =
+// MACD
+document.getElementById("macd").innerText =
 data.macd ? "BULLISH" : "BEARISH";
 
-document.getElementById("quality")
-.innerText =
+// QUALITY
+document.getElementById("quality").innerText =
 data.quality || "LOW";
 
-}catch(err){
+// COLOR SIGNAL
+let s = data.signal;
 
-console.log(err);
-
-document.getElementById("signal")
-.innerText = "ERROR";
-
-}
-
-}
-
-function autoMode(){
-
-const btn =
-document.getElementById("autoBtn");
-
-if(auto){
-
-clearInterval(auto);
-
-auto = null;
-
-btn.innerText = "AUTO";
-
-return;
-}
-
-btn.innerText = "AUTO ON";
-
-analyze();
-
-auto = setInterval(() => {
-
-analyze();
-
-},10000);
+document.getElementById("signal").className =
+s === "BUY" ? "value buy" :
+s === "SELL" ? "value sell" :
+"value wait";
 
 }
 
