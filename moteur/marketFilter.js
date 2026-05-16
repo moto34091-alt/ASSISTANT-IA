@@ -1,22 +1,41 @@
-function wick(c){
+function marketQuality(symbol){
 
-  return {
-    upper: 1,
-    lower: 2,
-    hammer: true,
-    star: false
-  };
+  const HIGH = [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "USDCAD",
+    "USDCHF",
+    "BTCUSD",
+    "ETHUSD",
+    "XAUUSD",
+    "AUDUSD",
+    "EURJPY"
+  ];
+
+  let clean = symbol
+    .replace(" OTC", "")
+    .replace(/\//g, "")
+    .replace(/\s/g, "")
+    .toUpperCase();
+
+  if(HIGH.includes(clean)){
+    return "HIGH";
+  }
+
+  return "LOW";
 }
 
-function patterns(c1,c2,c3){
+function adjust(score, quality){
 
-  return {
-    morningStar: true,
-    eveningStar: false
-  };
+  if(quality === "HIGH"){
+    return score + 1;
+  }
+
+  return score;
 }
 
 module.exports = {
-  wick,
-  patterns
+  marketQuality,
+  adjust
 };
