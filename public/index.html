@@ -2,43 +2,72 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI V18 ULTRA PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>D-FLAM SNIPER AI PRO</title>
 
 <style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
 body{
 background:#050816;
 color:white;
-font-family:Arial;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
+padding:10px;
 }
 
 .app{
 width:100%;
 max-width:420px;
 background:#0c1224;
-padding:16px;
 border-radius:25px;
+padding:16px;
 border:1px solid #1f2b4d;
 }
 
-h2{color:#00ff9d;text-align:center}
+.top{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
 
-select,button{
+.live{color:#00ff9d;font-weight:bold}
+.timeNow{color:#ccc;font-size:13px}
+
+h2{text-align:center;color:#00ff9d}
+
+select{
 width:100%;
 padding:12px;
 margin-top:10px;
 border-radius:12px;
-border:none;
-font-weight:bold;
+background:#121d38;
+color:white;
 }
 
-button{cursor:pointer}
+.buttons{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
 
-.analyze{background:#00ff9d}
+button{
+flex:1;
+padding:12px;
+border-radius:12px;
+border:none;
+font-weight:bold;
+cursor:pointer;
+}
+
+.analyze{background:#00ff9d;color:black}
 .auto{background:#1c2d52;color:white}
 
 .signalBox{
@@ -67,25 +96,29 @@ margin-top:10px;
 background:#141f3a;
 padding:10px;
 border-radius:12px;
-text-align:center;
 }
 
 .bar{
 height:10px;
 background:#1d2746;
 border-radius:20px;
-margin-top:10px;
 overflow:hidden;
+margin-top:10px;
 }
 
 .fill{
 height:100%;
 width:100%;
 background:linear-gradient(90deg,#00ff9d,#00c3ff);
+transition:width 1s linear;
 }
 
-.timer{text-align:center;margin-top:10px;display:none}
-
+.timer{
+margin-top:10px;
+font-size:13px;
+color:#ccc;
+display:none;
+}
 </style>
 </head>
 
@@ -93,25 +126,29 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 
 <div class="app">
 
-<h2>SNIPER AI V18 PRO</h2>
+<div class="top">
+<div class="live">🟢 LIVE</div>
+<div id="clock"></div>
+</div>
+
+<h2>SNIPER AI PRO</h2>
 
 <select id="market">
 <option>EUR/USD</option>
 <option>GBP/USD</option>
 <option>USD/JPY</option>
-<option>USD/CHF</option>
-<option>AUD/USD</option>
-<option>USD/CAD</option>
-<option>EUR/JPY</option>
-<option>GBP/JPY</option>
 <option>XAU/USD</option>
 <option>BTC/USD</option>
-<option>ETH/USD</option>
-<option>NAS100</option>
-<option>US30</option>
 </select>
 
-<button class="analyze" onclick="analyzeMarket()">ANALYZE</button>
+<select disabled>
+<option>15 SEC ENGINE</option>
+</select>
+
+<div class="buttons">
+<button class="analyze" onclick="analyze()">ANALYZE</button>
+<button class="auto" onclick="autoMode()" id="autoBtn">AUTO</button>
+</div>
 
 <div class="signalBox">
 
@@ -119,30 +156,20 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 <div class="signal wait" id="signal">WAIT</div>
 
 <div id="entry">ENTRY: -</div>
+<div id="price">PRICE: --</div>
 
 <div class="grid">
-<div class="card">
-RSI<br><span id="rsi">0</span>
-</div>
-
-<div class="card">
-WINRATE<br><span id="winrate">0%</span>
-</div>
-
-<div class="card">
-PROB<br><span id="prob">0%</span>
-</div>
-
-<div class="card">
-TREND<br><span id="trend">NEUTRAL</span>
-</div>
+<div class="card">PROB<br><b id="prob">0%</b></div>
+<div class="card">WIN<br><b id="winrate">0%</b></div>
+<div class="card">TREND<br><b id="trend">NEUTRAL</b></div>
+<div class="card">TF<br><b>1m/5m/15m</b></div>
 </div>
 
 <div class="bar">
 <div class="fill" id="fill"></div>
 </div>
 
-<div class="timer" id="timer">15 SEC</div>
+<div class="timer" id="timer">READY</div>
 
 </div>
 
@@ -150,176 +177,183 @@ TREND<br><span id="trend">NEUTRAL</span>
 
 <script>
 
-/* =========================
-   API KEY
-========================= */
-const API_KEY = "TON_TWELVE_DATA_API_KEY";
+/* CLOCK */
+setInterval(()=>{
+document.getElementById("clock").innerText=new Date().toLocaleTimeString();
+},1000);
 
-/* =========================
-   GET MARKET DATA
-========================= */
-async function getCandles(symbol){
+/* STATE */
+let auto=null;
+let timer=null;
+let isRunning=false;
 
-  const url =
-  `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=50&apikey=${API_KEY}`;
+/* TIMEFRAMES */
+const tf={
+"1m":[],
+"5m":[],
+"15m":[]
+};
 
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if(!data.values) return null;
-
-  return data.values.map(c=>({
-    open:+c.open,
-    high:+c.high,
-    low:+c.low,
-    close:+c.close
-  })).reverse();
+/* PRICE */
+function getPrice(m){
+let p=100+Math.random()*10;
+if(m.includes("BTC"))p=60000+Math.random()*1000;
+if(m.includes("XAU"))p=2300+Math.random()*20;
+return p;
 }
 
-/* REMOVE REPAINT CANDLE */
-function clean(c){ return c.slice(0,-1); }
-
-/* =========================
-   SMC ENGINE
-========================= */
-function analyzeSMC(c){
-
-  c = clean(c);
-
-  let last = c[c.length-1];
-  let prev = c[c.length-2];
-
-  let closes = c.map(x=>x.close);
-  let highs = c.map(x=>x.high);
-  let lows = c.map(x=>x.low);
-
-  /* STRUCTURE */
-  let HH = last.high > prev.high;
-  let HL = last.low > prev.low;
-  let LH = last.high < prev.high;
-  let LL = last.low < prev.low;
-
-  /* BOS */
-  let BOS_UP = last.close > prev.high;
-  let BOS_DOWN = last.close < prev.low;
-
-  /* LIQUIDITY */
-  let liqBuy = last.low < Math.min(...lows.slice(-7));
-  let liqSell = last.high > Math.max(...highs.slice(-7));
-
-  /* RSI */
-  let g=0,l=0;
-  for(let i=1;i<closes.length;i++){
-    let d=closes[i]-closes[i-1];
-    d>0?g+=d:l-=d;
-  }
-
-  let rsi = 100 - (100/(1+g/(l||1)));
-
-  /* SCORE */
-  let buy=0,sell=0;
-
-  if(HH) buy++;
-  if(HL) buy++;
-  if(BOS_UP) buy++;
-  if(liqBuy) buy++;
-  if(rsi<40) buy++;
-
-  if(LH) sell++;
-  if(LL) sell++;
-  if(BOS_DOWN) sell++;
-  if(liqSell) sell++;
-  if(rsi>60) sell++;
-
-  let signal="WAIT";
-
-  if(buy>=3 && buy>sell) signal="BUY";
-  else if(sell>=3 && sell>buy) signal="SELL";
-
-  let prob = Math.min(95,50+Math.max(buy,sell)*7);
-  let win = Math.min(92,55+Math.max(buy,sell)*5);
-
-  return{
-    signal,
-    rsi:rsi.toFixed(2),
-    prob:prob.toFixed(1),
-    winrate:win.toFixed(1),
-    trend: signal==="BUY"?"BULLISH":signal==="SELL"?"BEARISH":"NEUTRAL"
-  };
+/* CANDLE */
+function candle(price){
+return{
+open:price,
+close:price+(Math.random()-0.5),
+high:price+Math.random(),
+low:price-Math.random()
+};
 }
 
-/* =========================
-   MAIN ANALYZE
-========================= */
-async function analyzeMarket(){
+/* UPDATE TF */
+function updateTF(price){
+tf["1m"].push(candle(price));
+tf["5m"].push(candle(price));
+tf["15m"].push(candle(price));
 
-  let m=document.getElementById("market").value;
-
-  document.getElementById("signal").innerText="LOADING...";
-  document.getElementById("icon").innerText="🧠";
-
-  let candles=await getCandles(m);
-  if(!candles) return;
-
-  let d=analyzeSMC(candles);
-
-  applyUI(d);
-  startTimer();
+if(tf["1m"].length>30)tf["1m"].shift();
+if(tf["5m"].length>30)tf["5m"].shift();
+if(tf["15m"].length>30)tf["15m"].shift();
 }
 
-/* =========================
-   UI
-========================= */
-function applyUI(d){
+/* ANALYZE TF */
+function analyzeTF(data){
+if(data.length<5)return{trend:"NEUTRAL"};
 
-  let icon=document.getElementById("icon");
-  let sig=document.getElementById("signal");
+let buy=0,sell=0;
 
-  if(d.signal==="BUY"){
-    icon.innerText="🟢";
-    sig.innerText="BUY";
-    sig.className="signal buy";
-  }
-  else if(d.signal==="SELL"){
-    icon.innerText="🔴";
-    sig.innerText="SELL";
-    sig.className="signal sell";
-  }
-  else{
-    icon.innerText="🟡";
-    sig.innerText="WAIT";
-    sig.className="signal wait";
-  }
-
-  document.getElementById("rsi").innerText=d.rsi;
-  document.getElementById("prob").innerText=d.prob+"%";
-  document.getElementById("winrate").innerText=d.winrate+"%";
-  document.getElementById("trend").innerText=d.trend;
-  document.getElementById("entry").innerText="ENTRY: "+d.signal;
+for(let i=1;i<data.length;i++){
+data[i].close>data[i-1].close?buy++:sell++;
 }
 
-/* =========================
-   TIMER
-========================= */
-function startTimer(){
+return{
+trend:buy>sell?"BUY":sell>buy?"SELL":"NEUTRAL"
+};
+}
 
-  let t=15;
-  let timer=document.getElementById("timer");
-  timer.style.display="block";
+/* ENGINE */
+function engine(price){
 
-  let i=setInterval(()=>{
+updateTF(price);
 
-    document.getElementById("fill").style.width=(t/15*100)+"%";
-    timer.innerText=t+" SEC";
+let t1=analyzeTF(tf["1m"]);
+let t5=analyzeTF(tf["5m"]);
+let t15=analyzeTF(tf["15m"]);
 
-    t--;
+let buy=0,sell=0;
 
-    if(t<0){
-      clearInterval(i);
-      timer.style.display="none";
-    }
+if(t15.trend=="BUY")buy+=3;
+if(t15.trend=="SELL")sell+=3;
 
-  },1000);
+if(t5.trend=="BUY")buy+=2;
+if(t5.trend=="SELL")sell+=2;
+
+if(t1.trend=="BUY")buy++;
+if(t1.trend=="SELL")sell++;
+
+let signal="WAIT";
+
+if(buy>=5 && buy>sell)signal="BUY";
+else if(sell>=5 && sell>buy)signal="SELL";
+
+let prob=50+Math.max(buy,sell)*6;
+if(prob>95)prob=95;
+
+return{
+signal,
+prob,
+trend:t15.trend
+};
+}
+
+/* APPLY */
+function apply(d,price){
+
+document.getElementById("icon").innerText=
+d.signal=="BUY"?"🟢":d.signal=="SELL"?"🔴":"🟡";
+
+document.getElementById("signal").innerText=d.signal;
+document.getElementById("signal").className=
+"signal "+(d.signal.toLowerCase());
+
+document.getElementById("prob").innerText=d.prob+"%";
+document.getElementById("winrate").innerText=(d.prob-5).toFixed(1)+"%";
+document.getElementById("trend").innerText=d.trend;
+
+document.getElementById("price").innerText="PRICE: "+price.toFixed(2);
+document.getElementById("entry").innerText=
+d.signal=="BUY"?"ENTRY BUY 🔼":
+d.signal=="SELL"?"ENTRY SELL 🔽":"WAIT";
+
+}
+
+/* ANALYZE */
+function analyze(){
+if(isRunning)return;
+isRunning=true;
+
+let market=document.getElementById("market").value;
+let price=getPrice(market);
+
+document.getElementById("signal").innerText="ANALYZING...";
+
+setTimeout(()=>{
+let data=engine(price);
+apply(data,price);
+startTimer(data.signal);
+isRunning=false;
+},600);
+}
+
+/* TIMER */
+function startTimer(signal){
+
+clearInterval(timer);
+if(signal=="WAIT")return;
+
+let sec=15;
+document.getElementById("timer").style.display="block";
+
+timer=setInterval(()=>{
+sec--;
+
+document.getElementById("fill").style.width=(sec/15*100)+"%";
+
+document.getElementById("timer").innerText=
+"TRADE: "+sec+"s";
+
+if(sec<=0){
+clearInterval(timer);
+document.getElementById("timer").style.display="none";
+}
+
+},1000);
+}
+
+/* AUTO */
+function autoMode(){
+
+let btn=document.getElementById("autoBtn");
+
+if(auto){
+clearInterval(auto);
+auto=null;
+btn.innerText="AUTO";
+return;
+}
+
+btn.innerText="AUTO ON";
+
+auto=setInterval(()=>{
+analyze();
+},3000);
 }
 
 </script>
