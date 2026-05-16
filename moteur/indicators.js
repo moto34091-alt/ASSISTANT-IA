@@ -1,6 +1,6 @@
 function RSI(closes){
 
-  try{
+  try {
 
     if(!closes || closes.length < 14){
       return 50;
@@ -11,61 +11,43 @@ function RSI(closes){
 
     for(let i = 1; i < 14; i++){
 
-      let diff = closes[i] - closes[i - 1];
+      const diff = closes[i] - closes[i - 1];
 
       if(diff >= 0){
         gains += diff;
-      }else{
+      } else {
         losses += Math.abs(diff);
       }
     }
 
-    if(losses === 0){
-      return 100;
-    }
+    if(losses === 0) return 100;
 
-    let rs = gains / losses;
+    const rs = gains / losses;
 
     return 100 - (100 / (1 + rs));
 
-  }catch(err){
-
-    console.log("RSI ERROR:", err.message);
-
+  } catch(err){
     return 50;
   }
 }
 
 function momentum(closes){
 
-  try{
-
-    if(!closes || closes.length < 2){
-      return 0;
-    }
-
-    return closes[closes.length - 1] - closes[0];
-
-  }catch(err){
-
-    console.log("MOMENTUM ERROR:", err.message);
-
+  if(!closes || closes.length < 2){
     return 0;
   }
+
+  return closes[closes.length - 1] - closes[0];
 }
 
 function EMA(data, period){
 
-  if(!data || data.length === 0){
-    return 0;
-  }
+  if(!data || data.length === 0) return 0;
 
   let k = 2 / (period + 1);
-
   let ema = data[0];
 
   for(let i = 1; i < data.length; i++){
-
     ema = data[i] * k + ema * (1 - k);
   }
 
@@ -74,36 +56,27 @@ function EMA(data, period){
 
 function MACD(closes){
 
-  try{
+  try {
 
     if(!closes || closes.length < 26){
-
-      return {
-        bullish: false
-      };
+      return { bullish: false };
     }
 
     const ema12 = EMA(closes, 12);
     const ema26 = EMA(closes, 26);
 
-    const macdValue = ema12 - ema26;
-
     return {
-      bullish: macdValue > 0
+      bullish: ema12 > ema26
     };
 
-  }catch(err){
-
-    console.log("MACD ERROR:", err.message);
-
-    return {
-      bullish: false
-    };
+  } catch(err){
+    return { bullish: false };
   }
 }
 
 module.exports = {
   RSI,
   momentum,
-  MACD
+  MACD,
+  EMA
 };
