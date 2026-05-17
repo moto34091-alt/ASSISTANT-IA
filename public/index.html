@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SNIPER AI PRO V3</title>
+<title>SNIPER AI PRO V4</title>
 
 <style>
 
@@ -15,17 +15,16 @@ background:#050816;
 color:white;
 display:flex;
 justify-content:center;
-align-items:center;
-min-height:100vh;
 padding:10px;
+min-height:100vh;
 }
 
 .app{
 width:100%;
-max-width:420px;
+max-width:430px;
 background:#0c1224;
 border-radius:25px;
-padding:16px;
+padding:15px;
 border:1px solid #1f2b4d;
 }
 
@@ -50,15 +49,21 @@ color:black;
 cursor:pointer;
 }
 
+button.auto{
+background:#1d2d52;
+color:white;
+}
+
+/* SIGNAL */
 .signalBox{
 margin-top:15px;
 background:#111827;
-padding:18px;
-border-radius:20px;
+padding:15px;
+border-radius:18px;
 }
 
 .signal{
-font-size:50px;
+font-size:52px;
 text-align:center;
 font-weight:bold;
 }
@@ -69,10 +74,12 @@ font-weight:bold;
 
 .timer{
 text-align:center;
-margin-top:8px;
+margin-top:6px;
 color:#00ff9d;
 font-weight:bold;
 }
+
+.price{text-align:center;margin-top:6px;color:#ccc}
 
 /* EXP BAR */
 .expBar{
@@ -90,11 +97,12 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 transition:width 1s linear;
 }
 
+/* GRID */
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:8px;
-margin-top:12px;
+margin-top:10px;
 }
 
 .card{
@@ -107,9 +115,27 @@ text-align:center;
 .cardTitle{font-size:11px;color:#aaa}
 .cardValue{font-size:16px;font-weight:bold}
 
+/* CHART */
+canvas{
+margin-top:12px;
+background:#0b1020;
+border-radius:15px;
+width:100%;
+height:120px;
+}
+
+/* LIQUIDITY ZONES */
+.zone{
+position:absolute;
+height:2px;
+background:#ff3b5c;
+width:100%;
+opacity:0.4;
+}
+
 .footer{
 text-align:center;
-margin-top:12px;
+margin-top:10px;
 font-size:11px;
 color:#5e6781;
 }
@@ -122,11 +148,11 @@ color:#5e6781;
 <div class="app">
 
 <div class="top">
-<div class="live">🟢 LIVE</div>
+<div class="live">🟢 LIVE INSTITUTIONAL</div>
 <div class="clock" id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO V3</h2>
+<h2>SNIPER AI PRO V4</h2>
 
 <select id="market">
 <option>EURUSD</option>
@@ -142,6 +168,7 @@ color:#5e6781;
 </select>
 
 <button onclick="analyze()">ANALYZE</button>
+<button class="auto" onclick="toggleAuto()">AUTO ANALYZE</button>
 
 <div class="signalBox">
 
@@ -149,9 +176,11 @@ color:#5e6781;
 
 <div class="timer" id="timer"></div>
 
-<div class="expBar">
-<div class="expFill" id="expFill"></div>
-</div>
+<div class="price" id="price">PRICE: --</div>
+
+<div class="expBar"><div class="expFill" id="expFill"></div></div>
+
+<canvas id="chart"></canvas>
 
 <div class="grid">
 
@@ -161,60 +190,75 @@ color:#5e6781;
 </div>
 
 <div class="card">
+<div class="cardTitle">SMC SCORE</div>
+<div class="cardValue" id="smc">0</div>
+</div>
+
+<div class="card">
 <div class="cardTitle">RSI</div>
 <div class="cardValue" id="rsi">50</div>
 </div>
 
 <div class="card">
-<div class="cardTitle">MACD</div>
-<div class="cardValue" id="macd">--</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">SMC SCORE</div>
-<div class="cardValue" id="smc">0</div>
+<div class="cardTitle">TREND</div>
+<div class="cardValue" id="trend">NEUTRAL</div>
 </div>
 
 </div>
 
 </div>
 
-<div class="footer">SMART MONEY CONCEPT ENGINE V3</div>
+<div class="footer">INSTITUTIONAL SMART MONEY ENGINE</div>
 
 </div>
 
 <script>
 
 /* CLOCK */
-setInterval(()=>{
-clock.innerText=new Date().toLocaleTimeString();
-},1000);
+setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
 
-/* SMART MONEY ENGINE */
-function smcEngine(data){
+/* AUTO */
+let auto=false, loop;
 
-let score = 50;
+/* CANVAS CHART */
+const ctx=document.getElementById("chart").getContext("2d");
 
-/* LIQUIDITY SWEEP */
-if(data.rsi > 70 || data.rsi < 30){
-score += 20;
+function drawChart(){
+
+ctx.clearRect(0,0,400,120);
+
+let w=0;
+
+for(let i=0;i<20;i++){
+
+let h=Math.random()*100;
+
+ctx.fillStyle="#00ff9d";
+
+ctx.fillRect(w,120-h,10,h);
+
+w+=18;
+
 }
 
-/* BOS (trend confirmation) */
-if(data.macd === true){
-score += 15;
 }
 
-/* FAKE BREAKOUT FILTER */
-if(data.volatility < 40){
-score -= 10;
-}
+/* SMART MONEY ENGINE V4 */
+function smcV4(d){
 
-/* KILLZONE BONUS */
-let h = new Date().getHours();
-if((h>=8 && h<=11) || (h>=14 && h<=17)){
-score += 10;
-}
+let score=50;
+
+/* liquidity sweep */
+if(d.rsi>70||d.rsi<30) score+=20;
+
+/* BOS */
+if(d.macd) score+=15;
+
+/* fake breakout filter */
+if(d.volatility<40) score-=10;
+
+/* institutional trend bias */
+if(d.trend==="UP"||d.trend==="DOWN") score+=10;
 
 /* clamp */
 return Math.max(0,Math.min(100,score));
@@ -222,21 +266,34 @@ return Math.max(0,Math.min(100,score));
 
 /* TIMER */
 let t;
+
 function startTimer(){
+
 clearInterval(t);
 let time=60;
 
 expFill.style.width="100%";
 
 t=setInterval(()=>{
+
 time--;
-timer.innerText="⏳ EXPIRATION "+time+"s";
+
+timer.innerText="⏳ EXP "+time+"s";
 expFill.style.width=(time/60*100)+"%";
+
 if(time<=0){
 clearInterval(t);
-timer.innerText="⚠️ EXPIRED";
+timer.innerText="EXPIRED";
 }
+
 },1000);
+}
+
+/* AUTO */
+function toggleAuto(){
+auto=!auto;
+if(auto) loop=setInterval(analyze,1500);
+else clearInterval(loop);
 }
 
 /* ANALYZE */
@@ -245,24 +302,23 @@ async function analyze(){
 const res=await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
 const d=await res.json();
 
-let smc = smcEngine(d);
+let smc=smcV4(d);
 
-/* SIGNAL */
 signal.innerText=d.signal;
 signal.className=
 d.signal==="BUY"?"signal buy":
 d.signal==="SELL"?"signal sell":"signal wait";
 
-/* DATA */
-conf.innerText=smc+"%";
-rsi.innerText=d.rsi;
-macd.innerText=d.macd?"BULLISH":"BEARISH";
-smc.innerText=smc;
+price.innerText="PRICE: "+d.price;
 
-/* TIMER */
-if(d.signal!=="WAIT"){
-startTimer();
-}
+conf.innerText=smc+"%";
+smc.innerText=smc;
+rsi.innerText=d.rsi;
+trend.innerText=d.trend||"NEUTRAL";
+
+drawChart();
+
+if(d.signal!=="WAIT") startTimer();
 
 }
 
