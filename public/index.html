@@ -25,7 +25,6 @@ min-height:100vh;
 padding:10px;
 }
 
-/* APP */
 .app{
 width:100%;
 max-width:420px;
@@ -33,10 +32,8 @@ background:#0c1224;
 border-radius:25px;
 padding:16px;
 border:1px solid #1f2b4d;
-box-shadow:0 0 30px #00ff9d22;
 }
 
-/* HEADER */
 .top{
 display:flex;
 justify-content:space-between;
@@ -45,131 +42,79 @@ justify-content:space-between;
 .live{color:#00ff9d;font-weight:bold}
 .clock{color:#ccc}
 
-/* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
 margin:10px 0;
-font-size:22px;
-text-shadow:0 0 15px #00ff9d55;
-animation: glow 2s infinite alternate;
 }
 
-@keyframes glow{
-from{opacity:0.6}
-to{opacity:1}
-}
-
-/* SELECT */
-select{
+select,button{
 width:100%;
 padding:12px;
 margin-top:10px;
 border:none;
 border-radius:12px;
 font-weight:bold;
-background:#121d38;
-color:white;
 }
 
-/* BUTTONS */
 button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:12px;
-font-weight:bold;
-cursor:pointer;
-transition:0.2s;
-}
-
-/* ANALYZE */
-button.analyze{
 background:#00ff9d;
 color:black;
-animation:pulseGreen 1.5s infinite;
+cursor:pointer;
 }
 
-/* AUTO */
 button.auto{
 background:#1d2d52;
 color:white;
-animation:pulseBlue 2s infinite;
 }
 
-@keyframes pulseGreen{
-0%{box-shadow:0 0 0 0 #00ff9d55}
-70%{box-shadow:0 0 0 10px transparent}
-100%{box-shadow:0 0 0 0 transparent}
-}
-
-@keyframes pulseBlue{
-0%{box-shadow:0 0 0 0 #4aa3ff55}
-70%{box-shadow:0 0 0 10px transparent}
-100%{box-shadow:0 0 0 0 transparent}
-}
-
-/* SIGNAL */
 .signalBox{
 margin-top:15px;
 background:#111827;
 padding:18px;
 border-radius:18px;
-text-align:center;
 }
 
 .signal{
-font-size:52px;
+font-size:50px;
+text-align:center;
 font-weight:bold;
-transition:0.3s;
 }
 
-/* BUY ANIMATION */
-.buy{
-color:#00ff9d;
-text-shadow:0 0 20px #00ff9d;
-animation:pulseBuy 1s infinite;
-}
+.buy{color:#00ff9d}
+.sell{color:#ff3b5c}
+.wait{color:#facc15}
 
-/* SELL ANIMATION */
-.sell{
-color:#ff3b5c;
-text-shadow:0 0 20px #ff3b5c;
-animation:pulseSell 1s infinite;
-}
-
-@keyframes pulseBuy{
-0%{transform:scale(1)}
-50%{transform:scale(1.1)}
-100%{transform:scale(1)}
-}
-
-@keyframes pulseSell{
-0%{transform:scale(1)}
-50%{transform:scale(1.1)}
-100%{transform:scale(1)}
-}
-
-/* WAIT */
-.wait{
-color:#facc15;
-}
-
-/* INFO */
 .timer{
+text-align:center;
 margin-top:8px;
 color:#00ff9d;
 font-weight:bold;
 }
 
 .price{
+text-align:center;
 margin-top:6px;
 color:#ccc;
 font-size:14px;
 }
 
-/* GRID */
+/* EXP BAR */
+.expBar{
+height:6px;
+background:#1a2440;
+border-radius:20px;
+margin-top:10px;
+overflow:hidden;
+}
+
+.expFill{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+transition:width 1s linear;
+}
+
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
@@ -187,7 +132,6 @@ text-align:center;
 .cardTitle{font-size:11px;color:#aaa}
 .cardValue{font-size:16px;font-weight:bold}
 
-/* FOOTER */
 .footer{
 text-align:center;
 margin-top:10px;
@@ -210,17 +154,39 @@ color:#5e6781;
 <h2>D-FLAM SIGNAL BOT</h2>
 
 <select id="market">
-<option>EURUSD</option>
-<option>GBPUSD</option>
-<option>BTCUSD</option>
-<option>XAUUSD</option>
+
 <option>EUR/JPY</option>
 <option>GBP/JPY</option>
+
+<option>AUD/CAD</option>
 <option>AUD/USD</option>
-<option>USD/JPY</option>
+
+<option>CAD/CHF</option>
+<option>CAD/JPY</option>
+
+<option>EUR/AUD</option>
+<option>EUR/CAD</option>
+<option>EUR/CHF</option>
+<option>EUR/GBP</option>
+<option>EUR/USD</option>
+
+<option>GBP/CHF</option>
+<option>GBP/USD</option>
+<option>GBP/AUD</option>
+<option>GBP/CAD</option>
+
 <option>USD/CAD</option>
 <option>USD/CHF</option>
-<option>EUR/GBP</option>
+<option>USD/JPY</option>
+
+<option>AUD/CHF</option>
+<option>AUD/JPY</option>
+
+<option>CHF/JPY</option>
+
+<option>BTCUSD</option>
+<option>XAUUSD</option>
+
 </select>
 
 <select id="tf">
@@ -229,8 +195,8 @@ color:#5e6781;
 <option>15min</option>
 </select>
 
-<button class="analyze" onclick="analyze()">ANALYZE</button>
-<button class="auto" onclick="toggleAuto()">AUTO ANALYZE</button>
+<button onclick="analyze()">ANALYSE</button>
+<button class="auto" onclick="toggleAuto()">AUTO ANALYSE</button>
 
 <div class="signalBox">
 
@@ -239,6 +205,10 @@ color:#5e6781;
 <div class="timer" id="timer"></div>
 
 <div class="price" id="price">PRICE: --</div>
+
+<div class="expBar">
+<div class="expFill" id="expFill"></div>
+</div>
 
 <div class="grid">
 
@@ -290,12 +260,15 @@ function startTimer(){
 clearInterval(t);
 
 let time=60;
-expFill && (expFill.style.width="100%");
+expFill.style.width="100%";
 
 t=setInterval(()=>{
 
 time--;
+
 timer.innerText="⏳ EXP "+time+"s";
+
+expFill.style.width=(time/60*100)+"%";
 
 if(time<=0){
 clearInterval(t);
@@ -312,7 +285,7 @@ function toggleAuto(){
 auto=!auto;
 
 if(auto){
-loop=setInterval(analyze,1500);
+loop=setInterval(analyse,1500);
 }else{
 clearInterval(loop);
 }
@@ -332,19 +305,29 @@ data.signal==="BUY"?"signal buy":
 data.signal==="SELL"?"signal sell":"signal wait";
 
 /* PRICE */
-price.innerText = "PRICE: " + (data.price ?? "--");
+price.innerText =
+"PRICE: " + (data.price ?? "--");
 
 /* RSI */
-rsi.innerText = data.rsi ?? "50";
+rsi.innerText =
+data.rsi ?? "50";
 
 /* STRUCTURE */
-macd.innerText = data.structure ?? "NEUTRAL";
+macd.innerText =
+data.structure ?? "NEUTRAL";
 
-/* CONF */
-smc.innerText = (data.confidence ?? 0) + "%";
+/* SMC SCORE */
+smc.innerText =
+(data.confidence ?? 0) + "%";
 
 /* QUALITY */
-quality.innerText = data.quality ?? "LOW";
+quality.innerText =
+data.quality ?? "LOW";
+
+/* TIMER */
+if(data.signal !== "WAIT"){
+startTimer();
+}
 
 }
 
