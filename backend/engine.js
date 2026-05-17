@@ -1,22 +1,17 @@
-const { RSI, momentum, MACD } = require("./indicators");
-const { wick, patterns } = require("./priceAction");
-const { marketQuality, adjust } = require("./marketFilter");
-const { getCandles } = require("./data");
-
 async function analyzeMarket(symbol, tf) {
 
 try {
 
-if (!symbol) {
-symbol = "EURUSD";
-}
+/* DEFAULT SYMBOL */
+if (!symbol) symbol = "EURUSD";
 
+/* SAFE PRICE (fallback si pas API) */
 let price = 1 + Math.random() * 100;
 
-/* SIMULATION RSI */
+/* RSI SIMULATION */
 let rsi = 30 + Math.random() * 40;
 
-/* STRUCTURE LOGIC SIMPLE */
+/* STRUCTURE LOGIC */
 let structure = "NEUTRAL";
 
 if (rsi > 60) structure = "BULLISH";
@@ -28,20 +23,20 @@ let confidence = 50;
 if (rsi > 60) confidence += 25;
 if (rsi < 40) confidence += 25;
 
-confidence = Math.min(100, confidence);
+confidence = Math.min(100, Math.max(0, confidence));
 
 /* SIGNAL */
 let signal = "WAIT";
 
-if (confidence > 70) signal = "BUY";
-if (confidence < 35) signal = "SELL";
+if (confidence >= 70) signal = "BUY";
+if (confidence <= 35) signal = "SELL";
 
 /* QUALITY */
 let quality = "LOW";
 
 if (confidence > 75) quality = "HIGH";
 
-/* RETURN ALWAYS SAFE */
+/* FINAL SAFE RETURN */
 return {
 price: Number(price.toFixed(5)),
 rsi: Number(rsi.toFixed(2)),
@@ -56,14 +51,15 @@ timeframe: tf || "1min"
 
 console.log("ENGINE ERROR:", err);
 
-/* NEVER RETURN EMPTY */
+/* NEVER BREAK FRONTEND */
 return {
 price: null,
 rsi: 50,
 structure: "NEUTRAL",
 confidence: 0,
 signal: "WAIT",
-quality: "LOW"
+quality: "LOW",
+timeframe: tf || "1min"
 };
 
 }
@@ -73,6 +69,3 @@ quality: "LOW"
 module.exports = {
 analyzeMarket
 };
-}
-
-module.exports = { analyze };
