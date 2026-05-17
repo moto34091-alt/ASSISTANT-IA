@@ -3,107 +3,108 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SNIPER AI PRO</title>
+<title>D-FLAM BOT TRADING</title>
 
 <style>
 
 /* ===== GLOBAL ===== */
 body{
 margin:0;
-font-family:Arial;
-background: radial-gradient(circle at top, #0f1b3d, #050816);
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+background: linear-gradient(160deg,#050816,#0b1430);
 color:white;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
+padding:12px;
 }
 
-/* ===== CARD ===== */
+/* ===== APP CARD ===== */
 .app{
 width:100%;
 max-width:420px;
-background: rgba(12,18,36,0.92);
-backdrop-filter: blur(10px);
-border-radius:22px;
+background: rgba(15, 20, 45, 0.9);
+border-radius:24px;
 padding:18px;
-box-shadow:0 0 40px rgba(0,255,157,0.08);
-border:1px solid rgba(255,255,255,0.05);
+box-shadow:0 10px 40px rgba(0,0,0,0.6);
+backdrop-filter: blur(12px);
+border:1px solid rgba(255,255,255,0.06);
 }
 
 /* ===== HEADER ===== */
 .header{
 text-align:center;
-font-size:22px;
-font-weight:bold;
+font-size:20px;
+font-weight:700;
 color:#00ff9d;
 letter-spacing:1px;
 margin-bottom:12px;
 }
 
-/* ===== SELECT ===== */
+/* ===== SELECTS ===== */
 select,button{
 width:100%;
-padding:13px;
+padding:14px;
 margin-top:10px;
+border-radius:14px;
 border:none;
-border-radius:12px;
-font-weight:bold;
+font-size:14px;
+font-weight:600;
 outline:none;
 }
 
 select{
 background:#141d38;
 color:white;
-border:1px solid rgba(255,255,255,0.08);
 }
 
 button{
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-color:#000;
+background: linear-gradient(90deg,#00ff9d,#00c3ff);
+color:black;
 cursor:pointer;
 transition:0.2s;
 }
 
-button:hover{
-transform:scale(1.02);
+button:active{
+transform:scale(0.98);
+}
+
+/* ===== SIGNAL CARD ===== */
+.card{
+margin-top:16px;
+padding:14px;
+border-radius:18px;
+background: rgba(255,255,255,0.03);
+text-align:center;
 }
 
 /* ===== SIGNAL ===== */
-.signalBox{
-text-align:center;
-margin-top:18px;
-padding:10px;
-border-radius:15px;
-background:rgba(255,255,255,0.03);
-}
-
 .signal{
-font-size:46px;
-font-weight:bold;
-letter-spacing:2px;
-margin-top:8px;
+font-size:48px;
+font-weight:800;
+margin-top:5px;
 }
 
 .buy{
 color:#00ff9d;
-text-shadow:0 0 15px #00ff9d;
+text-shadow:0 0 18px #00ff9d;
 }
 
 .sell{
 color:#ff3b5c;
-text-shadow:0 0 15px #ff3b5c;
+text-shadow:0 0 18px #ff3b5c;
 }
 
 .wait{
 color:#facc15;
 }
 
-/* ===== INFO ===== */
+/* ===== INFO GRID ===== */
 .info{
-margin-top:6px;
+margin-top:8px;
 font-size:14px;
-color:#c7c7c7;
+color:#cfcfcf;
 }
 
 /* ===== TIMER ===== */
@@ -117,7 +118,6 @@ height:10px;
 background:#1a2340;
 border-radius:20px;
 overflow:hidden;
-box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
 .fill{
@@ -136,13 +136,13 @@ color:#aaa;
 
 /* ===== BADGE ===== */
 .badge{
-display:inline-block;
-padding:4px 10px;
-background:rgba(0,255,157,0.1);
-border:1px solid rgba(0,255,157,0.3);
-border-radius:8px;
+text-align:center;
 font-size:12px;
-margin-top:5px;
+padding:5px 10px;
+border-radius:10px;
+background:rgba(0,255,157,0.1);
+border:1px solid rgba(0,255,157,0.25);
+margin-bottom:10px;
 }
 
 </style>
@@ -153,8 +153,7 @@ margin-top:5px;
 <div class="app">
 
 <div class="header">🔥 SNIPER AI PRO</div>
-
-<div class="badge">LIVE MARKET ENGINE</div>
+<div class="badge">ANDROID TRADING ENGINE</div>
 
 <select id="market">
 <option>EURUSD</option>
@@ -171,11 +170,11 @@ margin-top:5px;
 <option value="15min">📈 15 MIN</option>
 </select>
 
-<button onclick="analyze()">📡 ANALYZE</button>
+<button onclick="analyze()">📡 ANALYSE</button>
 
 <button id="autoBtn" onclick="toggleAuto()">🤖 AUTO MODE</button>
 
-<div class="signalBox">
+<div class="card">
 
 <div id="signal" class="signal wait">WAIT</div>
 
@@ -203,8 +202,8 @@ margin-top:5px;
 let timer=null;
 let auto=null;
 
-/* ANALYZE */
-async function analyze(){
+/* ANALYSE */
+async function analyse(){
 
 const symbol=document.getElementById("market").value;
 const tf=document.getElementById("tf").value;
@@ -212,7 +211,6 @@ const tf=document.getElementById("tf").value;
 const res=await fetch(`/signal?symbol=${symbol}&tf=${tf}`);
 const d=await res.json();
 
-/* UPDATE */
 const s=document.getElementById("signal");
 s.innerText=d.signal;
 s.className="signal "+d.signal.toLowerCase();
@@ -221,12 +219,11 @@ document.getElementById("price").innerText="PRICE: "+d.price;
 document.getElementById("rsi").innerText="RSI: "+d.rsi;
 document.getElementById("conf").innerText="CONF: "+d.confidence+"%";
 
-/* TIMER */
 startTimer();
 
 }
 
-/* TIMER 60s */
+/* TIMER */
 function startTimer(){
 
 clearInterval(timer);
@@ -259,15 +256,15 @@ const btn=document.getElementById("autoBtn");
 if(auto){
 clearInterval(auto);
 auto=null;
-btn.style.background="";
 btn.innerText="🤖 AUTO MODE";
+btn.style.background="";
 return;
 }
 
+btn.innerText="AUTO RUNNING...";
 btn.style.background="#ff3b5c";
-btn.innerText="AUTO RUNNING";
 
-auto=setInterval(()=>analyze(),4000);
+auto=setInterval(()=>analyse(),4000);
 
 }
 
