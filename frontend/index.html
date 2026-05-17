@@ -1,14 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>D-FLAM SNIPER AI</title>
 
@@ -18,7 +12,7 @@ user-scalable=no">
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Arial,sans-serif;
+font-family:Arial;
 }
 
 body{
@@ -28,230 +22,140 @@ display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
-padding:10px;
-overflow-x:hidden;
+padding:12px;
 }
-
-/* APP */
 
 .app{
 width:100%;
 max-width:420px;
 background:#0c1224;
-border-radius:25px;
-padding:16px;
-border:1px solid #1f2b4d;
-box-shadow:
-0 0 25px #00ff9d22,
-0 0 80px #000 inset;
+border-radius:20px;
+padding:15px;
+box-shadow:0 0 30px #000;
 }
-
-/* HEADER */
 
 .top{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:15px;
-}
-
-.live{
-color:#00ff9d;
-font-size:13px;
-font-weight:bold;
-}
-
-.timeNow{
-font-size:13px;
-color:#ccc;
-}
-
-/* TITLE */
-
-h2{
 text-align:center;
+font-size:26px;
+font-weight:bold;
 color:#00ff9d;
-font-size:28px;
-margin-bottom:15px;
-text-shadow:0 0 15px #00ff9d55;
+margin-bottom:10px;
 }
 
-/* MARKET */
-
-select{
+select,button{
 width:100%;
-padding:14px;
+padding:13px;
 margin-top:10px;
 border:none;
-outline:none;
-border-radius:15px;
-background:#121d38;
-color:white;
-font-size:16px;
+border-radius:12px;
 font-weight:bold;
+font-size:15px;
 }
 
-/* BUTTON */
-
-.buttons{
-display:flex;
-gap:10px;
-margin-top:12px;
+select{
+background:#141d38;
+color:white;
 }
 
 button{
-flex:1;
-padding:14px;
-border:none;
-border-radius:15px;
-font-size:15px;
-font-weight:bold;
-cursor:pointer;
-transition:0.2s;
-}
-
-.analyze{
 background:#00ff9d;
 color:black;
 }
 
-.auto{
-background:#1c2d52;
-color:white;
-border:1px solid #324b7c;
+.chart{
+height:140px;
+background:#09101f;
+border-radius:15px;
+margin-top:15px;
+padding:10px;
+display:flex;
+align-items:flex-end;
+gap:3px;
+overflow:hidden;
 }
 
-button:active{
-transform:scale(0.96);
+.candle{
+width:100%;
+border-radius:3px;
+position:relative;
 }
 
-/* SIGNAL BOX */
+.green{
+background:#00ff9d;
+}
+
+.red{
+background:#ff3b5c;
+}
 
 .signalBox{
+text-align:center;
 margin-top:18px;
-background:#111827;
-border-radius:25px;
-padding:20px;
-border:1px solid #1d2d52;
 }
-
-/* ICON */
 
 .icon{
-font-size:75px;
-text-align:center;
+font-size:60px;
 }
 
-/* SIGNAL */
-
 .signal{
-font-size:55px;
+font-size:42px;
 font-weight:bold;
-text-align:center;
 margin-top:5px;
 }
 
 .buy{
 color:#00ff9d;
-text-shadow:0 0 20px #00ff9d;
+text-shadow:0 0 15px #00ff9d;
 }
 
 .sell{
 color:#ff3b5c;
-text-shadow:0 0 20px #ff3b5c;
+text-shadow:0 0 15px #ff3b5c;
 }
 
 .wait{
 color:#facc15;
-text-shadow:0 0 20px #facc15;
 }
 
-/* ENTRY */
+.info{
+margin-top:10px;
+text-align:center;
+font-size:16px;
+}
 
 .entry{
-text-align:center;
-margin-top:10px;
-font-size:15px;
-font-weight:bold;
 color:#00ff9d;
+font-weight:bold;
 }
-
-/* PRICE */
 
 .price{
+color:#ccc;
+}
+
+.timer{
+margin-top:12px;
 text-align:center;
-margin-top:8px;
-font-size:17px;
-color:#d4d4d4;
+font-size:15px;
+display:none;
 }
-
-/* GRID */
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:15px;
-}
-
-.card{
-background:#141f3a;
-padding:12px;
-border-radius:16px;
-text-align:center;
-}
-
-.cardTitle{
-font-size:12px;
-color:#aaa;
-margin-bottom:5px;
-}
-
-.cardValue{
-font-size:18px;
-font-weight:bold;
-}
-
-/* BAR */
 
 .bar{
-width:100%;
-height:12px;
-background:#1d2746;
+height:8px;
+background:#182341;
 border-radius:20px;
+margin-top:10px;
 overflow:hidden;
-margin-top:16px;
 }
 
 .fill{
 height:100%;
 width:100%;
-background:
-linear-gradient(
-90deg,
-#00ff9d,
-#00c3ff
-);
-transition:width 1s linear;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
 }
 
-/* TIMER */
-
-.timer{
-text-align:center;
-margin-top:10px;
-font-size:14px;
-display:none;
-color:#ccc;
-}
-
-/* FOOTER */
-
-.footer{
-margin-top:16px;
-text-align:center;
-font-size:12px;
-color:#5e6781;
+.autoOn{
+background:#ff3b5c !important;
+color:white !important;
 }
 
 </style>
@@ -262,23 +166,10 @@ color:#5e6781;
 <div class="app">
 
 <div class="top">
-
-<div class="live">
-🟢 LIVE MARKET
+🔥 SNIPER AI PRO
 </div>
-
-<div class="timeNow" id="clock">
-00:00:00
-</div>
-
-</div>
-
-<h2>SNIPER AI PRO</h2>
-
-<!-- MARKET -->
 
 <select id="market">
-
 <option>EUR/USD</option>
 <option>GBP/USD</option>
 <option>USD/JPY</option>
@@ -299,406 +190,232 @@ color:#5e6781;
 <option>US30</option>
 <option>NAS100</option>
 <option>XAU/USD</option>
-
 </select>
 
-<!-- FIXED -->
-
-<select disabled>
-<option selected>
-15 SEC TRADING SNIPER
-</option>
+<select id="time">
+<option value="60">1 MIN</option>
+<option value="300">5 MIN</option>
+<option value="900">15 MIN</option>
 </select>
 
-<!-- BUTTONS -->
-
-<div class="buttons">
-
-<button class="analyze"
-onclick="analyze()">
-
-ANALYZE
-
+<button onclick="analyze()">
+📡 ANALYZE
 </button>
 
-<button class="auto"
-onclick="autoMode()"
-id="autoBtn">
-
-AUTO MODE
-
+<button id="autoBtn" onclick="autoMode()">
+🤖 AUTO MODE
 </button>
 
-</div>
-
-<!-- SIGNAL -->
+<div class="chart" id="chart"></div>
 
 <div class="signalBox">
 
-<div class="icon"
-id="icon">
-
+<div id="icon" class="icon">
 🟡
-
 </div>
 
-<div class="signal wait"
-id="signal">
-
+<div id="signal" class="signal wait">
 WAIT
-
 </div>
 
-<div class="entry"
-id="entry">
-
+<div class="info entry" id="entry">
 ENTRY POINT: -
-
 </div>
 
-<div class="price"
-id="price">
-
+<div class="info price" id="price">
 PRICE: --
-
 </div>
 
-<!-- INFO -->
-
-<div class="grid">
-
-<div class="card">
-<div class="cardTitle">
-PROBABILITY
+<div class="info" id="prob">
+PROBABILITY: 0%
 </div>
 
-<div class="cardValue"
-id="prob">
-
-0%
-
-</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">
-WINRATE
-</div>
-
-<div class="cardValue"
-id="winrate">
-
-0%
-
-</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">
-MARKET TREND
-</div>
-
-<div class="cardValue"
-id="trend">
-
-NEUTRAL
-
-</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">
-TRADE ENTRY
-</div>
-
-<div class="cardValue">
-
-15 SEC
-
-</div>
+<div class="info" id="winrate">
+WINRATE: 0%
 </div>
 
 </div>
-
-<!-- TIMER -->
 
 <div class="bar">
-<div class="fill"
-id="fill"></div>
+<div id="fill" class="fill"></div>
 </div>
 
-<div class="timer"
-id="timer">
-
+<div id="timer" class="timer">
 READY
-
-</div>
-
-</div>
-
-<div class="footer">
-
-SMART MONEY CONCEPT ENGINE
-
 </div>
 
 </div>
 
 <script>
 
-/* CLOCK */
-
-function clock(){
-
-let d=new Date();
-
-document.getElementById("clock")
-.innerText=
-d.toLocaleTimeString();
-
-}
-
-setInterval(clock,1000);
-
-clock();
-
-/* GLOBAL */
-
-let auto=null;
 let timer=null;
+let autoInterval=null;
 
-/* CACHE SIGNAL */
-
-let marketSignals={};
-
-/* PRICE */
+/* =========================
+   💰 PRIX
+========================= */
 
 function getPrice(m){
 
-let p=1+Math.random()*100;
+let base = 1 + Math.random()*100;
 
 if(m.includes("JPY"))
-p=100+Math.random()*50;
+base = 100 + Math.random()*50;
 
 if(m.includes("BTC"))
-p=60000+Math.random()*2000;
+base = 60000 + Math.random()*4000;
 
 if(m.includes("ETH"))
-p=3000+Math.random()*200;
+base = 3000 + Math.random()*500;
 
 if(m.includes("XAU"))
-p=2300+Math.random()*50;
+base = 2300 + Math.random()*80;
 
-if(m.includes("NAS"))
-p=18000+Math.random()*400;
-
-if(m.includes("US30"))
-p=39000+Math.random()*500;
-
-return p.toFixed(2);
+return base.toFixed(2);
 
 }
 
-/* CANDLE */
+/* =========================
+   📊 CHART
+========================= */
 
-function candle(){
+function drawChart(){
 
-let open=Math.random()*100;
-let close=Math.random()*100;
+let chart=document.getElementById("chart");
 
-let high=
-Math.max(open,close)+
-Math.random()*10;
+chart.innerHTML="";
 
-let low=
-Math.min(open,close)-
-Math.random()*10;
+for(let i=0;i<25;i++){
 
-return{
-open,
-close,
-high,
-low
-};
+let candle=document.createElement("div");
+
+let h = 20 + Math.random()*90;
+
+let bullish = Math.random()>0.5;
+
+candle.className =
+"candle " + (bullish ? "green" : "red");
+
+candle.style.height = h+"px";
+
+chart.appendChild(candle);
 
 }
 
-/* AI ENGINE */
+}
 
-function ai(){
+/* =========================
+   🧠 SNIPER ENGINE
+========================= */
 
-let c1=candle();
-let c2=candle();
-let c3=candle();
+let cache={};
 
-/* RSI */
+function sniperAI(){
 
-let rsi=
-Math.floor(Math.random()*100);
+/* IMPULSION */
+let impulse = Math.random()*100;
+
+/* REJET */
+let rejection = Math.random()*100;
 
 /* MOMENTUM */
+let momentum = Math.random()*100;
 
-let momentum=
-Math.random()*2-1;
+/* RSI */
+let rsi = Math.random()*100;
 
-/* WICKS */
+/* WICK */
+let wick = Math.random()*100;
 
-let upper=
-c3.high-
-Math.max(c3.open,c3.close);
-
-let lower=
-Math.min(c3.open,c3.close)-
-c3.low;
+/* BREAKOUT FAKE */
+let fakeBreakout = Math.random()*100;
 
 /* STRUCTURE */
-
-let HH=
-c3.high>c2.high &&
-c2.high>c1.high;
-
-let HL=
-c3.low>c2.low;
-
-let LH=
-c3.high<c2.high;
-
-let LL=
-c3.low<c2.low &&
-c2.low<c1.low;
-
-/* BOS */
-
-let bosBuy=
-c3.close>c2.high;
-
-let bosSell=
-c3.close<c2.low;
-
-/* LIQUIDITY */
-
-let liquidityBuy=
-lower>upper*2;
-
-let liquiditySell=
-upper>lower*2;
-
-/* HAMMER */
-
-let hammer=
-lower>upper*2;
-
-let star=
-upper>lower*2;
-
-/* ORDER BLOCK */
-
-let bullishOB=
-c2.close<c2.open &&
-c3.close>c2.high;
-
-let bearishOB=
-c2.close>c2.open &&
-c3.close<c2.low;
-
-/* MULTI TREND */
-
-let trend1=
-Math.random()>0.5 ? "BUY":"SELL";
-
-let trend5=
-Math.random()>0.5 ? "BUY":"SELL";
+let structure = Math.random()*100;
 
 /* BUY SCORE */
-
-let buy=0;
-
-if(HH) buy++;
-if(HL) buy++;
-if(bosBuy) buy++;
-if(liquidityBuy) buy++;
-if(hammer) buy++;
-if(bullishOB) buy++;
-if(rsi<35) buy++;
-if(momentum>0.2) buy++;
-if(trend1=="BUY") buy++;
-if(trend5=="BUY") buy++;
+let buyScore = 0;
 
 /* SELL SCORE */
+let sellScore = 0;
 
-let sell=0;
+/* =========================
+   BUY CONDITIONS
+========================= */
 
-if(LH) sell++;
-if(LL) sell++;
-if(bosSell) sell++;
-if(liquiditySell) sell++;
-if(star) sell++;
-if(bearishOB) sell++;
-if(rsi>65) sell++;
-if(momentum<-0.2) sell++;
-if(trend1=="SELL") sell++;
-if(trend5=="SELL") sell++;
+if(rsi < 35) buyScore += 2;
 
-/* SIGNAL */
+if(momentum > 60) buyScore += 2;
+
+if(wick > 70) buyScore += 2;
+
+if(structure > 60) buyScore += 1;
+
+if(fakeBreakout < 40) buyScore += 1;
+
+if(rejection > 65) buyScore += 1;
+
+/* =========================
+   SELL CONDITIONS
+========================= */
+
+if(rsi > 65) sellScore += 2;
+
+if(momentum < 40) sellScore += 2;
+
+if(wick < 30) sellScore += 2;
+
+if(structure < 40) sellScore += 1;
+
+if(fakeBreakout > 60) sellScore += 1;
+
+if(rejection < 35) sellScore += 1;
+
+/* =========================
+   FINAL SIGNAL
+========================= */
 
 let signal="WAIT";
 
-if(
-buy>=7 &&
-buy>sell+2
-){
+if(buyScore >= 6 && buyScore > sellScore)
 signal="BUY";
-}
 
-else if(
-sell>=7 &&
-sell>buy+2
-){
+if(sellScore >= 6 && sellScore > buyScore)
 signal="SELL";
-}
 
-/* TREND */
+/* =========================
+   PROB
+========================= */
 
-let trend="NEUTRAL";
+let prob =
+50 + Math.max(buyScore,sellScore)*5;
 
-if(signal=="BUY")
-trend="BULLISH";
+if(prob > 95)
+prob = 95;
 
-if(signal=="SELL")
-trend="BEARISH";
+/* =========================
+   WINRATE
+========================= */
 
-/* PROB */
+let winrate =
+55 + Math.max(buyScore,sellScore)*4;
 
-let best=
-Math.max(buy,sell);
+if(winrate > 92)
+winrate = 92;
 
-let prob=
-50+(best*4);
+/* =========================
+   ENTRY
+========================= */
 
-if(prob>95)
-prob=95;
+let entry =
+signal=="BUY"
+? "SNIPER BUY ENTRY 🔼"
+: signal=="SELL"
+? "SNIPER SELL ENTRY 🔽"
+: "-";
 
-/* WINRATE */
-
-let winrate=
-55+(best*3);
-
-if(winrate>92)
-winrate=92;
-
-/* ENTRY */
-
-let entry="-";
-
-if(signal=="BUY")
-entry="SNIPER BUY 🔼";
-
-if(signal=="SELL")
-entry="SNIPER SELL 🔽";
-
-return{
+return {
 signal,
-trend,
 prob,
 winrate,
 entry
@@ -706,69 +423,50 @@ entry
 
 }
 
-/* ANALYZE */
+/* =========================
+   ANALYZE
+========================= */
 
 function analyze(){
 
-let market=
-document.getElementById("market")
-.value;
+drawChart();
 
-/* SIGNAL FIXE */
+let market =
+document.getElementById("market").value;
 
-if(marketSignals[market]){
-
-apply(
-marketSignals[market],
-market
-);
-
+if(cache[market]){
+apply(cache[market],market);
 return;
-
 }
 
-document.getElementById("icon")
-.innerText="🧠";
-
-document.getElementById("signal")
-.innerText="ANALYZING...";
-
-document.getElementById("signal")
-.className="signal wait";
+document.getElementById("icon").innerText="🧠";
+document.getElementById("signal").innerText="ANALYZING...";
 
 setTimeout(()=>{
 
-let data=ai();
+let data = sniperAI();
 
-/* SAVE SIGNAL */
-
-if(data.signal!="WAIT"){
-
-marketSignals[market]=data;
-
-}
+cache[market]=data;
 
 apply(data,market);
 
-startTimer(
-data.signal
-);
+startTimer(data.signal);
 
-},800);
+},700);
 
 }
 
-/* APPLY */
+/* =========================
+   APPLY
+========================= */
 
 function apply(d,m){
 
-let icon=
+let icon =
 document.getElementById("icon");
 
-let signal=
+let signal =
 document.getElementById("signal");
-
-/* BUY */
 
 if(d.signal=="BUY"){
 
@@ -776,12 +474,9 @@ icon.innerText="🟢";
 
 signal.innerText="BUY";
 
-signal.className=
-"signal buy";
+signal.className="signal buy";
 
 }
-
-/* SELL */
 
 else if(d.signal=="SELL"){
 
@@ -789,12 +484,9 @@ icon.innerText="🔴";
 
 signal.innerText="SELL";
 
-signal.className=
-"signal sell";
+signal.className="signal sell";
 
 }
-
-/* WAIT */
 
 else{
 
@@ -802,85 +494,59 @@ icon.innerText="🟡";
 
 signal.innerText="WAIT";
 
-signal.className=
-"signal wait";
+signal.className="signal wait";
 
 }
 
-/* ENTRY */
+document.getElementById("entry").innerText =
+"ENTRY POINT: " + d.entry;
 
-document.getElementById("entry")
-.innerText=
-"ENTRY POINT: "+
-d.entry;
+document.getElementById("price").innerText =
+"PRICE: " + getPrice(m);
 
-/* PRICE */
+document.getElementById("prob").innerText =
+"PROBABILITY: " + d.prob + "%";
 
-document.getElementById("price")
-.innerText=
-"PRICE: "+
-getPrice(m);
-
-/* INFO */
-
-document.getElementById("prob")
-.innerText=
-d.prob+"%";
-
-document.getElementById("winrate")
-.innerText=
-d.winrate.toFixed(1)+"%";
-
-document.getElementById("trend")
-.innerText=
-d.trend;
-
-/* WAIT */
-
-if(d.signal=="WAIT"){
-
-document.getElementById("timer")
-.style.display="none";
+document.getElementById("winrate").innerText =
+"WINRATE: " + d.winrate.toFixed(1) + "%";
 
 }
 
-}
-
-/* TIMER */
+/* =========================
+   TIMER
+========================= */
 
 function startTimer(signal){
 
 clearInterval(timer);
 
-if(signal=="WAIT")
+if(signal=="WAIT"){
+
+document.getElementById("timer").style.display="none";
+
 return;
 
-let t=
-document.getElementById("timer");
+}
 
-t.style.display="block";
+document.getElementById("timer").style.display="block";
 
-/* 15 SEC */
-
-let sec=15;
+let r=60;
 
 timer=setInterval(()=>{
 
-sec--;
+r--;
 
-document.getElementById("fill")
-.style.width=
-(sec/15*100)+"%";
+document.getElementById("timer").innerText =
+r + " SEC";
 
-t.innerText=
-"TRADE 15 SEC : "+
-sec+" SEC";
+document.getElementById("fill").style.width =
+(r/60*100)+"%";
 
-if(sec<=0){
+if(r<=0){
 
 clearInterval(timer);
 
-t.style.display="none";
+document.getElementById("timer").style.display="none";
 
 }
 
@@ -888,36 +554,40 @@ t.style.display="none";
 
 }
 
-/* AUTO MODE */
+/* =========================
+   AUTO MODE
+========================= */
 
 function autoMode(){
 
-let btn=
+let btn =
 document.getElementById("autoBtn");
 
-if(auto){
+if(autoInterval){
 
-clearInterval(auto);
+clearInterval(autoInterval);
 
-auto=null;
+autoInterval=null;
 
-btn.innerText=
-"AUTO MODE";
+btn.classList.remove("autoOn");
 
 return;
 
 }
 
-btn.innerText=
-"AUTO ON";
+btn.classList.add("autoOn");
 
-auto=setInterval(()=>{
+autoInterval=setInterval(()=>{
 
 analyze();
 
-},3000);
+},4000);
 
 }
+
+/* START */
+
+drawChart();
 
 </script>
 
