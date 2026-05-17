@@ -2,88 +2,237 @@
 <html lang="fr">
 
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
 <title>SNIPER AI PRO</title>
 
 <style>
 
-body{
+*{
 margin:0;
-font-family:Arial;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
 background:#050816;
 color:white;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
+padding:10px;
+overflow-x:hidden;
 }
 
+/* APP */
+
 .app{
-width:420px;
+width:100%;
+max-width:420px;
 background:#0c1224;
-padding:20px;
-border-radius:20px;
+border-radius:25px;
+padding:16px;
 border:1px solid #1f2b4d;
+box-shadow:
+0 0 25px #00ff9d22,
+0 0 80px #000 inset;
 }
+
+/* HEADER */
+
+.top{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.live{
+color:#00ff9d;
+font-size:13px;
+font-weight:bold;
+}
+
+.clock{
+font-size:13px;
+color:#ccc;
+}
+
+/* TITLE */
 
 h2{
 text-align:center;
 color:#00ff9d;
+font-size:28px;
+margin-bottom:15px;
+text-shadow:0 0 15px #00ff9d55;
 }
 
-select, button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border-radius:10px;
-border:none;
-font-weight:bold;
-}
+/* MARKET */
 
 select{
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+outline:none;
+border-radius:15px;
 background:#121d38;
 color:white;
+font-size:16px;
+font-weight:bold;
 }
+
+/* BUTTON */
 
 button{
+width:100%;
+padding:14px;
+margin-top:12px;
+border:none;
+border-radius:15px;
+font-size:15px;
+font-weight:bold;
+cursor:pointer;
+transition:0.2s;
 background:#00ff9d;
 color:black;
-cursor:pointer;
+box-shadow:0 0 20px #00ff9d55;
 }
 
-.card{
+button:active{
+transform:scale(0.96);
+}
+
+/* SIGNAL BOX */
+
+.signalBox{
+margin-top:18px;
 background:#111827;
-padding:12px;
-margin-top:10px;
-border-radius:10px;
+border-radius:25px;
+padding:20px;
+border:1px solid #1d2d52;
 }
 
-.title{
-font-size:12px;
-opacity:0.7;
-}
-
-.value{
-font-size:18px;
+.signal{
+font-size:55px;
 font-weight:bold;
+text-align:center;
 margin-top:5px;
 }
 
-.buy{color:#00ff9d;}
-.sell{color:#ff3b3b;}
-.wait{color:#facc15;}
+.buy{
+color:#00ff9d;
+text-shadow:0 0 20px #00ff9d;
+}
+
+.sell{
+color:#ff3b5c;
+text-shadow:0 0 20px #ff3b5c;
+}
+
+.wait{
+color:#facc15;
+text-shadow:0 0 20px #facc15;
+}
+
+.entry{
+text-align:center;
+margin-top:10px;
+font-size:15px;
+font-weight:bold;
+color:#00ff9d;
+}
+
+.price{
+text-align:center;
+margin-top:8px;
+font-size:17px;
+color:#d4d4d4;
+}
+
+/* GRID */
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:15px;
+}
+
+.card{
+background:#141f3a;
+padding:12px;
+border-radius:16px;
+text-align:center;
+}
+
+.cardTitle{
+font-size:12px;
+color:#aaa;
+margin-bottom:5px;
+}
+
+.cardValue{
+font-size:18px;
+font-weight:bold;
+}
+
+/* FOOTER */
+
+.footer{
+margin-top:16px;
+text-align:center;
+font-size:12px;
+color:#5e6781;
+}
+
+.floatBtn{
+position:fixed;
+bottom:20px;
+right:20px;
+background:#00ff9d;
+color:black;
+padding:12px 18px;
+border-radius:50px;
+font-weight:bold;
+text-decoration:none;
+box-shadow:0 0 20px #00ff9d88;
+}
 
 </style>
+
 </head>
 
 <body>
 
 <div class="app">
 
+<div class="top">
+
+<div class="live">
+🟢 LIVE MARKET
+</div>
+
+<div class="clock" id="clock">
+00:00:00
+</div>
+
+</div>
+
 <h2>SNIPER AI PRO</h2>
 
 <!-- MARKET -->
+
 <select id="market">
 
 <option value="EURUSD">EURUSD</option>
@@ -105,79 +254,208 @@ margin-top:5px;
 
 </select>
 
-<button onclick="analyze()">ANALYZE</button>
+<!-- TIMEFRAME -->
+
+<select id="tf">
+
+<option value="1min">1 MINUTE</option>
+<option value="5min">5 MINUTES</option>
+<option value="15min">15 MINUTES</option>
+
+</select>
+
+<button onclick="analyze()">
+ANALYZE
+</button>
+
+<!-- SIGNAL -->
+
+<div class="signalBox">
+
+<div class="signal wait" id="signal">
+WAIT
+</div>
+
+<div class="entry" id="entry">
+ENTRY: WAIT
+</div>
+
+<div class="price" id="price">
+PRICE: --
+</div>
+
+<!-- GRID -->
+
+<div class="grid">
 
 <div class="card">
-<div class="title">SIGNAL</div>
-<div class="value" id="signal">WAIT</div>
+<div class="cardTitle">
+CONFIDENCE
+</div>
+
+<div class="cardValue" id="confidence">
+0%
+</div>
 </div>
 
 <div class="card">
-<div class="title">PRICE</div>
-<div class="value" id="price">--</div>
+<div class="cardTitle">
+RSI
+</div>
+
+<div class="cardValue" id="rsi">
+50
+</div>
 </div>
 
 <div class="card">
-<div class="title">CONFIDENCE</div>
-<div class="value" id="confidence">0%</div>
+<div class="cardTitle">
+MACD
+</div>
+
+<div class="cardValue" id="macd">
+BEARISH
+</div>
 </div>
 
 <div class="card">
-<div class="title">RSI</div>
-<div class="value" id="rsi">0</div>
+<div class="cardTitle">
+QUALITY
 </div>
 
-<div class="card">
-<div class="title">MACD</div>
-<div class="value" id="macd">--</div>
+<div class="cardValue" id="quality">
+LOW
 </div>
-
-<div class="card">
-<div class="title">QUALITY</div>
-<div class="value" id="quality">LOW</div>
 </div>
 
 </div>
+
+</div>
+
+<div class="footer">
+SMART MONEY CONCEPT ENGINE
+</div>
+
+</div>
+
+<a class="floatBtn" href="https://t.me/Mr_dflam">
+@Mr_dflam
+</a>
 
 <script>
 
+/* CLOCK */
+
+function updateClock(){
+
+const now = new Date();
+
+document.getElementById("clock")
+.innerText =
+now.toLocaleTimeString();
+
+}
+
+setInterval(updateClock,1000);
+
+updateClock();
+
+/* SAFE */
+
+function safe(v){
+
+if(v === null ||
+v === undefined ||
+v === ""){
+return "--";
+}
+
+return v;
+
+}
+
+/* ANALYZE */
+
 async function analyze(){
 
-const symbol = document.getElementById("market").value;
+try{
 
-const res = await fetch("/signal?symbol="+symbol+"&tf=1min");
-const data = await res.json();
+const symbol =
+document.getElementById("market").value;
 
-// SIGNAL
-document.getElementById("signal").innerText = data.signal;
+const tf =
+document.getElementById("tf").value;
 
-// PRICE
-document.getElementById("price").innerText =
-data.price ? data.price : "--";
+const res =
+await fetch(
+`/signal?symbol=${symbol}&tf=${tf}`
+);
 
-// CONFIDENCE
-document.getElementById("confidence").innerText =
-(data.confidence || 0) + "%";
+const data =
+await res.json();
 
-// RSI
-document.getElementById("rsi").innerText =
-data.rsi || 0;
+/* SIGNAL */
 
-// MACD
-document.getElementById("macd").innerText =
-data.macd ? "BULLISH" : "BEARISH";
+const signal =
+safe(data.signal);
 
-// QUALITY
-document.getElementById("quality").innerText =
-data.quality || "LOW";
+const signalBox =
+document.getElementById("signal");
 
-// COLOR SIGNAL
-let s = data.signal;
+signalBox.innerText =
+signal;
 
-document.getElementById("signal").className =
-s === "BUY" ? "value buy" :
-s === "SELL" ? "value sell" :
-"value wait";
+signalBox.className =
+signal === "BUY"
+? "signal buy"
+: signal === "SELL"
+? "signal sell"
+: "signal wait";
+
+/* ENTRY */
+
+document.getElementById("entry")
+.innerText =
+"ENTRY: " + signal;
+
+/* PRICE */
+
+document.getElementById("price")
+.innerText =
+"PRICE: " +
+safe(data.price);
+
+/* CONFIDENCE */
+
+document.getElementById("confidence")
+.innerText =
+safe(data.confidence) + "%";
+
+/* RSI */
+
+document.getElementById("rsi")
+.innerText =
+safe(data.rsi);
+
+/* MACD */
+
+document.getElementById("macd")
+.innerText =
+data.macd
+? "BULLISH"
+: "BEARISH";
+
+/* QUALITY */
+
+document.getElementById("quality")
+.innerText =
+safe(data.quality);
+
+}catch(err){
+
+console.log(err);
+
+}
 
 }
 
