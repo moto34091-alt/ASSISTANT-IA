@@ -4,7 +4,7 @@ import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const API_KEY = process.env.TWELVE_API_KEY;
 
 /* ─────────────────────────────
-   GET CANDLES (REAL DATA)
+   GET MARKET DATA
 ───────────────────────────── */
 async function getCandles(symbol) {
 
@@ -40,7 +40,7 @@ return null;
 }
 
 /* ─────────────────────────────
-   RSI (FIXED)
+   RSI
 ───────────────────────────── */
 function calculateRSI(closes, period = 14) {
 
@@ -51,7 +51,7 @@ let losses = 0;
 
 for (let i = 1; i <= period; i++) {
 
-let diff = closes[i] - closes[i - 1];
+const diff = closes[i] - closes[i - 1];
 
 if (diff > 0) gains += diff;
 else losses += Math.abs(diff);
@@ -60,7 +60,7 @@ else losses += Math.abs(diff);
 
 if (losses === 0) return 100;
 
-let rs = gains / losses;
+const rs = gains / losses;
 
 return 100 - (100 / (1 + rs));
 
@@ -73,8 +73,8 @@ function calculateMACD(closes) {
 
 if (!closes || closes.length < 26) return 0;
 
-let short = closes.slice(-12).reduce((a, b) => a + b, 0) / 12;
-let long = closes.slice(-26).reduce((a, b) => a + b, 0) / 26;
+const short = closes.slice(-12).reduce((a, b) => a + b, 0) / 12;
+const long = closes.slice(-26).reduce((a, b) => a + b, 0) / 26;
 
 return short - long;
 
@@ -94,6 +94,7 @@ return {
 price: null,
 rsi: 50,
 macd: 0,
+volatility: 0,
 structure: "NEUTRAL",
 confidence: 0,
 signal: "WAIT",
@@ -106,25 +107,30 @@ const price = candles[candles.length - 1];
 const rsi = calculateRSI(candles);
 const macd = calculateMACD(candles);
 
+/* ─ VOLATILITY (IMPORTANT FIX) */
+const volatility =
+Math.abs(macd) + Math.abs(rsi - 50) / 50;
+
 /* ─ STRUCTURE */
 let structure = "NEUTRAL";
 
 if (rsi > 55 && macd > 0) structure = "BULLISH";
 else if (rsi < 45 && macd < 0) structure = "BEARISH";
 
-/* ─ CONFIDENCE (REAL DYNAMIC FIX) */
+/* ─ CONFIDENCE (REAL DYNAMIC ENGINE) */
 let confidence = 50;
 
-confidence += (rsi - 50) * 1.2;
-confidence += macd * 20;
+confidence += (rsi - 50) * 1.5;
+confidence += macd * 25;
+confidence += volatility * 20;
 
 confidence = Math.max(0, Math.min(100, confidence));
 
 /* ─ SIGNAL */
 let signal = "WAIT";
 
-if (confidence >= 65) signal = "BUY";
-else if (confidence <= 35) signal = "SELL";
+if (confidence >= 60) signal = "BUY";
+else if (confidence <= 40) signal = "SELL";
 
 /* ─ QUALITY */
 let quality = confidence > 75 ? "HIGH" : "LOW";
@@ -133,6 +139,7 @@ return {
 price: Number(price),
 rsi: Number(rsi.toFixed(2)),
 macd: Number(macd.toFixed(4)),
+volatility: Number(volatility.toFixed(4)),
 structure,
 confidence: Number(confidence.toFixed(2)),
 signal,
@@ -148,6 +155,7 @@ return {
 price: null,
 rsi: 50,
 macd: 0,
+volatility: 0,
 structure: "NEUTRAL",
 confidence: 0,
 signal: "WAIT",
