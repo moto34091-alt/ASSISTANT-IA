@@ -8,7 +8,9 @@ async function analyzeMarket(symbol, tf = "1min") {
   const candles = await getCandles(symbol, tf);
   const price = await getPrice(symbol);
 
+  // NO DATA
   if (!candles || candles.length < 20) {
+
     return {
       signal: "WAIT",
       confidence: 0,
@@ -19,79 +21,170 @@ async function analyzeMarket(symbol, tf = "1min") {
     };
   }
 
+  // CLOSES
   const closes = candles.map(c => c.close);
 
+  // INDICATORS
   const rsi = RSI(closes);
+
   const macd = MACD(closes);
+
   const mom = momentum(closes);
 
+  // LAST CANDLE
   const last = candles[candles.length - 1];
 
+  // WICKS
   const w = wick(last);
 
+  // PATTERNS
   const p = patterns(
     candles[candles.length - 3],
     candles[candles.length - 2],
     last
   );
 
+  // EMA TREND
   const ema20 = EMA(closes, 20);
+
   const ema50 = EMA(closes, 50);
 
+  // SCORES
   let buy = 0;
   let sell = 0;
 
-  if (rsi <= 40) buy++;
-  if (rsi >= 60) sell++;
+  /* RSI */
 
-  if (macd.bullish) buy++;
-  else sell++;
+  if (rsi <= 35) buy++;
 
-  if (mom > 0) buy++;
-  else sell++;
+  if (rsi >= 65) sell++;
 
-  if (w.lower > w.upper) buy++;
-  if (w.upper > w.lower) sell++;
+  /* MACD */
 
-  if (p.morningStar || w.hammer) buy++;
-  if (p.eveningStar || w.star) sell++;
+  if (macd.bullish) {
+    buy += 2;
+  } else {
+    sell += 2;
+  }
+
+  /* MOMENTUM */
+
+  if (mom > 0) {
+    buy++;
+  } else {
+    sell++;
+  }
+
+  /* WICKS */
+
+  if (w.lower > w.upper * 1.5) {
+    buy++;
+  }
+
+  if (w.upper > w.lower * 1.5) {
+    sell++;
+  }
+
+  /* PATTERNS */
+
+  if (p.morningStar || w.hammer) {
+    buy += 2;
+  }
+
+  if (p.eveningStar || w.star) {
+    sell += 2;
+  }
+
+  /* EMA */
+
+  if (ema20 > ema50) {
+    buy += 2;
+  }
+
+  if (ema20 < ema50) {
+    sell += 2;
+  }
+
+  /* DOJI FILTER */
 
   if (isDoji(last)) {
+
     return {
       signal: "WAIT",
       confidence: 0,
-      rsi,
+      rsi: Math.round(rsi),
       macd: macd.bullish,
       quality: "LOW",
       price
     };
   }
 
-  if (ema20 > ema50) buy++;
-  if (ema20 < ema50) sell++;
+  /* MARKET QUALITY */
 
   const quality = marketQuality(symbol);
 
   buy = adjust(buy, quality);
+
   sell = adjust(sell, quality);
+
+  /* SIGNAL */
 
   let signal = "WAIT";
 
-  if (buy >= 4 && buy > sell) signal = "BUY";
-  else if (sell >= 4 && sell > buy) signal = "SELL";
+  // ANTI FAKE FILTER
+  if (
+    Math.abs(buy - sell) <= 1
+  ) {
 
-  let confidence = 50 + Math.max(buy, sell) * 10;
-  if (confidence > 95) confidence = 95;
+    signal = "WAIT";
+
+  } else {
+
+    if (buy >= 5 && buy > sell) {
+      signal = "BUY";
+    }
+
+    else if (sell >= 5 && sell > buy) {
+      signal = "SELL";
+    }
+
+  }
+
+  /* CONFIDENCE */
+
+  let score = Math.max(buy, sell);
+
+  let confidence = 55 + (score * 5);
+
+  // LIMIT
+  if (confidence > 88) {
+    confidence = 88;
+  }
+
+  // WAIT CONFIDENCE
+  if(signal === "WAIT"){
+    confidence = 0;
+  }
 
   return {
+
     symbol,
+
     signal,
+
     confidence: Math.round(confidence),
+
     rsi: Math.round(rsi),
+
     macd: macd.bullish,
+
     quality,
+
     price
+
   };
 }
 
-module.exports = { analyzeMarket };
+module.exports = {
+  analyzeMarket
+};
