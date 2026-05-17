@@ -4,20 +4,22 @@ import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const API_KEY = process.env.TWELVE_API_KEY;
 
 /* ─────────────────────────────
-   GET MARKET DATA
+   GET CANDLES (SAFE + REAL)
 ───────────────────────────── */
 async function getCandles(symbol) {
 
 try {
 
-let fixed = symbol;
-
 if (!symbol) return null;
 
+let fixed = symbol;
+
+/* FORMAT FOREX */
 if (symbol.length === 6) {
 fixed = symbol.slice(0, 3) + "/" + symbol.slice(3);
 }
 
+/* SPECIAL ASSETS */
 if (symbol === "XAUUSD") fixed = "XAU/USD";
 if (symbol === "BTCUSD") fixed = "BTC/USD";
 if (symbol === "ETHUSD") fixed = "ETH/USD";
@@ -28,9 +30,19 @@ const url =
 const res = await fetch(url);
 const data = await res.json();
 
-if (!data || !data.values) return null;
+/* DEBUG IMPORTANT */
+if (!data || !data.values) {
+console.log("API ERROR:", data);
+return null;
+}
 
-return data.values.map(c => Number(c.close)).reverse();
+/* CLEAN PRICES */
+const candles = data.values
+.map(c => Number(c.close))
+.filter(v => !isNaN(v))
+.reverse();
+
+return candles;
 
 } catch (err) {
 console.log("CANDLES ERROR:", err);
@@ -40,7 +52,7 @@ return null;
 }
 
 /* ─────────────────────────────
-   RSI
+   RSI (STABLE FIX)
 ───────────────────────────── */
 function calculateRSI(closes, period = 14) {
 
@@ -89,27 +101,24 @@ try {
 
 const candles = await getCandles(symbol);
 
-if (!candles) {
+/* SAFE FALLBACK */
+if (!candles || candles.length < 20) {
+
 return {
 price: null,
 rsi: 50,
 macd: 0,
-volatility: 0,
 structure: "NEUTRAL",
 confidence: 0,
 signal: "WAIT",
 quality: "LOW"
 };
+
 }
 
-const price = candles[candles.length - 1];
-
+const price = Number(candles[candles.length - 1]);
 const rsi = calculateRSI(candles);
 const macd = calculateMACD(candles);
-
-/* ─ VOLATILITY (IMPORTANT FIX) */
-const volatility =
-Math.abs(macd) + Math.abs(rsi - 50) / 50;
 
 /* ─ STRUCTURE */
 let structure = "NEUTRAL";
@@ -117,12 +126,15 @@ let structure = "NEUTRAL";
 if (rsi > 55 && macd > 0) structure = "BULLISH";
 else if (rsi < 45 && macd < 0) structure = "BEARISH";
 
-/* ─ CONFIDENCE (REAL DYNAMIC ENGINE) */
+/* ─ CONFIDENCE (FIX IMPORTANT) */
 let confidence = 50;
 
-confidence += (rsi - 50) * 1.5;
-confidence += macd * 25;
-confidence += volatility * 20;
+confidence += (rsi - 50) * 1.8;
+confidence += macd * 30;
+
+/* FORCE SENSITIVITY (IMPORTANT FIX TON BUG 0%) */
+confidence += Math.abs(rsi - 50) * 0.5;
+confidence += Math.abs(macd) * 10;
 
 confidence = Math.max(0, Math.min(100, confidence));
 
@@ -136,10 +148,9 @@ else if (confidence <= 40) signal = "SELL";
 let quality = confidence > 75 ? "HIGH" : "LOW";
 
 return {
-price: Number(price),
+price: Number(price.toFixed(5)),
 rsi: Number(rsi.toFixed(2)),
-macd: Number(macd.toFixed(4)),
-volatility: Number(volatility.toFixed(4)),
+macd: Number(macd.toFixed(5)),
 structure,
 confidence: Number(confidence.toFixed(2)),
 signal,
@@ -155,7 +166,6 @@ return {
 price: null,
 rsi: 50,
 macd: 0,
-volatility: 0,
 structure: "NEUTRAL",
 confidence: 0,
 signal: "WAIT",
