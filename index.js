@@ -8,67 +8,53 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-/* SERVE FRONTEND */
 app.use(express.static(path.join(__dirname, "public")));
 
 /* SIGNAL API */
 app.get("/signal", async (req, res) => {
+  try {
+    const symbol = req.query.symbol || "EURUSD";
+    const tf = req.query.tf || "1min";
 
-try {
+    const result = await analyzeMarket(symbol, tf);
 
-console.log("CALL SIGNAL:", req.query);
+    if (!result || result.price == null) {
+      return res.json({
+        price: null,
+        rsi: null,
+        structure: "NO_DATA",
+        confidence: 0,
+        signal: "NO_DATA",
+        quality: "LOW",
+        timeframe: tf
+      });
+    }
 
-const symbol = req.query.symbol || "EURUSD";
-const tf = req.query.tf || "1min";
+    return res.json(result);
 
-let result = null;
+  } catch (err) {
+    console.log("SIGNAL ERROR:", err);
 
-try {
-result = await analyzeMarket(symbol, tf);
-console.log("ENGINE RESULT:", result);
-} catch (engineErr) {
-console.log("ENGINE CRASH:", engineErr);
-}
-
-/* SAFE OUTPUT (NEVER NO DATA) */
-return res.json({
-price: result?.price ?? Number((1 + Math.random() * 100).toFixed(2)),
-rsi: result?.rsi ?? 50,
-structure: result?.structure ?? "NEUTRAL",
-confidence: result?.confidence ?? 0,
-signal: result?.signal ?? "WAIT",
-quality: result?.quality ?? "LOW",
-timeframe: tf
+    return res.json({
+      price: null,
+      rsi: null,
+      structure: "ERROR",
+      confidence: 0,
+      signal: "ERROR",
+      quality: "LOW",
+      timeframe: "1min"
+    });
+  }
 });
 
-} catch (err) {
-
-console.log("SIGNAL ERROR:", err);
-
-/* EMERGENCY FALLBACK */
-return res.json({
-price: Number((1 + Math.random() * 100).toFixed(2)),
-rsi: 50,
-structure: "NEUTRAL",
-confidence: 0,
-signal: "WAIT",
-quality: "LOW",
-timeframe: "1min"
-});
-
-}
-
-});
-
-/* FRONT ROUTE */
+/* FRONT */
 app.get("*", (req, res) => {
-res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* START SERVER */
+/* START */
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-console.log("🚀 SERVER RUNNING ON PORT", PORT);
+  console.log("🚀 SERVER RUNNING ON PORT", PORT);
 });
