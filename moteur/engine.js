@@ -1,190 +1,148 @@
-const { getCandles, getPrice } = require("./data");
-const { RSI, MACD, momentum, EMA } = require("./indicators");
-const { wick, patterns, isDoji } = require("./priceAction");
-const { marketQuality, adjust } = require("./marketFilter");
+const fetch = (...args) =>
+import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
-async function analyzeMarket(symbol, tf = "1min") {
+const API_KEY = process.env.TWELVE_API_KEY;
 
-  const candles = await getCandles(symbol, tf);
-  const price = await getPrice(symbol);
+/* ─────────────────────────────
+   FETCH CANDLES (REAL DATA)
+───────────────────────────── */
+async function getCandles(symbol) {
+try {
 
-  // NO DATA
-  if (!candles || candles.length < 20) {
+let fixed = symbol;
 
-    return {
-      signal: "WAIT",
-      confidence: 0,
-      rsi: 50,
-      macd: false,
-      quality: "LOW",
-      price
-    };
-  }
-
-  // CLOSES
-  const closes = candles.map(c => c.close);
-
-  // INDICATORS
-  const rsi = RSI(closes);
-
-  const macd = MACD(closes);
-
-  const mom = momentum(closes);
-
-  // LAST CANDLE
-  const last = candles[candles.length - 1];
-
-  // WICKS
-  const w = wick(last);
-
-  // PATTERNS
-  const p = patterns(
-    candles[candles.length - 3],
-    candles[candles.length - 2],
-    last
-  );
-
-  // EMA TREND
-  const ema20 = EMA(closes, 20);
-
-  const ema50 = EMA(closes, 50);
-
-  // SCORES
-  let buy = 0;
-  let sell = 0;
-
-  /* RSI */
-
-  if (rsi <= 35) buy++;
-
-  if (rsi >= 65) sell++;
-
-  /* MACD */
-
-  if (macd.bullish) {
-    buy += 2;
-  } else {
-    sell += 2;
-  }
-
-  /* MOMENTUM */
-
-  if (mom > 0) {
-    buy++;
-  } else {
-    sell++;
-  }
-
-  /* WICKS */
-
-  if (w.lower > w.upper * 1.5) {
-    buy++;
-  }
-
-  if (w.upper > w.lower * 1.5) {
-    sell++;
-  }
-
-  /* PATTERNS */
-
-  if (p.morningStar || w.hammer) {
-    buy += 2;
-  }
-
-  if (p.eveningStar || w.star) {
-    sell += 2;
-  }
-
-  /* EMA */
-
-  if (ema20 > ema50) {
-    buy += 2;
-  }
-
-  if (ema20 < ema50) {
-    sell += 2;
-  }
-
-  /* DOJI FILTER */
-
-  if (isDoji(last)) {
-
-    return {
-      signal: "WAIT",
-      confidence: 0,
-      rsi: Math.round(rsi),
-      macd: macd.bullish,
-      quality: "LOW",
-      price
-    };
-  }
-
-  /* MARKET QUALITY */
-
-  const quality = marketQuality(symbol);
-
-  buy = adjust(buy, quality);
-
-  sell = adjust(sell, quality);
-
-  /* SIGNAL */
-
-  let signal = "WAIT";
-
-  // ANTI FAKE FILTER
-  if (
-    Math.abs(buy - sell) <= 1
-  ) {
-
-    signal = "WAIT";
-
-  } else {
-
-    if (buy >= 5 && buy > sell) {
-      signal = "BUY";
-    }
-
-    else if (sell >= 5 && sell > buy) {
-      signal = "SELL";
-    }
-
-  }
-
-  /* CONFIDENCE */
-
-  let score = Math.max(buy, sell);
-
-  let confidence = 55 + (score * 5);
-
-  // LIMIT
-  if (confidence > 88) {
-    confidence = 88;
-  }
-
-  // WAIT CONFIDENCE
-  if(signal === "WAIT"){
-    confidence = 0;
-  }
-
-  return {
-
-    symbol,
-
-    signal,
-
-    confidence: Math.round(confidence),
-
-    rsi: Math.round(rsi),
-
-    macd: macd.bullish,
-
-    quality,
-
-    price
-
-  };
+if (symbol.length === 6) {
+fixed = symbol.slice(0, 3) + "/" + symbol.slice(3);
 }
 
-module.exports = {
-  analyzeMarket
+if (symbol === "XAUUSD") fixed = "XAU/USD";
+if (symbol === "BTCUSD") fixed = "BTC/USD";
+
+const url = `https://api.twelvedata.com/time_series?symbol=${fixed}&interval=1min&outputsize=50&apikey=${API_KEY}`;
+
+const res = await fetch(url);
+const data = await res.json();
+
+if (!data || !data.values) return null;
+
+return data.values.map(c => Number(c.close)).reverse();
+
+} catch (err) {
+console.log("CANDLES ERROR:", err);
+return null;
+}
+}
+
+/* ─────────────────────────────
+   RSI CALCULATION (REAL)
+───────────────────────────── */
+function calculateRSI(closes, period = 14) {
+if (!closes || closes.length < period + 1) return 50;
+
+let gains = 0;
+let losses = 0;
+
+for (let i = 1; i <= period; i++) {
+let diff = closes[i] - closes[i - 1];
+if (diff >= 0) gains += diff;
+else losses -= diff;
+}
+
+let rs = gains / (losses || 1);
+let rsi = 100 - (100 / (1 + rs));
+
+return rsi;
+}
+
+/* ─────────────────────────────
+   SIMPLE MACD
+───────────────────────────── */
+function calculateMACD(closes) {
+if (!closes || closes.length < 26) return 0;
+
+let short = closes.slice(-12).reduce((a,b)=>a+b,0)/12;
+let long = closes.slice(-26).reduce((a,b)=>a+b,0)/26;
+
+return short - long;
+}
+
+/* ─────────────────────────────
+   ENGINE CORE
+───────────────────────────── */
+async function analyzeMarket(symbol, tf) {
+
+try {
+
+const candles = await getCandles(symbol);
+
+if (!candles) {
+return {
+price: null,
+rsi: 50,
+macd: 0,
+structure: "NEUTRAL",
+confidence: 0,
+signal: "WAIT",
+quality: "LOW"
 };
+}
+
+const price = candles[candles.length - 1];
+const rsi = calculateRSI(candles);
+const macd = calculateMACD(candles);
+
+/* STRUCTURE */
+let structure = "NEUTRAL";
+
+if (rsi > 60 && macd > 0) structure = "BULLISH";
+if (rsi < 40 && macd < 0) structure = "BEARISH";
+
+/* CONFIDENCE */
+let confidence = 50;
+
+if (structure === "BULLISH") confidence += 25;
+if (structure === "BEARISH") confidence += 25;
+
+if (Math.abs(macd) > 0.5) confidence += 10;
+
+confidence = Math.min(100, Math.max(0, confidence));
+
+/* SIGNAL */
+let signal = "WAIT";
+
+if (confidence >= 70) signal = "BUY";
+if (confidence <= 35) signal = "SELL";
+
+/* QUALITY */
+let quality = confidence > 75 ? "HIGH" : "LOW";
+
+return {
+price: Number(price.toFixed(5)),
+rsi: Number(rsi.toFixed(2)),
+macd: Number(macd.toFixed(4)),
+structure,
+confidence,
+signal,
+quality,
+timeframe: tf || "1min"
+};
+
+} catch (err) {
+
+console.log("ENGINE ERROR:", err);
+
+return {
+price: null,
+rsi: 50,
+macd: 0,
+structure: "NEUTRAL",
+confidence: 0,
+signal: "WAIT",
+quality: "LOW"
+};
+
+}
+
+}
+
+module.exports = { analyzeMarket };
