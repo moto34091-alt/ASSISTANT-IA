@@ -152,7 +152,7 @@ color:#5e6781;
 
 <h2>D-FLAM SIGNAL BOT</h2>
 
-<!-- MARKET LIST -->
+<!-- MARKET -->
 <select id="market">
 
 <option>EURUSD</option>
@@ -194,7 +194,7 @@ color:#5e6781;
 <option>15min</option>
 </select>
 
-<button onclick="analyze()">ANALYSE</button>
+<button onclick="analyze()">ANALYZE</button>
 <button class="auto" onclick="toggleAuto()">AUTO ANALYZE</button>
 
 <div class="signalBox">
@@ -235,7 +235,7 @@ color:#5e6781;
 
 </div>
 
-<div class="footer">SMART MONEY ENGINE</div>
+<div class="footer">D-FLAM SIGNAL BOT</div>
 
 </div>
 
@@ -247,7 +247,7 @@ document.getElementById("clock").innerText =
 new Date().toLocaleTimeString();
 },1000);
 
-/* AUTO */
+/* AUTO ANALYZE */
 let auto=false;
 let loop;
 
@@ -259,68 +259,90 @@ function startTimer(){
 clearInterval(t);
 
 let time=60;
+
 expFill.style.width="100%";
 
 t=setInterval(()=>{
 
 time--;
 
-timer.innerText="⏳ EXP "+time+"s";
+document.getElementById("timer").innerText = "⏳ EXP " + time + "s";
 
-expFill.style.width=(time/60*100)+"%";
+document.getElementById("expFill").style.width = (time/60*100) + "%";
 
 if(time<=0){
 clearInterval(t);
-timer.innerText="EXPIRED";
+document.getElementById("timer").innerText = "EXPIRED";
 }
 
 },1000);
 
 }
 
-/* AUTO ANALYSE */
+/* AUTO MODE */
 function toggleAuto(){
 
 auto=!auto;
 
 if(auto){
-loop=setInterval(analyse,1500);
+loop=setInterval(analyze,1500);
 }else{
 clearInterval(loop);
 }
 
 }
 
-/* ANALYZE */
+/* ANALYZE FIXED */
 async function analyze(){
 
-const res = await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
+try{
+
+const API = "https://binanc18bot.up.railway.app";
+
+const res = await fetch(`${API}/signal?symbol=${market.value}&tf=${tf.value}`);
+
 const data = await res.json();
 
+console.log(data);
+
 /* SIGNAL */
-signal.innerText = data.signal || "WAIT";
-signal.className =
-data.signal==="BUY"?"signal buy":
-data.signal==="SELL"?"signal sell":"signal wait";
+const signalEl = document.getElementById("signal");
+signalEl.innerText = data.signal || "WAIT";
+signalEl.className =
+data.signal === "BUY" ? "signal buy" :
+data.signal === "SELL" ? "signal sell" : "signal wait";
 
 /* PRICE */
-price.innerText = "PRICE: " + (data.price ?? "--");
+document.getElementById("price").innerText =
+"PRICE: " + (data.price ?? "--");
 
 /* RSI */
-rsi.innerText = data.rsi ?? "50";
+document.getElementById("rsi").innerText =
+data.rsi ?? "50";
 
 /* STRUCTURE */
-macd.innerText = data.structure ?? "NEUTRAL";
+document.getElementById("macd").innerText =
+data.structure ?? "NEUTRAL";
 
 /* CONFIDENCE */
-smc.innerText = (data.confidence ?? 0) + "%";
+document.getElementById("smc").innerText =
+(data.confidence ?? 0) + "%";
 
 /* QUALITY */
-quality.innerText = data.quality ?? "LOW";
+document.getElementById("quality").innerText =
+data.quality ?? "LOW";
 
 /* TIMER */
 if(data.signal !== "WAIT"){
 startTimer();
+}
+
+}catch(err){
+
+console.log(err);
+
+document.getElementById("signal").innerText = "ERROR";
+
 }
 
 }
