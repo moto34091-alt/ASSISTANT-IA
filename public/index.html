@@ -4,42 +4,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SNIPER AI PRO V4</title>
+<title>SNIPER AI PRO</title>
 
 <style>
 
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
 
 body{
 background:#050816;
 color:white;
 display:flex;
 justify-content:center;
-padding:10px;
+align-items:center;
 min-height:100vh;
+padding:10px;
 }
 
 .app{
 width:100%;
-max-width:430px;
+max-width:420px;
 background:#0c1224;
 border-radius:25px;
-padding:15px;
+padding:16px;
 border:1px solid #1f2b4d;
 }
 
-.top{display:flex;justify-content:space-between}
+.top{
+display:flex;
+justify-content:space-between;
+}
+
 .live{color:#00ff9d;font-weight:bold}
 .clock{color:#ccc}
 
-h2{text-align:center;color:#00ff9d;margin:10px 0}
+h2{
+text-align:center;
+color:#00ff9d;
+margin:10px 0;
+}
 
 select,button{
 width:100%;
 padding:12px;
 margin-top:10px;
-border-radius:12px;
 border:none;
+border-radius:12px;
 font-weight:bold;
 }
 
@@ -54,16 +68,15 @@ background:#1d2d52;
 color:white;
 }
 
-/* SIGNAL */
 .signalBox{
 margin-top:15px;
 background:#111827;
-padding:15px;
+padding:18px;
 border-radius:18px;
 }
 
 .signal{
-font-size:52px;
+font-size:50px;
 text-align:center;
 font-weight:bold;
 }
@@ -74,12 +87,17 @@ font-weight:bold;
 
 .timer{
 text-align:center;
-margin-top:6px;
+margin-top:8px;
 color:#00ff9d;
 font-weight:bold;
 }
 
-.price{text-align:center;margin-top:6px;color:#ccc}
+.price{
+text-align:center;
+margin-top:6px;
+color:#ccc;
+font-size:14px;
+}
 
 /* EXP BAR */
 .expBar{
@@ -97,7 +115,6 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 transition:width 1s linear;
 }
 
-/* GRID */
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
@@ -115,24 +132,6 @@ text-align:center;
 .cardTitle{font-size:11px;color:#aaa}
 .cardValue{font-size:16px;font-weight:bold}
 
-/* CHART */
-canvas{
-margin-top:12px;
-background:#0b1020;
-border-radius:15px;
-width:100%;
-height:120px;
-}
-
-/* LIQUIDITY ZONES */
-.zone{
-position:absolute;
-height:2px;
-background:#ff3b5c;
-width:100%;
-opacity:0.4;
-}
-
 .footer{
 text-align:center;
 margin-top:10px;
@@ -148,11 +147,11 @@ color:#5e6781;
 <div class="app">
 
 <div class="top">
-<div class="live">🟢 LIVE INSTITUTIONAL</div>
+<div class="live">🟢 LIVE</div>
 <div class="clock" id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO V4</h2>
+<h2>SNIPER AI PRO V4 FIX</h2>
 
 <select id="market">
 <option>EURUSD</option>
@@ -178,20 +177,15 @@ color:#5e6781;
 
 <div class="price" id="price">PRICE: --</div>
 
-<div class="expBar"><div class="expFill" id="expFill"></div></div>
-
-<canvas id="chart"></canvas>
+<div class="expBar">
+<div class="expFill" id="expFill"></div>
+</div>
 
 <div class="grid">
 
 <div class="card">
 <div class="cardTitle">CONFIDENCE</div>
-<div class="cardValue" id="conf">0%</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">SMC SCORE</div>
-<div class="cardValue" id="smc">0</div>
+<div class="cardValue" id="smc">0%</div>
 </div>
 
 <div class="card">
@@ -200,69 +194,34 @@ color:#5e6781;
 </div>
 
 <div class="card">
-<div class="cardTitle">TREND</div>
-<div class="cardValue" id="trend">NEUTRAL</div>
+<div class="cardTitle">STRUCTURE</div>
+<div class="cardValue" id="macd">NEUTRAL</div>
+</div>
+
+<div class="card">
+<div class="cardTitle">QUALITY</div>
+<div class="cardValue" id="quality">LOW</div>
 </div>
 
 </div>
 
 </div>
 
-<div class="footer">INSTITUTIONAL SMART MONEY ENGINE</div>
+<div class="footer">SMART MONEY ENGINE</div>
 
 </div>
 
 <script>
 
 /* CLOCK */
-setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
+setInterval(()=>{
+document.getElementById("clock").innerText =
+new Date().toLocaleTimeString();
+},1000);
 
-/* AUTO */
-let auto=false, loop;
-
-/* CANVAS CHART */
-const ctx=document.getElementById("chart").getContext("2d");
-
-function drawChart(){
-
-ctx.clearRect(0,0,400,120);
-
-let w=0;
-
-for(let i=0;i<20;i++){
-
-let h=Math.random()*100;
-
-ctx.fillStyle="#00ff9d";
-
-ctx.fillRect(w,120-h,10,h);
-
-w+=18;
-
-}
-
-}
-
-/* SMART MONEY ENGINE V4 */
-function smcV4(d){
-
-let score=50;
-
-/* liquidity sweep */
-if(d.rsi>70||d.rsi<30) score+=20;
-
-/* BOS */
-if(d.macd) score+=15;
-
-/* fake breakout filter */
-if(d.volatility<40) score-=10;
-
-/* institutional trend bias */
-if(d.trend==="UP"||d.trend==="DOWN") score+=10;
-
-/* clamp */
-return Math.max(0,Math.min(100,score));
-}
+/* AUTO ANALYZE */
+let auto=false;
+let loop;
 
 /* TIMER */
 let t;
@@ -270,8 +229,8 @@ let t;
 function startTimer(){
 
 clearInterval(t);
-let time=60;
 
+let time=60;
 expFill.style.width="100%";
 
 t=setInterval(()=>{
@@ -279,6 +238,7 @@ t=setInterval(()=>{
 time--;
 
 timer.innerText="⏳ EXP "+time+"s";
+
 expFill.style.width=(time/60*100)+"%";
 
 if(time<=0){
@@ -287,38 +247,58 @@ timer.innerText="EXPIRED";
 }
 
 },1000);
+
 }
 
-/* AUTO */
+/* TOGGLE AUTO */
 function toggleAuto(){
+
 auto=!auto;
-if(auto) loop=setInterval(analyze,1500);
-else clearInterval(loop);
+
+if(auto){
+loop=setInterval(analyze,1500);
+}else{
+clearInterval(loop);
 }
 
-/* ANALYZE */
+}
+
+/* ANALYZE (FIXED) */
 async function analyze(){
 
-const res=await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
-const d=await res.json();
+const res = await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
+const data = await res.json();
 
-let smc=smcV4(d);
+/* SIGNAL */
+signal.innerText = data.signal || "WAIT";
+signal.className =
+data.signal==="BUY"?"signal buy":
+data.signal==="SELL"?"signal sell":"signal wait";
 
-signal.innerText=d.signal;
-signal.className=
-d.signal==="BUY"?"signal buy":
-d.signal==="SELL"?"signal sell":"signal wait";
+/* PRICE */
+price.innerText =
+"PRICE: " + (data.price ?? "--");
 
-price.innerText="PRICE: "+d.price;
+/* RSI */
+rsi.innerText =
+data.rsi ?? "50";
 
-conf.innerText=smc+"%";
-smc.innerText=smc;
-rsi.innerText=d.rsi;
-trend.innerText=d.trend||"NEUTRAL";
+/* STRUCTURE */
+macd.innerText =
+data.structure ?? "NEUTRAL";
 
-drawChart();
+/* SMC SCORE */
+smc.innerText =
+(data.confidence ?? 0) + "%";
 
-if(d.signal!=="WAIT") startTimer();
+/* QUALITY */
+quality.innerText =
+data.quality ?? "LOW";
+
+/* TIMER */
+if(data.signal !== "WAIT"){
+startTimer();
+}
 
 }
 
