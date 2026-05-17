@@ -17,16 +17,30 @@ function formatSymbol(symbol) {
   return map[symbol] || symbol;
 }
 
+/* SMART FALLBACK PRICES */
+function fallbackPrice(symbol) {
+  const fallback = {
+    EURUSD: 1.08,
+    GBPUSD: 1.27,
+    USDJPY: 150,
+    BTCUSD: 65000,
+    ETHUSD: 3200,
+    XAUUSD: 2300
+  };
+
+  return fallback[symbol] || 100;
+}
+
 async function getPrice(symbol) {
   try {
     const API_KEY = process.env.TWELVE_API_KEY;
 
-    if (!API_KEY) {
-      console.log("NO API KEY");
-      return 1;
-    }
-
     const fixedSymbol = formatSymbol(symbol);
+
+    if (!API_KEY) {
+      console.log("NO API KEY → fallback");
+      return fallbackPrice(symbol);
+    }
 
     const url =
       `https://api.twelvedata.com/price?symbol=${fixedSymbol}&apikey=${API_KEY}`;
@@ -34,21 +48,24 @@ async function getPrice(symbol) {
     const res = await fetch(url);
     const data = await res.json();
 
-    console.log("TWELVE RESPONSE:", data);
+    console.log("API RESPONSE:", data);
 
     if (!data || !data.price || data.status === "error") {
-      return 1;
+      console.log("INVALID DATA → fallback");
+      return fallbackPrice(symbol);
     }
 
     const price = Number(data.price);
 
-    if (isNaN(price)) return 1;
+    if (isNaN(price)) {
+      return fallbackPrice(symbol);
+    }
 
     return price;
 
   } catch (err) {
     console.log("DATA ERROR:", err);
-    return 1;
+    return fallbackPrice(symbol);
   }
 }
 
