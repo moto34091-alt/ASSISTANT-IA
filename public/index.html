@@ -99,7 +99,6 @@ color:#ccc;
 font-size:14px;
 }
 
-/* EXP BAR */
 .expBar{
 height:6px;
 background:#1a2440;
@@ -151,13 +150,42 @@ color:#5e6781;
 <div class="clock" id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO V4 FIX</h2>
+<h2>D-FLAM SIGNAL BOT</h2>
 
+<!-- MARKET LIST -->
 <select id="market">
+
 <option>EURUSD</option>
 <option>GBPUSD</option>
+<option>USDJPY</option>
+<option>USDCHF</option>
+<option>USDCAD</option>
+<option>AUDUSD</option>
+<option>NZDUSD</option>
+
+<option>EURJPY</option>
+<option>GBPJPY</option>
+<option>CHFJPY</option>
+<option>AUDJPY</option>
+
+<option>EURGBP</option>
+<option>EURCHF</option>
+<option>EURCAD</option>
+<option>EURAUD</option>
+
+<option>GBPAUD</option>
+<option>GBPCAD</option>
+<option>GBPCHF</option>
+
+<option>AUDCAD</option>
+<option>AUDCHF</option>
+<option>CADCHF</option>
+<option>CADJPY</option>
+
 <option>BTCUSD</option>
 <option>XAUUSD</option>
+<option>XAGUSD</option>
+
 </select>
 
 <select id="tf">
@@ -167,7 +195,7 @@ color:#5e6781;
 </select>
 
 <button onclick="analyze()">ANALYSE</button>
-<button class="auto" onclick="toggleAuto()">AUTO ANALYSE</button>
+<button class="auto" onclick="toggleAuto()">AUTO ANALYZE</button>
 
 <div class="signalBox">
 
@@ -219,7 +247,7 @@ document.getElementById("clock").innerText =
 new Date().toLocaleTimeString();
 },1000);
 
-/* AUTO ANALYZE */
+/* AUTO */
 let auto=false;
 let loop;
 
@@ -250,7 +278,7 @@ timer.innerText="EXPIRED";
 
 }
 
-/* TOGGLE AUTO */
+/* AUTO ANALYSE */
 function toggleAuto(){
 
 auto=!auto;
@@ -263,8 +291,8 @@ clearInterval(loop);
 
 }
 
-/* ANALYZE (FIXED) */
-async function analyse(){
+/* ANALYZE */
+async function analyze(){
 
 const res = await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
 const data = await res.json();
@@ -276,24 +304,19 @@ data.signal==="BUY"?"signal buy":
 data.signal==="SELL"?"signal sell":"signal wait";
 
 /* PRICE */
-price.innerText =
-"PRICE: " + (data.price ?? "--");
+price.innerText = "PRICE: " + (data.price ?? "--");
 
 /* RSI */
-rsi.innerText =
-data.rsi ?? "50";
+rsi.innerText = data.rsi ?? "50";
 
 /* STRUCTURE */
-macd.innerText =
-data.structure ?? "NEUTRAL";
+macd.innerText = data.structure ?? "NEUTRAL";
 
-/* SMC SCORE */
-smc.innerText =
-(data.confidence ?? 0) + "%";
+/* CONFIDENCE */
+smc.innerText = (data.confidence ?? 0) + "%";
 
 /* QUALITY */
-quality.innerText =
-data.quality ?? "LOW";
+quality.innerText = data.quality ?? "LOW";
 
 /* TIMER */
 if(data.signal !== "WAIT"){
