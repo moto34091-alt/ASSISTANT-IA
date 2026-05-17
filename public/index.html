@@ -7,7 +7,6 @@
 <title>D-FLAM SIGNAL BOT</title>
 
 <style>
-
 *{
 margin:0;
 padding:0;
@@ -137,7 +136,6 @@ margin-top:10px;
 font-size:11px;
 color:#5e6781;
 }
-
 </style>
 </head>
 
@@ -153,28 +151,12 @@ color:#5e6781;
 <h2>D-FLAM SIGNAL BOT</h2>
 
 <select id="market">
-
 <option>EURUSD</option>
 <option>GBPUSD</option>
 <option>USDJPY</option>
-<option>USDCHF</option>
 <option>USDCAD</option>
-<option>AUDUSD</option>
-<option>NZDUSD</option>
-
-<option>EURJPY</option>
-<option>GBPJPY</option>
-<option>CHFJPY</option>
-<option>AUDJPY</option>
-
-<option>EURGBP</option>
-<option>EURCHF</option>
-<option>EURCAD</option>
-<option>EURAUD</option>
-
 <option>BTCUSD</option>
 <option>XAUUSD</option>
-
 </select>
 
 <select id="tf">
@@ -261,17 +243,19 @@ document.getElementById("timer").innerText = "EXPIRED";
 },1000);
 }
 
-/* ANALYZE FIX FINAL */
+/* FIX ANALYZE (IMPORTANT) */
 async function analyze(){
 
 try{
 
 const API = "https://binanc18bot.up.railway.app";
 
-/* FIX SYMBOL FORMAT */
-const symbol = market.value.replace("/","");
+const marketEl = document.getElementById("market");
+const tfEl = document.getElementById("tf");
 
-const url = `${API}/signal?symbol=${symbol}&tf=${tf.value}`;
+const symbol = marketEl.value.replace("/","");
+
+const url = `${API}/signal?symbol=${symbol}&tf=${tfEl.value}`;
 
 console.log("CALL:", url);
 
@@ -304,20 +288,14 @@ data.structure ?? "NEUTRAL";
 document.getElementById("smc").innerText =
 (data.confidence ?? 0) + "%";
 
-/* QUALITY */
-document.getElementById("quality").innerText =
-data.quality ?? "LOW";
-
 /* TIMER */
-if(data.signal !== "WAIT"){
+if(data.signal && data.signal !== "WAIT"){
 startTimer();
 }
 
 }catch(err){
-
 console.log("ERROR:", err);
 document.getElementById("signal").innerText = "ERROR";
-
 }
 
 }
