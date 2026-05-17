@@ -4,10 +4,9 @@ const app = express();
 app.use(express.json());
 
 /* ─────────────────────────────
-   MARKET STRUCTURE ENGINE V6
+   MARKET STRUCTURE ENGINE V6 FIX
 ───────────────────────────── */
 
-/* simulate swing structure */
 function generateStructure(){
 
 let highs = [];
@@ -30,13 +29,7 @@ return {highs, lows, price};
 /* LIQUIDITY DETECTION */
 function liquiditySweep(price, highs, lows){
 
-let sweepHigh = highs.some(h => price > h);
-let sweepLow = lows.some(l => price < l);
-
-if(sweepHigh || sweepLow){
-return true;
-}
-return false;
+return highs.some(h => price > h) || lows.some(l => price < l);
 }
 
 /* BOS / CHoCH */
@@ -51,15 +44,15 @@ if(price < lastLow) return "BEAR_BOS";
 return "NEUTRAL";
 }
 
-/* ORDER BLOCK SIMULATION */
-function orderBlock(structure){
+/* ORDER BLOCK */
+function getOrderBlock(structure){
 
 if(structure === "BULL_BOS") return "BUY_ZONE";
 if(structure === "BEAR_BOS") return "SELL_ZONE";
 return "NONE";
 }
 
-/* SMC ENGINE V6 */
+/* SMC ENGINE */
 function smcV6(data){
 
 let score = 50;
@@ -78,15 +71,16 @@ if(data.structure === "BEAR_BOS") score += 15;
 /* order block */
 if(data.orderBlock !== "NONE") score += 10;
 
-/* volatility filter */
+/* volatility */
 if(data.volatility > 60) score += 5;
+else score -= 5;
 
 /* clamp */
 return Math.max(0, Math.min(100, score));
 }
 
 /* SIGNAL */
-function signal(score){
+function getSignal(score){
 
 if(score >= 70) return "BUY";
 if(score <= 40) return "SELL";
@@ -103,7 +97,7 @@ let volatility = Math.random()*100;
 
 let liquidity = liquiditySweep(price,highs,lows);
 let structure = structureBreak(price,highs,lows);
-let orderBlock = orderBlock(structure);
+let orderBlock = getOrderBlock(structure);
 
 let data = {
 price: price.toFixed(2),
@@ -119,7 +113,7 @@ let score = smcV6(data);
 res.json({
 ...data,
 confidence: score,
-signal: signal(score),
+signal: getSignal(score),
 quality: score > 75 ? "HIGH" : "LOW"
 });
 
