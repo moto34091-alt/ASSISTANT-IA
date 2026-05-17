@@ -4,25 +4,27 @@ import("node-fetch").then(({ default: fetch }) => fetch(...args));
 const API_KEY = process.env.TWELVE_API_KEY;
 
 /* ─────────────────────────────
-   GET CANDLES (SAFE + REAL)
+   GET CANDLES SAFE
 ───────────────────────────── */
 async function getCandles(symbol) {
 
 try {
 
-if (!symbol) return null;
+if (!API_KEY) {
+console.log("❌ NO API KEY");
+return null;
+}
 
 let fixed = symbol;
 
-/* FORMAT FOREX */
+if (!symbol) return null;
+
 if (symbol.length === 6) {
 fixed = symbol.slice(0, 3) + "/" + symbol.slice(3);
 }
 
-/* SPECIAL ASSETS */
 if (symbol === "XAUUSD") fixed = "XAU/USD";
 if (symbol === "BTCUSD") fixed = "BTC/USD";
-if (symbol === "ETHUSD") fixed = "ETH/USD";
 
 const url =
 `https://api.twelvedata.com/time_series?symbol=${fixed}&interval=1min&outputsize=50&apikey=${API_KEY}`;
@@ -30,17 +32,24 @@ const url =
 const res = await fetch(url);
 const data = await res.json();
 
-/* DEBUG IMPORTANT */
-if (!data || !data.values) {
-console.log("API ERROR:", data);
+/* 🔥 DEBUG IMPORTANT */
+console.log("API RESPONSE:", JSON.stringify(data));
+
+/* ERROR CHECK */
+if (!data || data.status === "error" || !data.values) {
+console.log("❌ API FAILED OR LIMIT REACHED");
 return null;
 }
 
-/* CLEAN PRICES */
 const candles = data.values
 .map(c => Number(c.close))
 .filter(v => !isNaN(v))
 .reverse();
+
+if (candles.length < 20) {
+console.log("❌ NOT ENOUGH CANDLES:", candles.length);
+return null;
+}
 
 return candles;
 
@@ -52,7 +61,7 @@ return null;
 }
 
 /* ─────────────────────────────
-   RSI (STABLE FIX)
+   RSI
 ───────────────────────────── */
 function calculateRSI(closes, period = 14) {
 
@@ -63,7 +72,7 @@ let losses = 0;
 
 for (let i = 1; i <= period; i++) {
 
-const diff = closes[i] - closes[i - 1];
+let diff = closes[i] - closes[i - 1];
 
 if (diff > 0) gains += diff;
 else losses += Math.abs(diff);
@@ -72,21 +81,21 @@ else losses += Math.abs(diff);
 
 if (losses === 0) return 100;
 
-const rs = gains / losses;
+let rs = gains / losses;
 
 return 100 - (100 / (1 + rs));
 
 }
 
 /* ─────────────────────────────
-   MACD SIMPLE
+   MACD
 ───────────────────────────── */
 function calculateMACD(closes) {
 
 if (!closes || closes.length < 26) return 0;
 
-const short = closes.slice(-12).reduce((a, b) => a + b, 0) / 12;
-const long = closes.slice(-26).reduce((a, b) => a + b, 0) / 26;
+let short = closes.slice(-12).reduce((a, b) => a + b, 0) / 12;
+let long = closes.slice(-26).reduce((a, b) => a + b, 0) / 26;
 
 return short - long;
 
@@ -101,9 +110,7 @@ try {
 
 const candles = await getCandles(symbol);
 
-/* SAFE FALLBACK */
-if (!candles || candles.length < 20) {
-
+if (!candles) {
 return {
 price: null,
 rsi: 50,
@@ -113,44 +120,39 @@ confidence: 0,
 signal: "WAIT",
 quality: "LOW"
 };
-
 }
 
-const price = Number(candles[candles.length - 1]);
+const price = candles[candles.length - 1];
 const rsi = calculateRSI(candles);
 const macd = calculateMACD(candles);
 
-/* ─ STRUCTURE */
+/* STRUCTURE */
 let structure = "NEUTRAL";
 
 if (rsi > 55 && macd > 0) structure = "BULLISH";
 else if (rsi < 45 && macd < 0) structure = "BEARISH";
 
-/* ─ CONFIDENCE (FIX IMPORTANT) */
+/* CONFIDENCE */
 let confidence = 50;
 
-confidence += (rsi - 50) * 1.8;
-confidence += macd * 30;
-
-/* FORCE SENSITIVITY (IMPORTANT FIX TON BUG 0%) */
-confidence += Math.abs(rsi - 50) * 0.5;
-confidence += Math.abs(macd) * 10;
+confidence += (rsi - 50) * 1.5;
+confidence += macd * 25;
 
 confidence = Math.max(0, Math.min(100, confidence));
 
-/* ─ SIGNAL */
+/* SIGNAL */
 let signal = "WAIT";
 
 if (confidence >= 60) signal = "BUY";
 else if (confidence <= 40) signal = "SELL";
 
-/* ─ QUALITY */
+/* QUALITY */
 let quality = confidence > 75 ? "HIGH" : "LOW";
 
 return {
-price: Number(price.toFixed(5)),
+price: Number(price),
 rsi: Number(rsi.toFixed(2)),
-macd: Number(macd.toFixed(5)),
+macd: Number(macd.toFixed(4)),
 structure,
 confidence: Number(confidence.toFixed(2)),
 signal,
