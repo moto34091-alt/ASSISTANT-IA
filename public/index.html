@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>D-FLAM BOT TRADING</title>
+<title>SNIPER AI PRO</title>
 
 <style>
 
@@ -170,7 +170,7 @@ margin-bottom:10px;
 <option value="15min">📈 15 MIN</option>
 </select>
 
-<button onclick="analyze()">📡 ANALYSE</button>
+<button onclick="analyze()">📡 ANALYZE</button>
 
 <button id="autoBtn" onclick="toggleAuto()">🤖 AUTO MODE</button>
 
@@ -202,8 +202,8 @@ margin-bottom:10px;
 let timer=null;
 let auto=null;
 
-/* ANALYSE */
-async function analyse(){
+/* ANALYZE */
+async function analyze(){
 
 const symbol=document.getElementById("market").value;
 const tf=document.getElementById("tf").value;
@@ -264,7 +264,7 @@ return;
 btn.innerText="AUTO RUNNING...";
 btn.style.background="#ff3b5c";
 
-auto=setInterval(()=>analyse(),4000);
+auto=setInterval(()=>analyze(),4000);
 
 }
 
