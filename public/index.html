@@ -1,276 +1,28 @@
-<!DOCTYPE html>
-<html lang="fr">
+const API = "https://binanc18bot.up.railway.app";
 
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>D-FLAM SIGNAL BOT</title>
-
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial;
-}
-
-body{
-background:#050816;
-color:white;
-display:flex;
-justify-content:center;
-align-items:center;
-min-height:100vh;
-padding:10px;
-}
-
-.app{
-width:100%;
-max-width:420px;
-background:#0c1224;
-border-radius:25px;
-padding:16px;
-border:1px solid #1f2b4d;
-}
-
-.top{
-display:flex;
-justify-content:space-between;
-}
-
-.live{color:#00ff9d;font-weight:bold}
-.clock{color:#ccc}
-
-h2{
-text-align:center;
-color:#00ff9d;
-margin:10px 0;
-}
-
-select,button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:12px;
-font-weight:bold;
-}
-
-button{
-background:#00ff9d;
-color:black;
-cursor:pointer;
-}
-
-button.auto{
-background:#1d2d52;
-color:white;
-}
-
-.signalBox{
-margin-top:15px;
-background:#111827;
-padding:18px;
-border-radius:18px;
-}
-
-.signal{
-font-size:50px;
-text-align:center;
-font-weight:bold;
-}
-
-.buy{color:#00ff9d}
-.sell{color:#ff3b5c}
-.wait{color:#facc15}
-
-.timer{
-text-align:center;
-margin-top:8px;
-color:#00ff9d;
-font-weight:bold;
-}
-
-.price{
-text-align:center;
-margin-top:6px;
-color:#ccc;
-font-size:14px;
-}
-
-.expBar{
-height:6px;
-background:#1a2440;
-border-radius:20px;
-margin-top:10px;
-overflow:hidden;
-}
-
-.expFill{
-height:100%;
-width:100%;
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:width 1s linear;
-}
-
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:8px;
-margin-top:10px;
-}
-
-.card{
-background:#141f3a;
-padding:10px;
-border-radius:12px;
-text-align:center;
-}
-
-.cardTitle{font-size:11px;color:#aaa}
-.cardValue{font-size:16px;font-weight:bold}
-
-.footer{
-text-align:center;
-margin-top:10px;
-font-size:11px;
-color:#5e6781;
-}
-</style>
-</head>
-
-<body>
-
-<div class="app">
-
-<div class="top">
-<div class="live">🟢 LIVE</div>
-<div class="clock" id="clock"></div>
-</div>
-
-<h2>D-FLAM SIGNAL BOT</h2>
-
-<select id="market">
-<option>EURUSD</option>
-<option>GBPUSD</option>
-<option>USDJPY</option>
-<option>USDCAD</option>
-<option>BTCUSD</option>
-<option>XAUUSD</option>
-</select>
-
-<select id="tf">
-<option>1min</option>
-<option>5min</option>
-<option>15min</option>
-</select>
-
-<button onclick="analyze()">ANALYZE</button>
-
-<div class="signalBox">
-
-<div class="signal wait" id="signal">WAIT</div>
-
-<div class="timer" id="timer"></div>
-
-<div class="price" id="price">PRICE: --</div>
-
-<div class="expBar">
-<div class="expFill" id="expFill"></div>
-</div>
-
-<div class="grid">
-
-<div class="card">
-<div class="cardTitle">CONFIDENCE</div>
-<div class="cardValue" id="smc">0%</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">RSI</div>
-<div class="cardValue" id="rsi">50</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">STRUCTURE</div>
-<div class="cardValue" id="macd">NEUTRAL</div>
-</div>
-
-<div class="card">
-<div class="cardTitle">QUALITY</div>
-<div class="cardValue" id="quality">LOW</div>
-</div>
-
-</div>
-
-</div>
-
-<div class="footer">D-FLAM SIGNAL BOT</div>
-
-</div>
-
-<script>
-
-/* CLOCK */
-setInterval(()=>{
-document.getElementById("clock").innerText =
-new Date().toLocaleTimeString();
-},1000);
-
-/* TIMER */
-let t;
-
-function startTimer(){
-clearInterval(t);
-
-let time = 60;
-
-document.getElementById("expFill").style.width = "100%";
-
-t = setInterval(()=>{
-
-time--;
-
-document.getElementById("timer").innerText = "⏳ EXP " + time + "s";
-
-document.getElementById("expFill").style.width = (time/60*100) + "%";
-
-if(time <= 0){
-clearInterval(t);
-document.getElementById("timer").innerText = "EXPIRED";
-}
-
-},1000);
-}
-
-/* FIX ANALYZE (IMPORTANT) */
 async function analyze(){
 
 try{
 
-const API = "https://binanc18bot.up.railway.app";
+const symbol = document.getElementById("market").value;
+const tf = document.getElementById("tf").value;
 
-const marketEl = document.getElementById("market");
-const tfEl = document.getElementById("tf");
-
-const symbol = marketEl.value.replace("/","");
-
-const url = `${API}/signal?symbol=${symbol}&tf=${tfEl.value}`;
-
-console.log("CALL:", url);
-
-const res = await fetch(url);
+const res = await fetch(`${API}/signal?symbol=${symbol}&tf=${tf}`);
 const data = await res.json();
 
-console.log("DATA:", data);
+console.log("API DATA:", data);
+
+/* SAFE CHECK ULTRA IMPORTANT */
+if(!data || typeof data.price === "undefined" || data.price === null){
+
+document.getElementById("signal").innerText = "NO DATA";
+document.getElementById("price").innerText = "PRICE: --";
+return;
+
+}
 
 /* SIGNAL */
-const signalEl = document.getElementById("signal");
-signalEl.innerText = data.signal || "WAIT";
-
-signalEl.className =
-data.signal === "BUY" ? "signal buy" :
-data.signal === "SELL" ? "signal sell" : "signal wait";
+document.getElementById("signal").innerText = data.signal || "WAIT";
 
 /* PRICE */
 document.getElementById("price").innerText =
@@ -288,19 +40,16 @@ data.structure ?? "NEUTRAL";
 document.getElementById("smc").innerText =
 (data.confidence ?? 0) + "%";
 
-/* TIMER */
-if(data.signal && data.signal !== "WAIT"){
-startTimer();
-}
+/* QUALITY */
+document.getElementById("quality").innerText =
+data.quality ?? "LOW";
 
 }catch(err){
-console.log("ERROR:", err);
+
+console.log("ANALYZE ERROR:", err);
+
 document.getElementById("signal").innerText = "ERROR";
-}
 
 }
 
-</script>
-
-</body>
-</html>
+}
