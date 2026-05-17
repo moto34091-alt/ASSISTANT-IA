@@ -3,7 +3,7 @@ const fetch = (...args) =>
 
 const API_KEY = process.env.TWELVE_API_KEY;
 
-/* SYMBOL FIX (CRITIQUE) */
+/* FORMAT SYMBOL */
 function formatSymbol(symbol) {
   const map = {
     EURUSD: "EUR/USD",
@@ -20,7 +20,7 @@ function formatSymbol(symbol) {
   return map[symbol] || symbol;
 }
 
-/* GET DATA */
+/* GET CANDLES */
 async function getCandles(symbol) {
   try {
     const fixed = formatSymbol(symbol);
