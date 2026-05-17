@@ -4,10 +4,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SNIPER AI PRO</title>
+<title>SNIPER AI PRO 3D</title>
 
 <style>
 
+/* ===== GLOBAL ===== */
 *{
 margin:0;
 padding:0;
@@ -16,24 +17,51 @@ font-family:Arial;
 }
 
 body{
-background:#050816;
+background: radial-gradient(circle at top,#0a0f1f,#050816);
 color:white;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
-padding:10px;
+overflow:hidden;
 }
 
+/* PARTICLES */
+#bg{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+z-index:0;
+}
+
+/* APP 3D */
 .app{
+position:relative;
+z-index:2;
 width:100%;
 max-width:420px;
-background:#0c1224;
+background:#0c1224cc;
+backdrop-filter:blur(10px);
 border-radius:25px;
 padding:16px;
 border:1px solid #1f2b4d;
+box-shadow:
+0 0 25px #00ff9d33,
+0 0 80px #000 inset;
+transform: perspective(1000px) rotateX(2deg);
+animation: floatApp 6s ease-in-out infinite;
 }
 
+/* FLOAT */
+@keyframes floatApp{
+0%{transform: perspective(1000px) rotateX(2deg) translateY(0px);}
+50%{transform: perspective(1000px) rotateX(2deg) translateY(-8px);}
+100%{transform: perspective(1000px) rotateX(2deg) translateY(0px);}
+}
+
+/* TOP */
 .top{
 display:flex;
 justify-content:space-between;
@@ -42,12 +70,16 @@ justify-content:space-between;
 .live{color:#00ff9d;font-weight:bold}
 .clock{color:#ccc}
 
+/* TITLE */
 h2{
 text-align:center;
 color:#00ff9d;
 margin:10px 0;
+text-shadow:0 0 20px #00ff9d88;
+letter-spacing:2px;
 }
 
+/* INPUTS */
 select,button{
 width:100%;
 padding:12px;
@@ -61,6 +93,12 @@ button{
 background:#00ff9d;
 color:black;
 cursor:pointer;
+box-shadow:0 8px 20px rgba(0,0,0,0.4);
+transition:0.2s;
+}
+
+button:active{
+transform:scale(0.96);
 }
 
 button.auto{
@@ -68,6 +106,7 @@ background:#1d2d52;
 color:white;
 }
 
+/* SIGNAL */
 .signalBox{
 margin-top:15px;
 background:#111827;
@@ -79,12 +118,20 @@ border-radius:18px;
 font-size:50px;
 text-align:center;
 font-weight:bold;
+animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+0%{transform:scale(1);opacity:1;}
+50%{transform:scale(1.05);opacity:0.8;}
+100%{transform:scale(1);opacity:1;}
 }
 
 .buy{color:#00ff9d}
 .sell{color:#ff3b5c}
 .wait{color:#facc15}
 
+/* TIMER */
 .timer{
 text-align:center;
 margin-top:8px;
@@ -99,7 +146,7 @@ color:#ccc;
 font-size:14px;
 }
 
-/* EXP BAR */
+/* BAR */
 .expBar{
 height:6px;
 background:#1a2440;
@@ -115,6 +162,7 @@ background:linear-gradient(90deg,#00ff9d,#00c3ff);
 transition:width 1s linear;
 }
 
+/* GRID */
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
@@ -132,6 +180,7 @@ text-align:center;
 .cardTitle{font-size:11px;color:#aaa}
 .cardValue{font-size:16px;font-weight:bold}
 
+/* FOOTER */
 .footer{
 text-align:center;
 margin-top:10px;
@@ -144,6 +193,8 @@ color:#5e6781;
 
 <body>
 
+<canvas id="bg"></canvas>
+
 <div class="app">
 
 <div class="top">
@@ -151,13 +202,35 @@ color:#5e6781;
 <div class="clock" id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO V4 FIX</h2>
+<h2>SNIPER AI PRO 3D</h2>
 
+<!-- MARKET -->
 <select id="market">
-<option>EURUSD</option>
-<option>GBPUSD</option>
+
+<option>EUR/JPY</option>
+<option>GBP/JPY</option>
+<option>AUD/CAD</option>
+<option>AUD/USD</option>
+<option>CAD/CHF</option>
+<option>CAD/JPY</option>
+<option>EUR/AUD</option>
+<option>EUR/CAD</option>
+<option>EUR/CHF</option>
+<option>EUR/GBP</option>
+<option>EUR/USD</option>
+<option>GBP/CHF</option>
+<option>GBP/USD</option>
+<option>GBP/AUD</option>
+<option>GBP/CAD</option>
+<option>USD/CAD</option>
+<option>USD/CHF</option>
+<option>USD/JPY</option>
+<option>AUD/CHF</option>
+<option>AUD/JPY</option>
+<option>CHF/JPY</option>
 <option>BTCUSD</option>
 <option>XAUUSD</option>
+
 </select>
 
 <select id="tf">
@@ -207,7 +280,7 @@ color:#5e6781;
 
 </div>
 
-<div class="footer">SMART MONEY ENGINE</div>
+<div class="footer">SMART MONEY ENGINE 3D</div>
 
 </div>
 
@@ -219,9 +292,8 @@ document.getElementById("clock").innerText =
 new Date().toLocaleTimeString();
 },1000);
 
-/* AUTO ANALYZE */
-let auto=false;
-let loop;
+/* AUTO */
+let auto=false, loop;
 
 /* TIMER */
 let t;
@@ -252,55 +324,67 @@ timer.innerText="EXPIRED";
 
 /* TOGGLE AUTO */
 function toggleAuto(){
-
 auto=!auto;
-
-if(auto){
-loop=setInterval(analyze,1500);
-}else{
-clearInterval(loop);
+if(auto) loop=setInterval(analyze,1500);
+else clearInterval(loop);
 }
 
-}
-
-/* ANALYZE (FIXED) */
+/* ANALYZE */
 async function analyze(){
 
-const res = await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
+const symbol = market.value.replace("/","");
+const res = await fetch(`/signal?symbol=${symbol}&tf=${tf.value}`);
 const data = await res.json();
 
-/* SIGNAL */
 signal.innerText = data.signal || "WAIT";
 signal.className =
 data.signal==="BUY"?"signal buy":
 data.signal==="SELL"?"signal sell":"signal wait";
 
-/* PRICE */
-price.innerText =
-"PRICE: " + (data.price ?? "--");
+price.innerText = "PRICE: " + (data.price ?? "--");
+rsi.innerText = data.rsi ?? "50";
+macd.innerText = data.structure ?? "NEUTRAL";
+smc.innerText = (data.confidence ?? 0) + "%";
+quality.innerText = data.quality ?? "LOW";
 
-/* RSI */
-rsi.innerText =
-data.rsi ?? "50";
-
-/* STRUCTURE */
-macd.innerText =
-data.structure ?? "NEUTRAL";
-
-/* SMC SCORE */
-smc.innerText =
-(data.confidence ?? 0) + "%";
-
-/* QUALITY */
-quality.innerText =
-data.quality ?? "LOW";
-
-/* TIMER */
-if(data.signal !== "WAIT"){
-startTimer();
-}
+if(data.signal !== "WAIT") startTimer();
 
 }
+
+/* PARTICLES */
+const c=document.getElementById("bg");
+const ctx=c.getContext("2d");
+
+c.width=window.innerWidth;
+c.height=window.innerHeight;
+
+let dots=[];
+
+for(let i=0;i<60;i++){
+dots.push({
+x:Math.random()*c.width,
+y:Math.random()*c.height,
+v:0.3+Math.random()
+});
+}
+
+function draw(){
+ctx.clearRect(0,0,c.width,c.height);
+ctx.fillStyle="#00ff9d";
+
+dots.forEach(d=>{
+ctx.beginPath();
+ctx.arc(d.x,d.y,1.5,0,Math.PI*2);
+ctx.fill();
+
+d.y-=d.v;
+if(d.y<0) d.y=c.height;
+});
+
+requestAnimationFrame(draw);
+}
+
+draw();
 
 </script>
 
