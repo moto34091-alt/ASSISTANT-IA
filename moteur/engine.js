@@ -3,7 +3,9 @@ const fetch = (...args) =>
 
 const API_KEY = process.env.TWELVE_API_KEY;
 
-/* FORMAT SYMBOL */
+/* ─────────────────────────────
+   FORMAT SYMBOL
+───────────────────────────── */
 function formatSymbol(symbol) {
   if (!symbol) return null;
 
@@ -11,14 +13,16 @@ function formatSymbol(symbol) {
     return symbol.slice(0, 3) + "/" + symbol.slice(3);
   }
 
-  if (symbol === "XAUUSD") return "XAU/USD";
   if (symbol === "BTCUSD") return "BTC/USD";
   if (symbol === "ETHUSD") return "ETH/USD";
+  if (symbol === "XAUUSD") return "XAU/USD";
 
   return symbol;
 }
 
-/* GET CANDLES */
+/* ─────────────────────────────
+   GET CANDLES (REAL DATA)
+───────────────────────────── */
 async function getCandles(symbol) {
   try {
     const fixed = formatSymbol(symbol);
@@ -45,7 +49,9 @@ async function getCandles(symbol) {
   }
 }
 
-/* RSI */
+/* ─────────────────────────────
+   RSI
+───────────────────────────── */
 function RSI(closes, period = 14) {
   if (!closes || closes.length < period + 1) return null;
 
@@ -53,49 +59,93 @@ function RSI(closes, period = 14) {
   let loss = 0;
 
   for (let i = 1; i <= period; i++) {
-    const diff = closes[i] - closes[i - 1];
+    let diff = closes[i] - closes[i - 1];
     if (diff > 0) gain += diff;
     else loss += Math.abs(diff);
   }
 
   if (loss === 0) return 100;
 
-  const rs = gain / loss;
+  let rs = gain / loss;
   return 100 - (100 / (1 + rs));
 }
 
-/* ENGINE */
+/* ─────────────────────────────
+   MOMENTUM
+───────────────────────────── */
+function momentum(closes) {
+  if (!closes || closes.length < 10) return 0;
+
+  let recent = closes.slice(-5);
+  let past = closes.slice(-10, -5);
+
+  let recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+  let pastAvg = past.reduce((a, b) => a + b, 0) / past.length;
+
+  return recentAvg - pastAvg;
+}
+
+/* ─────────────────────────────
+   STRUCTURE
+───────────────────────────── */
+function structure(rsi, mom) {
+  if (rsi > 55 && mom > 0) return "BULLISH";
+  if (rsi < 45 && mom < 0) return "BEARISH";
+  return "NEUTRAL";
+}
+
+/* ─────────────────────────────
+   SNIPER ENGINE V2
+───────────────────────────── */
 async function analyzeMarket(symbol, tf) {
   try {
     const candles = await getCandles(symbol);
 
-    if (!candles || candles.length < 20) {
+    if (!candles) {
       return null;
     }
 
     const price = candles[candles.length - 1];
     const rsi = RSI(candles);
+    const mom = momentum(candles);
 
-    if (rsi == null) return null;
+    if (rsi == null) {
+      return null;
+    }
 
-    let confidence = 50;
+    let structureState = structure(rsi, mom);
 
-    if (rsi > 55) confidence += 20;
-    if (rsi < 45) confidence += 20;
+    /* ───── SCORE SYSTEM ───── */
+    let score = 50;
 
-    confidence = Math.max(0, Math.min(100, confidence));
+    if (rsi > 55) score += 20;
+    if (rsi < 45) score += 20;
 
+    if (mom > 0) score += 15;
+    if (mom < 0) score += 15;
+
+    if (structureState === "BULLISH") score += 10;
+    if (structureState === "BEARISH") score += 10;
+
+    score = Math.max(0, Math.min(100, score));
+
+    /* ───── SIGNAL ───── */
     let signal = "WAIT";
-    if (confidence >= 65) signal = "BUY";
-    if (confidence <= 35) signal = "SELL";
+
+    if (score >= 65) signal = "BUY";
+    if (score <= 35) signal = "SELL";
+
+    /* ───── QUALITY ───── */
+    let quality = score > 75 ? "HIGH" : "LOW";
 
     return {
       price: Number(price),
       rsi: Number(rsi.toFixed(2)),
-      structure: rsi > 55 ? "BULLISH" : rsi < 45 ? "BEARISH" : "NEUTRAL",
-      confidence: Number(confidence.toFixed(2)),
+      momentum: Number(mom.toFixed(6)),
+      structure: structureState,
+      confidence: Number(score.toFixed(2)),
       signal,
-      quality: confidence > 75 ? "HIGH" : "LOW",
+      quality,
       timeframe: tf || "1min"
     };
 
