@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SNIPER AI PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
@@ -14,20 +14,16 @@ font-family:Arial;
 display:flex;
 justify-content:center;
 align-items:center;
-min-height:100vh;
+height:100vh;
 }
 
 .app{
 width:100%;
-max-width:420px;
+max-width:400px;
 background:#0c1224;
 padding:15px;
 border-radius:15px;
-}
-
-h1{
 text-align:center;
-color:#00ff9d;
 }
 
 select,button{
@@ -36,25 +32,16 @@ padding:12px;
 margin-top:10px;
 border:none;
 border-radius:10px;
-font-weight:bold;
 }
 
 select{background:#141d38;color:white;}
-button{background:#00ff9d;color:black;}
-
-.box{
-margin-top:15px;
-padding:10px;
-background:#09101f;
-border-radius:10px;
-text-align:center;
-}
+button{background:#00ff9d;color:black;font-weight:bold;}
 
 .signal{
 font-size:40px;
 font-weight:bold;
+margin-top:10px;
 }
-
 .buy{color:#00ff9d;}
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
@@ -65,7 +52,7 @@ font-weight:bold;
 
 <div class="app">
 
-<h1>SNIPER AI PRO</h1>
+<h2>SNIPER AI PRO</h2>
 
 <select id="market">
 <option>EURUSD</option>
@@ -78,17 +65,14 @@ font-weight:bold;
 
 <button onclick="analyze()">ANALYZE</button>
 
-<div class="box">
 <div id="signal" class="signal wait">WAIT</div>
 <div id="price">PRICE: --</div>
 <div id="rsi">RSI: --</div>
-<div id="conf">CONFIDENCE: 0%</div>
-</div>
+<div id="conf">CONF: 0%</div>
 
 </div>
 
 <script>
-
 async function analyze(){
 
 const symbol = document.getElementById("market").value;
@@ -97,20 +81,12 @@ const res = await fetch(`/signal?symbol=${symbol}&tf=1min`);
 
 const data = await res.json();
 
-console.log(data);
-
-if(!data || data.price == null){
-document.getElementById("signal").innerText = "NO DATA";
-return;
-}
-
 document.getElementById("signal").innerText = data.signal;
 document.getElementById("price").innerText = "PRICE: " + data.price;
 document.getElementById("rsi").innerText = "RSI: " + data.rsi;
 document.getElementById("conf").innerText = "CONF: " + data.confidence + "%";
 
 }
-
 </script>
 
 </body>
