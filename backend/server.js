@@ -14,7 +14,6 @@ function generatePrice(){
 
 let price = 100 + Math.random() * 100;
 
-/* SAFE */
 if(!price || isNaN(price)){
 price = 100;
 }
@@ -22,7 +21,7 @@ price = 100;
 return Number(price.toFixed(2));
 }
 
-function generateStructure(price){
+function generateStructureData(price){
 
 let highs = [];
 let lows = [];
@@ -39,13 +38,13 @@ lows.push(price - Math.random() * 2);
 return { highs, lows, price };
 }
 
-/* LIQUIDITY */
-function liquidity(highs, lows, price){
+/* LIQUIDITY FIX */
+function checkLiquidity(highs, lows, price){
 return highs.some(h => price > h) || lows.some(l => price < l);
 }
 
-/* SIMPLE STRUCTURE */
-function structure(price, highs, lows){
+/* STRUCTURE FIX */
+function detectStructure(price, highs, lows){
 
 let lastHigh = highs[highs.length - 1];
 let lastLow = lows[lows.length - 1];
@@ -72,7 +71,7 @@ return Math.max(0, Math.min(100, score));
 }
 
 /* SIGNAL */
-function signal(score){
+function getSignal(score){
 
 if(score >= 70) return "BUY";
 if(score <= 40) return "SELL";
@@ -84,13 +83,13 @@ app.get("/signal",(req,res)=>{
 
 let price = generatePrice();
 
-let { highs, lows, price: finalPrice } = generateStructure(price);
+let { highs, lows, price: finalPrice } = generateStructureData(price);
 
 let rsi = 20 + Math.random() * 60;
 
-let liquidity = liquidity(highs, lows, finalPrice);
+let liquidity = checkLiquidity(highs, lows, finalPrice);
 
-let structure = structure(finalPrice, highs, lows);
+let structure = detectStructure(finalPrice, highs, lows);
 
 let data = {
 price: finalPrice,
@@ -104,7 +103,7 @@ let confidence = scoreEngine(data);
 res.json({
 ...data,
 confidence,
-signal: signal(confidence),
+signal: getSignal(confidence),
 quality: confidence > 75 ? "HIGH" : "LOW"
 });
 
