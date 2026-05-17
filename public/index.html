@@ -152,7 +152,6 @@ color:#5e6781;
 
 <h2>D-FLAM SIGNAL BOT</h2>
 
-<!-- MARKET -->
 <select id="market">
 
 <option>EURUSD</option>
@@ -173,18 +172,8 @@ color:#5e6781;
 <option>EURCAD</option>
 <option>EURAUD</option>
 
-<option>GBPAUD</option>
-<option>GBPCAD</option>
-<option>GBPCHF</option>
-
-<option>AUDCAD</option>
-<option>AUDCHF</option>
-<option>CADCHF</option>
-<option>CADJPY</option>
-
 <option>BTCUSD</option>
 <option>XAUUSD</option>
-<option>XAGUSD</option>
 
 </select>
 
@@ -195,7 +184,6 @@ color:#5e6781;
 </select>
 
 <button onclick="analyze()">ANALYZE</button>
-<button class="auto" onclick="toggleAuto()">AUTO ANALYZE</button>
 
 <div class="signalBox">
 
@@ -247,22 +235,17 @@ document.getElementById("clock").innerText =
 new Date().toLocaleTimeString();
 },1000);
 
-/* AUTO ANALYZE */
-let auto=false;
-let loop;
-
 /* TIMER */
 let t;
 
 function startTimer(){
-
 clearInterval(t);
 
-let time=60;
+let time = 60;
 
-expFill.style.width="100%";
+document.getElementById("expFill").style.width = "100%";
 
-t=setInterval(()=>{
+t = setInterval(()=>{
 
 time--;
 
@@ -270,44 +253,37 @@ document.getElementById("timer").innerText = "⏳ EXP " + time + "s";
 
 document.getElementById("expFill").style.width = (time/60*100) + "%";
 
-if(time<=0){
+if(time <= 0){
 clearInterval(t);
 document.getElementById("timer").innerText = "EXPIRED";
 }
 
 },1000);
-
 }
 
-/* AUTO MODE */
-function toggleAuto(){
-
-auto=!auto;
-
-if(auto){
-loop=setInterval(analyze,1500);
-}else{
-clearInterval(loop);
-}
-
-}
-
-/* ANALYZE FIXED */
+/* ANALYZE FIX FINAL */
 async function analyze(){
 
 try{
 
 const API = "https://binanc18bot.up.railway.app";
 
-const res = await fetch(`${API}/signal?symbol=${market.value}&tf=${tf.value}`);
+/* FIX SYMBOL FORMAT */
+const symbol = market.value.replace("/","");
 
+const url = `${API}/signal?symbol=${symbol}&tf=${tf.value}`;
+
+console.log("CALL:", url);
+
+const res = await fetch(url);
 const data = await res.json();
 
-console.log(data);
+console.log("DATA:", data);
 
 /* SIGNAL */
 const signalEl = document.getElementById("signal");
 signalEl.innerText = data.signal || "WAIT";
+
 signalEl.className =
 data.signal === "BUY" ? "signal buy" :
 data.signal === "SELL" ? "signal sell" : "signal wait";
@@ -339,8 +315,7 @@ startTimer();
 
 }catch(err){
 
-console.log(err);
-
+console.log("ERROR:", err);
 document.getElementById("signal").innerText = "ERROR";
 
 }
