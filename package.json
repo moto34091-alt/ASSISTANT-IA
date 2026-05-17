@@ -1,9 +1,12 @@
 {
-  "name": "dflam-signal-bot",
+  "name": "d-flam-signal-bot",
   "version": "1.0.0",
-  "main": "server.js",
+  "description": "D-FLAM SIGNAL BOT LIVE MARKET ENGINE",
+  "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js",
+    "dev": "node index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
