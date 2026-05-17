@@ -7,10 +7,11 @@
 
 <style>
 
+/* ===== GLOBAL ===== */
 body{
 margin:0;
-background:#050816;
 font-family:Arial;
+background: radial-gradient(circle at top, #0f1b3d, #050816);
 color:white;
 display:flex;
 justify-content:center;
@@ -18,62 +19,105 @@ align-items:center;
 min-height:100vh;
 }
 
+/* ===== CARD ===== */
 .app{
 width:100%;
 max-width:420px;
-background:#0c1224;
-padding:15px;
-border-radius:18px;
-box-shadow:0 0 20px #000;
+background: rgba(12,18,36,0.92);
+backdrop-filter: blur(10px);
+border-radius:22px;
+padding:18px;
+box-shadow:0 0 40px rgba(0,255,157,0.08);
+border:1px solid rgba(255,255,255,0.05);
 }
 
+/* ===== HEADER ===== */
 .header{
 text-align:center;
 font-size:22px;
-color:#00ff9d;
 font-weight:bold;
+color:#00ff9d;
+letter-spacing:1px;
+margin-bottom:12px;
 }
 
+/* ===== SELECT ===== */
 select,button{
 width:100%;
-padding:12px;
+padding:13px;
 margin-top:10px;
 border:none;
-border-radius:10px;
+border-radius:12px;
 font-weight:bold;
+outline:none;
 }
 
-select{background:#141d38;color:white;}
-button{background:#00ff9d;color:black;cursor:pointer;}
+select{
+background:#141d38;
+color:white;
+border:1px solid rgba(255,255,255,0.08);
+}
+
+button{
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+color:#000;
+cursor:pointer;
+transition:0.2s;
+}
+
+button:hover{
+transform:scale(1.02);
+}
+
+/* ===== SIGNAL ===== */
+.signalBox{
+text-align:center;
+margin-top:18px;
+padding:10px;
+border-radius:15px;
+background:rgba(255,255,255,0.03);
+}
 
 .signal{
-text-align:center;
-font-size:42px;
-margin-top:10px;
+font-size:46px;
 font-weight:bold;
+letter-spacing:2px;
+margin-top:8px;
 }
 
-.buy{color:#00ff9d;}
-.sell{color:#ff3b5c;}
-.wait{color:#facc15;}
+.buy{
+color:#00ff9d;
+text-shadow:0 0 15px #00ff9d;
+}
 
+.sell{
+color:#ff3b5c;
+text-shadow:0 0 15px #ff3b5c;
+}
+
+.wait{
+color:#facc15;
+}
+
+/* ===== INFO ===== */
 .info{
-text-align:center;
 margin-top:6px;
-color:#ccc;
+font-size:14px;
+color:#c7c7c7;
 }
 
-/* TIMER */
+/* ===== TIMER ===== */
 .timerBox{
-display:none;
 margin-top:15px;
+display:none;
 }
 
 .bar{
 height:10px;
-background:#182341;
+background:#1a2340;
 border-radius:20px;
 overflow:hidden;
+box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
 .fill{
@@ -85,14 +129,20 @@ transition:width 1s linear;
 
 .timerText{
 text-align:center;
-margin-top:5px;
+margin-top:6px;
+font-size:13px;
 color:#aaa;
 }
 
-/* AUTO BUTTON */
-.autoOn{
-background:#ff3b5c !important;
-color:white !important;
+/* ===== BADGE ===== */
+.badge{
+display:inline-block;
+padding:4px 10px;
+background:rgba(0,255,157,0.1);
+border:1px solid rgba(0,255,157,0.3);
+border-radius:8px;
+font-size:12px;
+margin-top:5px;
 }
 
 </style>
@@ -104,6 +154,8 @@ color:white !important;
 
 <div class="header">🔥 SNIPER AI PRO</div>
 
+<div class="badge">LIVE MARKET ENGINE</div>
+
 <select id="market">
 <option>EURUSD</option>
 <option>GBPUSD</option>
@@ -114,20 +166,24 @@ color:white !important;
 </select>
 
 <select id="tf">
-<option value="1min">1 MIN</option>
-<option value="5min">5 MIN</option>
-<option value="15min">15 MIN</option>
+<option value="1min">⚡ 1 MIN</option>
+<option value="5min">📊 5 MIN</option>
+<option value="15min">📈 15 MIN</option>
 </select>
 
 <button onclick="analyze()">📡 ANALYZE</button>
 
 <button id="autoBtn" onclick="toggleAuto()">🤖 AUTO MODE</button>
 
+<div class="signalBox">
+
 <div id="signal" class="signal wait">WAIT</div>
 
 <div class="info" id="price">PRICE: --</div>
 <div class="info" id="rsi">RSI: --</div>
 <div class="info" id="conf">CONF: 0%</div>
+
+</div>
 
 <!-- TIMER -->
 <div class="timerBox" id="timerBox">
@@ -144,57 +200,51 @@ color:white !important;
 
 <script>
 
-let timer = null;
-let auto = null;
+let timer=null;
+let auto=null;
 
 /* ANALYZE */
 async function analyze(){
 
-const symbol = document.getElementById("market").value;
-const tf = document.getElementById("tf").value;
+const symbol=document.getElementById("market").value;
+const tf=document.getElementById("tf").value;
 
-try{
+const res=await fetch(`/signal?symbol=${symbol}&tf=${tf}`);
+const d=await res.json();
 
-const res = await fetch(`/signal?symbol=${symbol}&tf=${tf}`);
-const data = await res.json();
+/* UPDATE */
+const s=document.getElementById("signal");
+s.innerText=d.signal;
+s.className="signal "+d.signal.toLowerCase();
 
-/* UPDATE UI */
-const signal = document.getElementById("signal");
-signal.innerText = data.signal;
-signal.className = "signal " + (data.signal.toLowerCase());
+document.getElementById("price").innerText="PRICE: "+d.price;
+document.getElementById("rsi").innerText="RSI: "+d.rsi;
+document.getElementById("conf").innerText="CONF: "+d.confidence+"%";
 
-document.getElementById("price").innerText = "PRICE: " + data.price;
-document.getElementById("rsi").innerText = "RSI: " + data.rsi;
-document.getElementById("conf").innerText = "CONF: " + data.confidence + "%";
-
-/* TIMER START */
+/* TIMER */
 startTimer();
 
-}catch(err){
-console.log("UI ERROR:", err);
 }
 
-}
-
-/* TIMER 60 SEC */
+/* TIMER 60s */
 function startTimer(){
 
 clearInterval(timer);
 
-let t = 60;
+let t=60;
 
-document.getElementById("timerBox").style.display = "block";
+document.getElementById("timerBox").style.display="block";
 
-timer = setInterval(()=>{
+timer=setInterval(()=>{
 
 t--;
 
-document.getElementById("fill").style.width = (t/60*100)+"%";
-document.getElementById("timerText").innerText = t + " SEC EXPIRATION";
+document.getElementById("fill").style.width=(t/60*100)+"%";
+document.getElementById("timerText").innerText=t+" SEC EXPIRATION";
 
-if(t <= 0){
+if(t<=0){
 clearInterval(timer);
-document.getElementById("timerBox").style.display = "none";
+document.getElementById("timerBox").style.display="none";
 }
 
 },1000);
@@ -204,20 +254,20 @@ document.getElementById("timerBox").style.display = "none";
 /* AUTO MODE */
 function toggleAuto(){
 
-const btn = document.getElementById("autoBtn");
+const btn=document.getElementById("autoBtn");
 
 if(auto){
 clearInterval(auto);
-auto = null;
-btn.classList.remove("autoOn");
+auto=null;
+btn.style.background="";
+btn.innerText="🤖 AUTO MODE";
 return;
 }
 
-btn.classList.add("autoOn");
+btn.style.background="#ff3b5c";
+btn.innerText="AUTO RUNNING";
 
-auto = setInterval(()=>{
-analyze();
-},4000);
+auto=setInterval(()=>analyze(),4000);
 
 }
 
