@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>D-FLAM SNIPER AI PRO</title>
+<title>SNIPER AI PRO</title>
 
 <style>
 body{
@@ -22,48 +22,37 @@ width:100%;
 max-width:420px;
 background:#0c1224;
 padding:15px;
-border-radius:18px;
-box-shadow:0 0 20px #000;
+border-radius:15px;
 }
 
 h1{
 text-align:center;
 color:#00ff9d;
-font-size:22px;
 }
 
 select,button{
 width:100%;
 padding:12px;
 margin-top:10px;
-border-radius:10px;
 border:none;
+border-radius:10px;
 font-weight:bold;
 }
 
-select{
-background:#141d38;
-color:white;
-}
-
-button{
-background:#00ff9d;
-color:black;
-cursor:pointer;
-}
+select{background:#141d38;color:white;}
+button{background:#00ff9d;color:black;}
 
 .box{
 margin-top:15px;
-padding:12px;
+padding:10px;
 background:#09101f;
-border-radius:12px;
+border-radius:10px;
 text-align:center;
 }
 
 .signal{
 font-size:40px;
 font-weight:bold;
-margin-top:10px;
 }
 
 .buy{color:#00ff9d;}
@@ -76,7 +65,7 @@ margin-top:10px;
 
 <div class="app">
 
-<h1>🔥 SNIPER AI PRO</h1>
+<h1>SNIPER AI PRO</h1>
 
 <select id="market">
 <option>EURUSD</option>
@@ -100,52 +89,25 @@ margin-top:10px;
 
 <script>
 
-const API = "/signal";
-
 async function analyze(){
-
-try{
-
-document.getElementById("signal").innerText = "ANALYZING...";
 
 const symbol = document.getElementById("market").value;
 
-const res = await fetch(`${API}?symbol=${symbol}&tf=1min`);
+const res = await fetch(`/signal?symbol=${symbol}&tf=1min`);
 
 const data = await res.json();
 
-console.log("DATA:", data);
+console.log(data);
 
-/* SAFE CHECK */
 if(!data || data.price == null){
 document.getElementById("signal").innerText = "NO DATA";
 return;
 }
 
-/* SIGNAL */
-const signalEl = document.getElementById("signal");
-signalEl.innerText = data.signal;
-
-signalEl.className =
-"signal " + (data.signal === "BUY" ? "buy" :
-data.signal === "SELL" ? "sell" : "wait");
-
-/* DATA */
-document.getElementById("price").innerText =
-"PRICE: " + data.price;
-
-document.getElementById("rsi").innerText =
-"RSI: " + data.rsi;
-
-document.getElementById("conf").innerText =
-"CONFIDENCE: " + data.confidence + "%";
-
-}catch(err){
-
-console.log(err);
-document.getElementById("signal").innerText = "ERROR";
-
-}
+document.getElementById("signal").innerText = data.signal;
+document.getElementById("price").innerText = "PRICE: " + data.price;
+document.getElementById("rsi").innerText = "RSI: " + data.rsi;
+document.getElementById("conf").innerText = "CONF: " + data.confidence + "%";
 
 }
 
