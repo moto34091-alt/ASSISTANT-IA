@@ -1,55 +1,54 @@
 const API = "https://binanc18bot.up.railway.app";
 
-async function analyze(){
+async function analyze() {
 
-try{
+    try {
 
-const symbol = document.getElementById("market").value;
-const tf = document.getElementById("tf").value;
+        const symbol = document.getElementById("market").value;
+        const tf = document.getElementById("tf").value;
 
-const res = await fetch(`${API}/signal?symbol=${symbol}&tf=${tf}`);
-const data = await res.json();
+        const res = await fetch(`${API}/signal?symbol=${symbol}&tf=${tf}`);
+        const data = await res.json();
 
-console.log("API DATA:", data);
+        console.log("API DATA:", data);
 
-/* SAFE CHECK ULTRA IMPORTANT */
-if(!data || typeof data.price === "undefined" || data.price === null){
+        /* SAFE CHECK ULTRA IMPORTANT */
+        if (!data || typeof data.price === "undefined" || data.price === null) {
 
-document.getElementById("signal").innerText = "NO DATA";
-document.getElementById("price").innerText = "PRICE: --";
-return;
+            document.getElementById("signal").innerText = "NO DATA";
+            document.getElementById("price").innerText = "PRICE: --";
+            return;
 
-}
+        }
 
-/* SIGNAL */
-document.getElementById("signal").innerText = data.signal || "WAIT";
+        /* SIGNAL */
+        document.getElementById("signal").innerText = data.signal || "WAIT";
 
-/* PRICE */
-document.getElementById("price").innerText =
-"PRICE: " + (data.price ?? "--");
+        /* PRICE */
+        document.getElementById("price").innerText =
+            "PRICE: " + (data.price ?? "--");
 
-/* RSI */
-document.getElementById("rsi").innerText =
-data.rsi ?? "50";
+        /* RSI */
+        document.getElementById("rsi").innerText =
+            data.rsi ?? "50";
 
-/* STRUCTURE */
-document.getElementById("macd").innerText =
-data.structure ?? "NEUTRAL";
+        /* STRUCTURE */
+        document.getElementById("macd").innerText =
+            data.structure ?? "NEUTRAL";
 
-/* CONFIDENCE */
-document.getElementById("smc").innerText =
-(data.confidence ?? 0) + "%";
+        /* CONFIDENCE */
+        document.getElementById("smc").innerText =
+            (data.confidence ?? 0) + "%";
 
-/* QUALITY */
-document.getElementById("quality").innerText =
-data.quality ?? "LOW";
+        /* QUALITY */
+        document.getElementById("quality").innerText =
+            data.quality ?? "LOW";
 
-}catch(err){
+    } catch (err) {
 
-console.log("ANALYZE ERROR:", err);
+        console.log("ANALYZE ERROR:", err);
+        document.getElementById("signal").innerText = "ERROR";
 
-document.getElementById("signal").innerText = "ERROR";
-
-}
+    }
 
 }
