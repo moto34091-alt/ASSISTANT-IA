@@ -12,6 +12,8 @@ try {
 
 let fixed = symbol;
 
+if (!symbol) return null;
+
 if (symbol.length === 6) {
 fixed = symbol.slice(0, 3) + "/" + symbol.slice(3);
 }
@@ -20,14 +22,14 @@ if (symbol === "XAUUSD") fixed = "XAU/USD";
 if (symbol === "BTCUSD") fixed = "BTC/USD";
 if (symbol === "ETHUSD") fixed = "ETH/USD";
 
-const url = `https://api.twelvedata.com/time_series?symbol=${fixed}&interval=1min&outputsize=50&apikey=${API_KEY}`;
+const url =
+`https://api.twelvedata.com/time_series?symbol=${fixed}&interval=1min&outputsize=50&apikey=${API_KEY}`;
 
 const res = await fetch(url);
 const data = await res.json();
 
 if (!data || !data.values) return null;
 
-/* convert to numbers */
 return data.values.map(c => Number(c.close)).reverse();
 
 } catch (err) {
@@ -38,7 +40,7 @@ return null;
 }
 
 /* ─────────────────────────────
-   RSI (FIXED REAL VERSION)
+   RSI (FIXED)
 ───────────────────────────── */
 function calculateRSI(closes, period = 14) {
 
@@ -104,30 +106,27 @@ const price = candles[candles.length - 1];
 const rsi = calculateRSI(candles);
 const macd = calculateMACD(candles);
 
-/* STRUCTURE FIXED */
+/* ─ STRUCTURE */
 let structure = "NEUTRAL";
 
 if (rsi > 55 && macd > 0) structure = "BULLISH";
-if (rsi < 45 && macd < 0) structure = "BEARISH";
+else if (rsi < 45 && macd < 0) structure = "BEARISH";
 
-/* CONFIDENCE REAL */
+/* ─ CONFIDENCE (REAL DYNAMIC FIX) */
 let confidence = 50;
 
-if (rsi > 55) confidence += 20;
-if (rsi < 45) confidence += 20;
+confidence += (rsi - 50) * 1.2;
+confidence += macd * 20;
 
-if (macd > 0) confidence += 15;
-if (macd < 0) confidence += 15;
+confidence = Math.max(0, Math.min(100, confidence));
 
-confidence = Math.min(100, Math.max(0, confidence));
-
-/* SIGNAL */
+/* ─ SIGNAL */
 let signal = "WAIT";
 
-if (confidence >= 70) signal = "BUY";
-if (confidence <= 35) signal = "SELL";
+if (confidence >= 65) signal = "BUY";
+else if (confidence <= 35) signal = "SELL";
 
-/* QUALITY */
+/* ─ QUALITY */
 let quality = confidence > 75 ? "HIGH" : "LOW";
 
 return {
@@ -135,7 +134,7 @@ price: Number(price),
 rsi: Number(rsi.toFixed(2)),
 macd: Number(macd.toFixed(4)),
 structure,
-confidence,
+confidence: Number(confidence.toFixed(2)),
 signal,
 quality,
 timeframe: tf || "1min"
