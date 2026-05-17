@@ -3,24 +3,12 @@
 
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no">
-
-<title>SNIPER AI PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SNIPER AI PRO V3</title>
 
 <style>
 
-/* ==== TON CSS INTACT ==== */
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
 
 body{
 background:#050816;
@@ -30,7 +18,6 @@ justify-content:center;
 align-items:center;
 min-height:100vh;
 padding:10px;
-overflow-x:hidden;
 }
 
 .app{
@@ -40,128 +27,91 @@ background:#0c1224;
 border-radius:25px;
 padding:16px;
 border:1px solid #1f2b4d;
-box-shadow:0 0 25px #00ff9d22, 0 0 80px #000 inset;
 }
 
-.top{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:15px;
-}
+.top{display:flex;justify-content:space-between}
+.live{color:#00ff9d;font-weight:bold}
+.clock{color:#ccc}
 
-.live{color:#00ff9d;font-size:13px;font-weight:bold;}
-.clock{font-size:13px;color:#ccc;}
+h2{text-align:center;color:#00ff9d;margin:10px 0}
 
-h2{
-text-align:center;
-color:#00ff9d;
-font-size:28px;
-margin-bottom:15px;
-text-shadow:0 0 15px #00ff9d55;
-}
-
-select{
+select,button{
 width:100%;
-padding:14px;
+padding:12px;
 margin-top:10px;
+border-radius:12px;
 border:none;
-outline:none;
-border-radius:15px;
-background:#121d38;
-color:white;
-font-size:16px;
 font-weight:bold;
 }
 
-/* BUTTON + EFFECT */
 button{
-width:100%;
-padding:14px;
-margin-top:12px;
-border:none;
-border-radius:15px;
-font-size:15px;
-font-weight:bold;
-cursor:pointer;
-transition:0.2s;
 background:#00ff9d;
 color:black;
-box-shadow:0 0 20px #00ff9d55;
+cursor:pointer;
 }
 
-button:active{
-transform:scale(0.94);
-filter:brightness(1.2);
-}
-
-/* SIGNAL */
 .signalBox{
-margin-top:18px;
+margin-top:15px;
 background:#111827;
-border-radius:25px;
-padding:20px;
-border:1px solid #1d2d52;
+padding:18px;
+border-radius:20px;
 }
 
 .signal{
-font-size:55px;
-font-weight:bold;
+font-size:50px;
 text-align:center;
-margin-top:5px;
+font-weight:bold;
 }
 
-.buy{color:#00ff9d;text-shadow:0 0 20px #00ff9d;}
-.sell{color:#ff3b5c;text-shadow:0 0 20px #ff3b5c;}
-.wait{color:#facc15;text-shadow:0 0 20px #facc15;}
+.buy{color:#00ff9d}
+.sell{color:#ff3b5c}
+.wait{color:#facc15}
 
-.entry{text-align:center;margin-top:10px;font-size:15px;font-weight:bold;color:#00ff9d;}
-.price{text-align:center;margin-top:8px;font-size:17px;color:#d4d4d4;}
+.timer{
+text-align:center;
+margin-top:8px;
+color:#00ff9d;
+font-weight:bold;
+}
+
+/* EXP BAR */
+.expBar{
+height:6px;
+background:#1a2440;
+border-radius:20px;
+margin-top:10px;
+overflow:hidden;
+}
+
+.expFill{
+height:100%;
+width:100%;
+background:linear-gradient(90deg,#00ff9d,#00c3ff);
+transition:width 1s linear;
+}
 
 .grid{
 display:grid;
 grid-template-columns:1fr 1fr;
-gap:10px;
-margin-top:15px;
+gap:8px;
+margin-top:12px;
 }
 
 .card{
 background:#141f3a;
-padding:12px;
-border-radius:16px;
+padding:10px;
+border-radius:12px;
 text-align:center;
 }
 
-.cardTitle{font-size:12px;color:#aaa;}
-.cardValue{font-size:18px;font-weight:bold;}
+.cardTitle{font-size:11px;color:#aaa}
+.cardValue{font-size:16px;font-weight:bold}
 
 .footer{
-margin-top:16px;
 text-align:center;
-font-size:12px;
+margin-top:12px;
+font-size:11px;
 color:#5e6781;
-}
-
-/* TIMER */
-.timer{
-text-align:center;
-margin-top:10px;
-font-size:14px;
-color:#00ff9d;
-font-weight:bold;
-}
-
-.floatBtn{
-position:fixed;
-bottom:20px;
-right:20px;
-background:#00ff9d;
-color:black;
-padding:12px 18px;
-border-radius:50px;
-font-weight:bold;
-text-decoration:none;
-box-shadow:0 0 20px #00ff9d88;
 }
 
 </style>
@@ -172,26 +122,26 @@ box-shadow:0 0 20px #00ff9d88;
 <div class="app">
 
 <div class="top">
-<div class="live">🟢 LIVE MARKET</div>
-<div class="clock" id="clock">00:00:00</div>
+<div class="live">🟢 LIVE</div>
+<div class="clock" id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO</h2>
+<h2>SNIPER AI PRO V3</h2>
 
 <select id="market">
-<option>EURUSD</option><option>GBPUSD</option>
-<option>USDJPY</option><option>BTCUSD</option>
-<option>ETHUSD</option><option>XAUUSD</option>
+<option>EURUSD</option>
+<option>GBPUSD</option>
+<option>BTCUSD</option>
+<option>XAUUSD</option>
 </select>
 
 <select id="tf">
-<option value="1min">1 MINUTE</option>
-<option value="5min">5 MINUTES</option>
-<option value="15min">15 MINUTES</option>
+<option>1min</option>
+<option>5min</option>
+<option>15min</option>
 </select>
 
-<button id="analyzeBtn" onclick="analyze()">ANALYZE</button>
-<button onclick="toggleAuto()" style="background:#1d2d52;color:white;">AUTO ANALYZE</button>
+<button onclick="analyze()">ANALYZE</button>
 
 <div class="signalBox">
 
@@ -199,131 +149,121 @@ box-shadow:0 0 20px #00ff9d88;
 
 <div class="timer" id="timer"></div>
 
-<div class="entry" id="entry">ENTRY: WAIT</div>
-
-<div class="price" id="price">PRICE: --</div>
+<div class="expBar">
+<div class="expFill" id="expFill"></div>
+</div>
 
 <div class="grid">
 
-<div class="card"><div class="cardTitle">CONFIDENCE</div><div class="cardValue" id="confidence">0%</div></div>
-<div class="card"><div class="cardTitle">RSI</div><div class="cardValue" id="rsi">50</div></div>
-<div class="card"><div class="cardTitle">MACD</div><div class="cardValue" id="macd">BEARISH</div></div>
-<div class="card"><div class="cardTitle">QUALITY</div><div class="cardValue" id="quality">LOW</div></div>
+<div class="card">
+<div class="cardTitle">CONFIDENCE</div>
+<div class="cardValue" id="conf">0%</div>
+</div>
 
+<div class="card">
+<div class="cardTitle">RSI</div>
+<div class="cardValue" id="rsi">50</div>
+</div>
+
+<div class="card">
+<div class="cardTitle">MACD</div>
+<div class="cardValue" id="macd">--</div>
+</div>
+
+<div class="card">
+<div class="cardTitle">SMC SCORE</div>
+<div class="cardValue" id="smc">0</div>
 </div>
 
 </div>
 
-<div class="footer">SMART MONEY CONCEPT ENGINE</div>
-
 </div>
 
-<a class="floatBtn" href="https://t.me/Mr_dflam">@Mr_dflam</a>
+<div class="footer">SMART MONEY CONCEPT ENGINE V3</div>
+
+</div>
 
 <script>
 
 /* CLOCK */
 setInterval(()=>{
-document.getElementById("clock").innerText =
-new Date().toLocaleTimeString();
+clock.innerText=new Date().toLocaleTimeString();
 },1000);
 
-/* TIMER */
-let timerInterval = null;
-let timeLeft = 60;
+/* SMART MONEY ENGINE */
+function smcEngine(data){
 
-function startTimer(){
-clearInterval(timerInterval);
-timeLeft = 60;
+let score = 50;
 
-document.getElementById("timer").innerText =
-"⏳ EXPIRATION: 60s";
-
-timerInterval = setInterval(()=>{
-timeLeft--;
-
-document.getElementById("timer").innerText =
-"⏳ EXPIRATION: " + timeLeft + "s";
-
-if(timeLeft <= 0){
-clearInterval(timerInterval);
-document.getElementById("timer").innerText =
-"⚠️ SIGNAL EXPIRED";
+/* LIQUIDITY SWEEP */
+if(data.rsi > 70 || data.rsi < 30){
+score += 20;
 }
 
+/* BOS (trend confirmation) */
+if(data.macd === true){
+score += 15;
+}
+
+/* FAKE BREAKOUT FILTER */
+if(data.volatility < 40){
+score -= 10;
+}
+
+/* KILLZONE BONUS */
+let h = new Date().getHours();
+if((h>=8 && h<=11) || (h>=14 && h<=17)){
+score += 10;
+}
+
+/* clamp */
+return Math.max(0,Math.min(100,score));
+}
+
+/* TIMER */
+let t;
+function startTimer(){
+clearInterval(t);
+let time=60;
+
+expFill.style.width="100%";
+
+t=setInterval(()=>{
+time--;
+timer.innerText="⏳ EXPIRATION "+time+"s";
+expFill.style.width=(time/60*100)+"%";
+if(time<=0){
+clearInterval(t);
+timer.innerText="⚠️ EXPIRED";
+}
 },1000);
 }
 
 /* ANALYZE */
 async function analyze(){
 
-const btn = document.getElementById("analyzeBtn");
+const res=await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
+const d=await res.json();
 
-btn.style.transform = "scale(0.95)";
-btn.style.boxShadow = "0 0 40px #00ff9d";
-
-setTimeout(()=>{
-btn.style.transform = "scale(1)";
-},150);
-
-const symbol = document.getElementById("market").value;
-const tf = document.getElementById("tf").value;
-
-const res = await fetch(`/signal?symbol=${symbol}&tf=${tf}`);
-const data = await res.json();
+let smc = smcEngine(d);
 
 /* SIGNAL */
-const signal = data.signal;
+signal.innerText=d.signal;
+signal.className=
+d.signal==="BUY"?"signal buy":
+d.signal==="SELL"?"signal sell":"signal wait";
 
-const box = document.getElementById("signal");
-box.innerText = signal;
-box.className =
-signal === "BUY" ? "signal buy" :
-signal === "SELL" ? "signal sell" :
-"signal wait";
+/* DATA */
+conf.innerText=smc+"%";
+rsi.innerText=d.rsi;
+macd.innerText=d.macd?"BULLISH":"BEARISH";
+smc.innerText=smc;
 
-/* ENTRY */
-document.getElementById("entry").innerText =
-"ENTRY: " + signal;
-
-/* PRICE */
-document.getElementById("price").innerText =
-"PRICE: " + data.price;
-
-/* CONF */
-document.getElementById("confidence").innerText =
-data.confidence + "%";
-
-/* RSI */
-document.getElementById("rsi").innerText = data.rsi;
-
-/* MACD */
-document.getElementById("macd").innerText =
-data.macd ? "BULLISH" : "BEARISH";
-
-/* QUALITY */
-document.getElementById("quality").innerText =
-data.quality;
-
-/* START TIMER ONLY IF SIGNAL */
-if(signal === "BUY" || signal === "SELL"){
+/* TIMER */
+if(d.signal!=="WAIT"){
 startTimer();
 }
 
-}
-
-/* AUTO MODE */
-let auto = false;
-let autoInterval = null;
-
-function toggleAuto(){
-auto = !auto;
-
-if(auto){
-autoInterval = setInterval(analyze,1500);
-}else{
-clearInterval(autoInterval);
-}
 }
 
 </script>
