@@ -47,7 +47,7 @@ app.get("/signal", async (req, res) => {
   }
 });
 
-/* FRONT */
+/* FRONTEND */
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
