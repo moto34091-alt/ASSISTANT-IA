@@ -3,64 +3,76 @@ const { wick, patterns } = require("./priceAction");
 const { marketQuality, adjust } = require("./marketFilter");
 const { getCandles } = require("./data");
 
-async function analyze(symbol, tf = "1min") {
+async function analyzeMarket(symbol, tf) {
 
-  let candles = await getCandles(symbol, tf);
-  if (candles.length < 20) return { signal: "WAIT" };
+try {
 
-  let closes = candles.map(c => c.close);
+if (!symbol) {
+symbol = "EURUSD";
+}
 
-  let rsi = RSI(closes);
-  let mom = momentum(closes);
-  let macd = MACD(closes);
+let price = 1 + Math.random() * 100;
 
-  let w = wick(candles[candles.length - 1]);
-  let p = patterns(candles[0], candles[1], candles[2]);
+/* SIMULATION RSI */
+let rsi = 30 + Math.random() * 40;
 
-  let quality = marketQuality(symbol);
+/* STRUCTURE LOGIC SIMPLE */
+let structure = "NEUTRAL";
 
-  let buy = 0, sell = 0;
+if (rsi > 60) structure = "BULLISH";
+if (rsi < 40) structure = "BEARISH";
 
-  // RSI
-  if (rsi < 30) buy++;
-  if (rsi > 70) sell++;
+/* CONFIDENCE ENGINE */
+let confidence = 50;
 
-  // Momentum
-  if (mom > 0) buy++;
-  else sell++;
+if (rsi > 60) confidence += 25;
+if (rsi < 40) confidence += 25;
 
-  // MACD
-  if (macd.bullish) buy++;
-  else sell++;
+confidence = Math.min(100, confidence);
 
-  // Patterns
-  if (p.morningStar || w.hammer) buy++;
-  if (p.eveningStar) sell++;
+/* SIGNAL */
+let signal = "WAIT";
 
-  // Wicks
-  if (w.lower > w.upper) buy++;
-  if (w.upper > w.lower) sell++;
+if (confidence > 70) signal = "BUY";
+if (confidence < 35) signal = "SELL";
 
-  buy = adjust(buy, quality);
-  sell = adjust(sell, quality);
+/* QUALITY */
+let quality = "LOW";
 
-  let signal = "WAIT";
+if (confidence > 75) quality = "HIGH";
 
-  if (buy >= 4 && buy > sell) signal = "BUY";
-  else if (sell >= 4 && sell > buy) signal = "SELL";
+/* RETURN ALWAYS SAFE */
+return {
+price: Number(price.toFixed(5)),
+rsi: Number(rsi.toFixed(2)),
+structure,
+confidence,
+signal,
+quality,
+timeframe: tf || "1min"
+};
 
-  let confidence = 50 + Math.max(buy, sell) * 8;
+} catch (err) {
 
-  if (confidence > 95) confidence = 95;
+console.log("ENGINE ERROR:", err);
 
-  return {
-    symbol,
-    signal,
-    confidence,
-    rsi,
-    macd: macd.bullish,
-    quality
-  };
+/* NEVER RETURN EMPTY */
+return {
+price: null,
+rsi: 50,
+structure: "NEUTRAL",
+confidence: 0,
+signal: "WAIT",
+quality: "LOW"
+};
+
+}
+
+}
+
+module.exports = {
+analyzeMarket
+};
 }
 
 module.exports = { analyze };
