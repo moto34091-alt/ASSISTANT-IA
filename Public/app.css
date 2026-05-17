@@ -1,0 +1,102 @@
+function updateClock(){
+
+const now = new Date();
+
+document.getElementById("clock")
+.innerText = now.toLocaleTimeString();
+
+}
+
+setInterval(updateClock,1000);
+
+updateClock();
+
+function safe(v){
+
+if(v === null ||
+v === undefined ||
+v === ""){
+return "--";
+}
+
+return v;
+
+}
+
+async function analyze(){
+
+try{
+
+const symbol =
+document.getElementById("market").value;
+
+const tf =
+document.getElementById("tf").value;
+
+const signalBox =
+document.getElementById("signal");
+
+signalBox.innerText = "...";
+signalBox.className = "signal wait";
+
+const res = await fetch(
+`/signal?symbol=${symbol}&tf=${tf}`
+);
+
+const data = await res.json();
+
+const signal = safe(data.signal);
+
+signalBox.innerText = signal;
+
+signalBox.className =
+signal === "BUY"
+? "signal buy"
+: signal === "SELL"
+? "signal sell"
+: "signal wait";
+
+// ENTRY
+
+document.getElementById("entry")
+.innerText =
+"ENTRY : " + signal;
+
+// PRICE
+
+document.getElementById("price")
+.innerText =
+"PRICE : " + safe(data.price);
+
+// CONFIDENCE
+
+document.getElementById("confidence")
+.innerText =
+safe(data.confidence) + "%";
+
+// RSI
+
+document.getElementById("rsi")
+.innerText =
+safe(data.rsi);
+
+// MACD
+
+document.getElementById("macd")
+.innerText =
+data.macd
+? "BULLISH"
+: "BEARISH";
+
+// QUALITY
+
+document.getElementById("quality")
+.innerText =
+safe(data.quality);
+
+}catch(err){
+
+console.log(err);
+
+}
+}
