@@ -6,112 +6,116 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-/* ─────────────────────────────
-   SNIPER AI PRO FIXED ENGINE
-───────────────────────────── */
+const API_KEY = process.env.TWELVE_API_KEY;
 
-function generatePrice(){
+/* SIGNAL API */
+app.get("/signal", async (req, res) => {
 
-let price = 100 + Math.random() * 100;
+try{
 
-if(!price || isNaN(price)){
-price = 100;
+const symbol = req.query.symbol || "EUR/USD";
+
+const fixedSymbol = symbol.replace("USD","/USD");
+
+const url =
+`https://api.twelvedata.com/price?symbol=${fixedSymbol}&apikey=${API_KEY}`;
+
+const response = await fetch(url);
+
+const market = await response.json();
+
+console.log("TWELVE:", market);
+
+/* PRICE */
+let price = market.price;
+
+if(!price){
+
+return res.json({
+signal:"WAIT",
+confidence:0,
+rsi:50,
+structure:"NEUTRAL",
+quality:"LOW",
+price:null
+});
+
 }
 
-return Number(price.toFixed(2));
+price = Number(price);
+
+/* RSI SIMULATION */
+let rsi = Math.floor(20 + Math.random() * 60);
+
+/* STRUCTURE */
+let structure = "NEUTRAL";
+
+if(rsi > 60){
+structure = "BULL_BOS";
 }
 
-function generateStructureData(price){
-
-let highs = [];
-let lows = [];
-
-for(let i = 0; i < 20; i++){
-
-price += (Math.random() - 0.5) * 2;
-
-highs.push(price + Math.random() * 2);
-lows.push(price - Math.random() * 2);
-
+if(rsi < 40){
+structure = "BEAR_BOS";
 }
 
-return { highs, lows, price };
-}
+/* CONFIDENCE */
+let confidence = 50;
 
-/* LIQUIDITY FIX */
-function checkLiquidity(highs, lows, price){
-return highs.some(h => price > h) || lows.some(l => price < l);
-}
+if(rsi > 60) confidence += 25;
+if(rsi < 40) confidence += 25;
 
-/* STRUCTURE FIX */
-function detectStructure(price, highs, lows){
+confidence += Math.floor(Math.random()*20);
 
-let lastHigh = highs[highs.length - 1];
-let lastLow = lows[lows.length - 1];
-
-if(price > lastHigh) return "BULL_BOS";
-if(price < lastLow) return "BEAR_BOS";
-return "NEUTRAL";
-}
-
-/* SCORE ENGINE */
-function scoreEngine(data){
-
-let score = 50;
-
-if(data.rsi > 70) score += 20;
-if(data.rsi < 30) score += 20;
-
-if(data.liquidity) score += 20;
-
-if(data.structure === "BULL_BOS") score += 10;
-if(data.structure === "BEAR_BOS") score += 10;
-
-return Math.max(0, Math.min(100, score));
+if(confidence > 100){
+confidence = 100;
 }
 
 /* SIGNAL */
-function getSignal(score){
+let signal = "WAIT";
 
-if(score >= 70) return "BUY";
-if(score <= 40) return "SELL";
-return "WAIT";
+if(confidence >= 70){
+signal = "BUY";
 }
 
-/* API */
-app.get("/signal",(req,res)=>{
+if(confidence <= 35){
+signal = "SELL";
+}
 
-let price = generatePrice();
-
-let { highs, lows, price: finalPrice } = generateStructureData(price);
-
-let rsi = 20 + Math.random() * 60;
-
-let liquidity = checkLiquidity(highs, lows, finalPrice);
-
-let structure = detectStructure(finalPrice, highs, lows);
-
-let data = {
-price: finalPrice,
-rsi: Number(rsi.toFixed(2)),
-liquidity,
-structure
-};
-
-let confidence = scoreEngine(data);
-
+/* RESPONSE */
 res.json({
-...data,
+signal,
 confidence,
-signal: getSignal(confidence),
-quality: confidence > 75 ? "HIGH" : "LOW"
+rsi,
+structure,
+quality: confidence > 75 ? "HIGH" : "LOW",
+price
 });
 
+}catch(err){
+
+console.log(err);
+
+res.json({
+signal:"WAIT",
+confidence:0,
+rsi:50,
+structure:"NEUTRAL",
+quality:"LOW",
+price:null
+});
+
+}
+
+});
+
+/* ROOT */
+app.get("/",(req,res)=>{
+res.send("D-FLAM SIGNAL BOT RUNNING");
 });
 
 /* START */
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-console.log("🚀 SNIPER AI PRO FIXED RUNNING ON PORT", PORT);
+app.listen(PORT, ()=>{
+console.log("🚀 SERVER RUNNING");
 });
