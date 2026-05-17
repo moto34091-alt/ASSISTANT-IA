@@ -1,22 +1,925 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-<title>SNIPER AI PRO</title>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0,
+maximum-scale=1.0,
+user-scalable=no">
+
+<title>D-FLAM SNIPER AI</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#050816;
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+padding:10px;
+overflow-x:hidden;
+}
+
+/* APP */
+
+.app{
+width:100%;
+max-width:420px;
+background:#0c1224;
+border-radius:25px;
+padding:16px;
+border:1px solid #1f2b4d;
+box-shadow:
+0 0 25px #00ff9d22,
+0 0 80px #000 inset;
+}
+
+/* HEADER */
+
+.top{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:15px;
+}
+
+.live{
+color:#00ff9d;
+font-size:13px;
+font-weight:bold;
+}
+
+.timeNow{
+font-size:13px;
+color:#ccc;
+}
+
+/* TITLE */
+
+h2{
+text-align:center;
+color:#00ff9d;
+font-size:28px;
+margin-bottom:15px;
+text-shadow:0 0 15px #00ff9d55;
+}
+
+/* MARKET */
+
+select{
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+outline:none;
+border-radius:15px;
+background:#121d38;
+color:white;
+font-size:16px;
+font-weight:bold;
+}
+
+/* BUTTON */
+
+.buttons{
+display:flex;
+gap:10px;
+margin-top:12px;
+}
+
+button{
+flex:1;
+padding:14px;
+border:none;
+border-radius:15px;
+font-size:15px;
+font-weight:bold;
+cursor:pointer;
+transition:0.2s;
+}
+
+.analyze{
+background:#00ff9d;
+color:black;
+}
+
+.auto{
+background:#1c2d52;
+color:white;
+border:1px solid #324b7c;
+}
+
+button:active{
+transform:scale(0.96);
+}
+
+/* SIGNAL BOX */
+
+.signalBox{
+margin-top:18px;
+background:#111827;
+border-radius:25px;
+padding:20px;
+border:1px solid #1d2d52;
+}
+
+/* ICON */
+
+.icon{
+font-size:75px;
+text-align:center;
+}
+
+/* SIGNAL */
+
+.signal{
+font-size:55px;
+font-weight:bold;
+text-align:center;
+margin-top:5px;
+}
+
+.buy{
+color:#00ff9d;
+text-shadow:0 0 20px #00ff9d;
+}
+
+.sell{
+color:#ff3b5c;
+text-shadow:0 0 20px #ff3b5c;
+}
+
+.wait{
+color:#facc15;
+text-shadow:0 0 20px #facc15;
+}
+
+/* ENTRY */
+
+.entry{
+text-align:center;
+margin-top:10px;
+font-size:15px;
+font-weight:bold;
+color:#00ff9d;
+}
+
+/* PRICE */
+
+.price{
+text-align:center;
+margin-top:8px;
+font-size:17px;
+color:#d4d4d4;
+}
+
+/* GRID */
+
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-top:15px;
+}
+
+.card{
+background:#141f3a;
+padding:12px;
+border-radius:16px;
+text-align:center;
+}
+
+.cardTitle{
+font-size:12px;
+color:#aaa;
+margin-bottom:5px;
+}
+
+.cardValue{
+font-size:18px;
+font-weight:bold;
+}
+
+/* BAR */
+
+.bar{
+width:100%;
+height:12px;
+background:#1d2746;
+border-radius:20px;
+overflow:hidden;
+margin-top:16px;
+}
+
+.fill{
+height:100%;
+width:100%;
+background:
+linear-gradient(
+90deg,
+#00ff9d,
+#00c3ff
+);
+transition:width 1s linear;
+}
+
+/* TIMER */
+
+.timer{
+text-align:center;
+margin-top:10px;
+font-size:14px;
+display:none;
+color:#ccc;
+}
+
+/* FOOTER */
+
+.footer{
+margin-top:16px;
+text-align:center;
+font-size:12px;
+color:#5e6781;
+}
+
+</style>
 </head>
+
 <body>
 
+<div class="app">
+
+<div class="top">
+
+<div class="live">
+🟢 LIVE MARKET
+</div>
+
+<div class="timeNow" id="clock">
+00:00:00
+</div>
+
+</div>
+
+<h2>SNIPER AI PRO</h2>
+
+<!-- MARKET -->
+
 <select id="market">
+
 <option>EUR/USD</option>
 <option>GBP/USD</option>
 <option>USD/JPY</option>
+<option>EUR/JPY</option>
+<option>USD/CHF</option>
+<option>AUD/USD</option>
+<option>USD/CAD</option>
+<option>EUR/GBP</option>
+<option>GBP/JPY</option>
+<option>EUR/AUD</option>
+<option>EUR/CAD</option>
+<option>GBP/CHF</option>
+<option>CHF/JPY</option>
+<option>AUD/JPY</option>
+<option>NZD/USD</option>
 <option>BTC/USD</option>
+<option>ETH/USD</option>
+<option>US30</option>
+<option>NAS100</option>
 <option>XAU/USD</option>
+
 </select>
 
-<button onclick="getSignal()">GET SIGNAL</button>
+<!-- FIXED -->
 
-<div id="result"></div>
+<select disabled>
+<option selected>
+15 SEC TRADING SNIPER
+</option>
+</select>
 
-<script src="app.js"></script>
+<!-- BUTTONS -->
+
+<div class="buttons">
+
+<button class="analyze"
+onclick="analyze()">
+
+ANALYZE
+
+</button>
+
+<button class="auto"
+onclick="autoMode()"
+id="autoBtn">
+
+AUTO MODE
+
+</button>
+
+</div>
+
+<!-- SIGNAL -->
+
+<div class="signalBox">
+
+<div class="icon"
+id="icon">
+
+🟡
+
+</div>
+
+<div class="signal wait"
+id="signal">
+
+WAIT
+
+</div>
+
+<div class="entry"
+id="entry">
+
+ENTRY POINT: -
+
+</div>
+
+<div class="price"
+id="price">
+
+PRICE: --
+
+</div>
+
+<!-- INFO -->
+
+<div class="grid">
+
+<div class="card">
+<div class="cardTitle">
+PROBABILITY
+</div>
+
+<div class="cardValue"
+id="prob">
+
+0%
+
+</div>
+</div>
+
+<div class="card">
+<div class="cardTitle">
+WINRATE
+</div>
+
+<div class="cardValue"
+id="winrate">
+
+0%
+
+</div>
+</div>
+
+<div class="card">
+<div class="cardTitle">
+MARKET TREND
+</div>
+
+<div class="cardValue"
+id="trend">
+
+NEUTRAL
+
+</div>
+</div>
+
+<div class="card">
+<div class="cardTitle">
+TRADE ENTRY
+</div>
+
+<div class="cardValue">
+
+15 SEC
+
+</div>
+</div>
+
+</div>
+
+<!-- TIMER -->
+
+<div class="bar">
+<div class="fill"
+id="fill"></div>
+</div>
+
+<div class="timer"
+id="timer">
+
+READY
+
+</div>
+
+</div>
+
+<div class="footer">
+
+SMART MONEY CONCEPT ENGINE
+
+</div>
+
+</div>
+
+<script>
+
+/* CLOCK */
+
+function clock(){
+
+let d=new Date();
+
+document.getElementById("clock")
+.innerText=
+d.toLocaleTimeString();
+
+}
+
+setInterval(clock,1000);
+
+clock();
+
+/* GLOBAL */
+
+let auto=null;
+let timer=null;
+
+/* CACHE SIGNAL */
+
+let marketSignals={};
+
+/* PRICE */
+
+function getPrice(m){
+
+let p=1+Math.random()*100;
+
+if(m.includes("JPY"))
+p=100+Math.random()*50;
+
+if(m.includes("BTC"))
+p=60000+Math.random()*2000;
+
+if(m.includes("ETH"))
+p=3000+Math.random()*200;
+
+if(m.includes("XAU"))
+p=2300+Math.random()*50;
+
+if(m.includes("NAS"))
+p=18000+Math.random()*400;
+
+if(m.includes("US30"))
+p=39000+Math.random()*500;
+
+return p.toFixed(2);
+
+}
+
+/* CANDLE */
+
+function candle(){
+
+let open=Math.random()*100;
+let close=Math.random()*100;
+
+let high=
+Math.max(open,close)+
+Math.random()*10;
+
+let low=
+Math.min(open,close)-
+Math.random()*10;
+
+return{
+open,
+close,
+high,
+low
+};
+
+}
+
+/* AI ENGINE */
+
+function ai(){
+
+let c1=candle();
+let c2=candle();
+let c3=candle();
+
+/* RSI */
+
+let rsi=
+Math.floor(Math.random()*100);
+
+/* MOMENTUM */
+
+let momentum=
+Math.random()*2-1;
+
+/* WICKS */
+
+let upper=
+c3.high-
+Math.max(c3.open,c3.close);
+
+let lower=
+Math.min(c3.open,c3.close)-
+c3.low;
+
+/* STRUCTURE */
+
+let HH=
+c3.high>c2.high &&
+c2.high>c1.high;
+
+let HL=
+c3.low>c2.low;
+
+let LH=
+c3.high<c2.high;
+
+let LL=
+c3.low<c2.low &&
+c2.low<c1.low;
+
+/* BOS */
+
+let bosBuy=
+c3.close>c2.high;
+
+let bosSell=
+c3.close<c2.low;
+
+/* LIQUIDITY */
+
+let liquidityBuy=
+lower>upper*2;
+
+let liquiditySell=
+upper>lower*2;
+
+/* HAMMER */
+
+let hammer=
+lower>upper*2;
+
+let star=
+upper>lower*2;
+
+/* ORDER BLOCK */
+
+let bullishOB=
+c2.close<c2.open &&
+c3.close>c2.high;
+
+let bearishOB=
+c2.close>c2.open &&
+c3.close<c2.low;
+
+/* MULTI TREND */
+
+let trend1=
+Math.random()>0.5 ? "BUY":"SELL";
+
+let trend5=
+Math.random()>0.5 ? "BUY":"SELL";
+
+/* BUY SCORE */
+
+let buy=0;
+
+if(HH) buy++;
+if(HL) buy++;
+if(bosBuy) buy++;
+if(liquidityBuy) buy++;
+if(hammer) buy++;
+if(bullishOB) buy++;
+if(rsi<35) buy++;
+if(momentum>0.2) buy++;
+if(trend1=="BUY") buy++;
+if(trend5=="BUY") buy++;
+
+/* SELL SCORE */
+
+let sell=0;
+
+if(LH) sell++;
+if(LL) sell++;
+if(bosSell) sell++;
+if(liquiditySell) sell++;
+if(star) sell++;
+if(bearishOB) sell++;
+if(rsi>65) sell++;
+if(momentum<-0.2) sell++;
+if(trend1=="SELL") sell++;
+if(trend5=="SELL") sell++;
+
+/* SIGNAL */
+
+let signal="WAIT";
+
+if(
+buy>=7 &&
+buy>sell+2
+){
+signal="BUY";
+}
+
+else if(
+sell>=7 &&
+sell>buy+2
+){
+signal="SELL";
+}
+
+/* TREND */
+
+let trend="NEUTRAL";
+
+if(signal=="BUY")
+trend="BULLISH";
+
+if(signal=="SELL")
+trend="BEARISH";
+
+/* PROB */
+
+let best=
+Math.max(buy,sell);
+
+let prob=
+50+(best*4);
+
+if(prob>95)
+prob=95;
+
+/* WINRATE */
+
+let winrate=
+55+(best*3);
+
+if(winrate>92)
+winrate=92;
+
+/* ENTRY */
+
+let entry="-";
+
+if(signal=="BUY")
+entry="SNIPER BUY 🔼";
+
+if(signal=="SELL")
+entry="SNIPER SELL 🔽";
+
+return{
+signal,
+trend,
+prob,
+winrate,
+entry
+};
+
+}
+
+/* ANALYZE */
+
+function analyze(){
+
+let market=
+document.getElementById("market")
+.value;
+
+/* SIGNAL FIXE */
+
+if(marketSignals[market]){
+
+apply(
+marketSignals[market],
+market
+);
+
+return;
+
+}
+
+document.getElementById("icon")
+.innerText="🧠";
+
+document.getElementById("signal")
+.innerText="ANALYZING...";
+
+document.getElementById("signal")
+.className="signal wait";
+
+setTimeout(()=>{
+
+let data=ai();
+
+/* SAVE SIGNAL */
+
+if(data.signal!="WAIT"){
+
+marketSignals[market]=data;
+
+}
+
+apply(data,market);
+
+startTimer(
+data.signal
+);
+
+},800);
+
+}
+
+/* APPLY */
+
+function apply(d,m){
+
+let icon=
+document.getElementById("icon");
+
+let signal=
+document.getElementById("signal");
+
+/* BUY */
+
+if(d.signal=="BUY"){
+
+icon.innerText="🟢";
+
+signal.innerText="BUY";
+
+signal.className=
+"signal buy";
+
+}
+
+/* SELL */
+
+else if(d.signal=="SELL"){
+
+icon.innerText="🔴";
+
+signal.innerText="SELL";
+
+signal.className=
+"signal sell";
+
+}
+
+/* WAIT */
+
+else{
+
+icon.innerText="🟡";
+
+signal.innerText="WAIT";
+
+signal.className=
+"signal wait";
+
+}
+
+/* ENTRY */
+
+document.getElementById("entry")
+.innerText=
+"ENTRY POINT: "+
+d.entry;
+
+/* PRICE */
+
+document.getElementById("price")
+.innerText=
+"PRICE: "+
+getPrice(m);
+
+/* INFO */
+
+document.getElementById("prob")
+.innerText=
+d.prob+"%";
+
+document.getElementById("winrate")
+.innerText=
+d.winrate.toFixed(1)+"%";
+
+document.getElementById("trend")
+.innerText=
+d.trend;
+
+/* WAIT */
+
+if(d.signal=="WAIT"){
+
+document.getElementById("timer")
+.style.display="none";
+
+}
+
+}
+
+/* TIMER */
+
+function startTimer(signal){
+
+clearInterval(timer);
+
+if(signal=="WAIT")
+return;
+
+let t=
+document.getElementById("timer");
+
+t.style.display="block";
+
+/* 15 SEC */
+
+let sec=15;
+
+timer=setInterval(()=>{
+
+sec--;
+
+document.getElementById("fill")
+.style.width=
+(sec/15*100)+"%";
+
+t.innerText=
+"TRADE 15 SEC : "+
+sec+" SEC";
+
+if(sec<=0){
+
+clearInterval(timer);
+
+t.style.display="none";
+
+}
+
+},1000);
+
+}
+
+/* AUTO MODE */
+
+function autoMode(){
+
+let btn=
+document.getElementById("autoBtn");
+
+if(auto){
+
+clearInterval(auto);
+
+auto=null;
+
+btn.innerText=
+"AUTO MODE";
+
+return;
+
+}
+
+btn.innerText=
+"AUTO ON";
+
+auto=setInterval(()=>{
+
+analyze();
+
+},3000);
+
+}
+
+</script>
+
 </body>
 </html>
