@@ -1,42 +1,53 @@
 const express = require("express");
-const app = express();
+const cors = require("cors");
 
+const app = express();
+app.use(cors());
 app.use(express.json());
 
 /* ─────────────────────────────
-   MARKET STRUCTURE ENGINE V6 FIX
+   SAFE MARKET STRUCTURE ENGINE V6 FIXED
 ───────────────────────────── */
 
+/* GENERATE STRUCTURE SAFE */
 function generateStructure(){
 
 let highs = [];
 let lows = [];
 
-let price = 100 + Math.random()*100;
+/* SAFE PRICE INIT */
+let price = 100 + Math.random() * 100;
 
-for(let i=0;i<20;i++){
+/* build market structure */
+for(let i = 0; i < 20; i++){
 
-price += (Math.random()-0.5)*2;
+price += (Math.random() - 0.5) * 2;
 
-highs.push(price + Math.random()*2);
-lows.push(price - Math.random()*2);
+highs.push(price + Math.random() * 2);
+lows.push(price - Math.random() * 2);
 
 }
 
-return {highs, lows, price};
+/* FINAL SAFETY CHECK */
+if(!price || isNaN(price)){
+price = 100;
 }
 
-/* LIQUIDITY DETECTION */
+price = Number(price.toFixed(2));
+
+return { highs, lows, price };
+}
+
+/* LIQUIDITY SWEEP */
 function liquiditySweep(price, highs, lows){
-
 return highs.some(h => price > h) || lows.some(l => price < l);
 }
 
-/* BOS / CHoCH */
+/* BOS / CHOCH */
 function structureBreak(price, highs, lows){
 
-let lastHigh = highs[highs.length-1];
-let lastLow = lows[lows.length-1];
+let lastHigh = highs[highs.length - 1];
+let lastLow = lows[lows.length - 1];
 
 if(price > lastHigh) return "BULL_BOS";
 if(price < lastLow) return "BEAR_BOS";
@@ -49,6 +60,7 @@ function getOrderBlock(structure){
 
 if(structure === "BULL_BOS") return "BUY_ZONE";
 if(structure === "BEAR_BOS") return "SELL_ZONE";
+
 return "NONE";
 }
 
@@ -57,29 +69,29 @@ function smcV6(data){
 
 let score = 50;
 
-/* RSI logic */
+/* RSI */
 if(data.rsi > 70) score += 20;
 if(data.rsi < 30) score += 20;
 
-/* liquidity */
+/* LIQUIDITY */
 if(data.liquidity) score += 20;
 
-/* structure */
+/* STRUCTURE */
 if(data.structure === "BULL_BOS") score += 15;
 if(data.structure === "BEAR_BOS") score += 15;
 
-/* order block */
+/* ORDER BLOCK */
 if(data.orderBlock !== "NONE") score += 10;
 
-/* volatility */
+/* VOLATILITY */
 if(data.volatility > 60) score += 5;
 else score -= 5;
 
-/* clamp */
+/* CLAMP */
 return Math.max(0, Math.min(100, score));
 }
 
-/* SIGNAL */
+/* SIGNAL ENGINE */
 function getSignal(score){
 
 if(score >= 70) return "BUY";
@@ -87,36 +99,46 @@ if(score <= 40) return "SELL";
 return "WAIT";
 }
 
-/* API */
+/* API ENDPOINT */
 app.get("/signal",(req,res)=>{
 
-let {highs,lows,price} = generateStructure();
+let { highs, lows, price } = generateStructure();
 
-let rsi = 20 + Math.random()*60;
-let volatility = Math.random()*100;
+/* SAFE INDICATORS */
+let rsi = 20 + Math.random() * 60;
+let volatility = Math.random() * 100;
 
-let liquidity = liquiditySweep(price,highs,lows);
-let structure = structureBreak(price,highs,lows);
+/* CORE LOGIC */
+let liquidity = liquiditySweep(price, highs, lows);
+let structure = structureBreak(price, highs, lows);
 let orderBlock = getOrderBlock(structure);
 
+/* DATA PACK */
 let data = {
-price: price.toFixed(2),
-rsi: rsi.toFixed(2),
-volatility: volatility.toFixed(2),
+price,
+rsi: Number(rsi.toFixed(2)),
+volatility: Number(volatility.toFixed(2)),
 liquidity,
 structure,
 orderBlock
 };
 
-let score = smcV6(data);
+/* SCORE */
+let confidence = smcV6(data);
 
+/* RESPONSE */
 res.json({
 ...data,
-confidence: score,
-signal: getSignal(score),
-quality: score > 75 ? "HIGH" : "LOW"
+confidence,
+signal: getSignal(confidence),
+quality: confidence > 75 ? "HIGH" : "LOW"
 });
 
 });
 
-app.listen(3000,()=>console.log("V6 SMART MONEY RUNNING"));
+/* START SERVER */
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+console.log("🚀 SNIPER AI PRO V6 FIXED RUNNING ON PORT", PORT);
+});
