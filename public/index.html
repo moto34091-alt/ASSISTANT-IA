@@ -3,12 +3,11 @@
 
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SNIPER AI PRO 3D</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D-FLAM SIGNAL BOT V2</title>
 
 <style>
 
-/* ===== GLOBAL ===== */
 *{
 margin:0;
 padding:0;
@@ -17,149 +16,147 @@ font-family:Arial;
 }
 
 body{
-background: radial-gradient(circle at top,#0a0f1f,#050816);
+background:#070b18;
 color:white;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
-overflow:hidden;
+padding:10px;
 }
 
-/* PARTICLES */
-#bg{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-z-index:0;
-}
-
-/* APP 3D */
+/* CONTAINER */
 .app{
-position:relative;
-z-index:2;
 width:100%;
-max-width:420px;
-background:#0c1224cc;
-backdrop-filter:blur(10px);
-border-radius:25px;
+max-width:430px;
+background:#0e142a;
+border-radius:22px;
 padding:16px;
-border:1px solid #1f2b4d;
-box-shadow:
-0 0 25px #00ff9d33,
-0 0 80px #000 inset;
-transform: perspective(1000px) rotateX(2deg);
-animation: floatApp 6s ease-in-out infinite;
+border:1px solid #1d2b4d;
+box-shadow:0 0 40px #00ff9d10;
 }
 
-/* FLOAT */
-@keyframes floatApp{
-0%{transform: perspective(1000px) rotateX(2deg) translateY(0px);}
-50%{transform: perspective(1000px) rotateX(2deg) translateY(-8px);}
-100%{transform: perspective(1000px) rotateX(2deg) translateY(0px);}
-}
-
-/* TOP */
+/* HEADER */
 .top{
 display:flex;
 justify-content:space-between;
+font-size:13px;
 }
 
 .live{color:#00ff9d;font-weight:bold}
-.clock{color:#ccc}
+.clock{color:#aaa}
 
 /* TITLE */
 h2{
 text-align:center;
-color:#00ff9d;
 margin:10px 0;
-text-shadow:0 0 20px #00ff9d88;
-letter-spacing:2px;
+color:#00ff9d;
+text-shadow:0 0 20px #00ff9d55;
+letter-spacing:1px;
 }
 
-/* INPUTS */
-select,button{
+/* SELECT */
+select{
+width:100%;
+padding:12px;
+margin-top:8px;
+border-radius:12px;
+border:none;
+background:#121a33;
+color:white;
+font-weight:bold;
+}
+
+/* BUTTONS */
+button{
 width:100%;
 padding:12px;
 margin-top:10px;
 border:none;
 border-radius:12px;
 font-weight:bold;
-}
-
-button{
-background:#00ff9d;
-color:black;
 cursor:pointer;
-box-shadow:0 8px 20px rgba(0,0,0,0.4);
 transition:0.2s;
 }
 
-button:active{
-transform:scale(0.96);
+/* ANALYZE */
+.analyze{
+background:#00ff9d;
+color:black;
+box-shadow:0 0 15px #00ff9d55;
 }
 
-button.auto{
-background:#1d2d52;
+.analyze:active{
+transform:scale(0.97);
+}
+
+/* AUTO */
+.auto{
+background:#1d2b4d;
 color:white;
 }
 
-/* SIGNAL */
-.signalBox{
+/* SIGNAL PANEL */
+.panel{
 margin-top:15px;
-background:#111827;
-padding:18px;
+background:#0b1022;
 border-radius:18px;
+padding:16px;
+text-align:center;
+border:1px solid #1c2a4a;
 }
 
+/* SIGNAL */
 .signal{
-font-size:50px;
-text-align:center;
+font-size:52px;
 font-weight:bold;
-animation:pulse 1.5s infinite;
+transition:0.3s;
 }
 
-@keyframes pulse{
-0%{transform:scale(1);opacity:1;}
-50%{transform:scale(1.05);opacity:0.8;}
-100%{transform:scale(1);opacity:1;}
-}
-
-.buy{color:#00ff9d}
-.sell{color:#ff3b5c}
-.wait{color:#facc15}
-
-/* TIMER */
-.timer{
-text-align:center;
-margin-top:8px;
+/* BUY */
+.buy{
 color:#00ff9d;
-font-weight:bold;
+animation:pop 0.8s infinite;
+text-shadow:0 0 25px #00ff9d;
+}
+
+/* SELL */
+.sell{
+color:#ff3b5c;
+animation:pop 0.8s infinite;
+text-shadow:0 0 25px #ff3b5c;
+}
+
+/* WAIT */
+.wait{
+color:#facc15;
+}
+
+@keyframes pop{
+0%{transform:scale(1)}
+50%{transform:scale(1.08)}
+100%{transform:scale(1)}
+}
+
+/* INFO */
+.info{
+margin-top:10px;
+color:#bbb;
+font-size:13px;
 }
 
 .price{
-text-align:center;
-margin-top:6px;
-color:#ccc;
-font-size:14px;
+margin-top:5px;
+color:#fff;
 }
 
-/* BAR */
-.expBar{
-height:6px;
-background:#1a2440;
-border-radius:20px;
-margin-top:10px;
-overflow:hidden;
-}
-
-.expFill{
-height:100%;
+/* CHART */
+canvas{
 width:100%;
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-transition:width 1s linear;
+height:140px;
+margin-top:12px;
+background:#0a1020;
+border-radius:14px;
 }
 
 /* GRID */
@@ -167,20 +164,40 @@ transition:width 1s linear;
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:8px;
-margin-top:10px;
+margin-top:12px;
 }
 
 .card{
-background:#141f3a;
+background:#121a33;
 padding:10px;
 border-radius:12px;
 text-align:center;
 }
 
-.cardTitle{font-size:11px;color:#aaa}
+.cardTitle{font-size:11px;color:#888}
 .cardValue{font-size:16px;font-weight:bold}
 
-/* FOOTER */
+/* ALERT FLASH */
+.flash-buy{
+animation:flashGreen 0.6s 3;
+}
+
+.flash-sell{
+animation:flashRed 0.6s 3;
+}
+
+@keyframes flashGreen{
+0%{background:#0e142a}
+50%{background:#003d2a}
+100%{background:#0e142a}
+}
+
+@keyframes flashRed{
+0%{background:#0e142a}
+50%{background:#3d0000}
+100%{background:#0e142a}
+}
+
 .footer{
 text-align:center;
 margin-top:10px;
@@ -193,44 +210,26 @@ color:#5e6781;
 
 <body>
 
-<canvas id="bg"></canvas>
-
 <div class="app">
 
 <div class="top">
-<div class="live">🟢 LIVE</div>
+<div class="live">🟢 LIVE MARKET</div>
 <div class="clock" id="clock"></div>
 </div>
 
-<h2>SNIPER AI PRO 3D</h2>
+<h2>D-FLAM SIGNAL BOT V2</h2>
 
-<!-- MARKET -->
 <select id="market">
-
-<option>EUR/JPY</option>
-<option>GBP/JPY</option>
-<option>AUD/CAD</option>
-<option>AUD/USD</option>
-<option>CAD/CHF</option>
-<option>CAD/JPY</option>
-<option>EUR/AUD</option>
-<option>EUR/CAD</option>
-<option>EUR/CHF</option>
-<option>EUR/GBP</option>
-<option>EUR/USD</option>
-<option>GBP/CHF</option>
-<option>GBP/USD</option>
-<option>GBP/AUD</option>
-<option>GBP/CAD</option>
-<option>USD/CAD</option>
-<option>USD/CHF</option>
-<option>USD/JPY</option>
-<option>AUD/CHF</option>
-<option>AUD/JPY</option>
-<option>CHF/JPY</option>
+<option>EURUSD</option>
+<option>GBPUSD</option>
 <option>BTCUSD</option>
 <option>XAUUSD</option>
-
+<option>USDJPY</option>
+<option>EURJPY</option>
+<option>GBPJPY</option>
+<option>AUDUSD</option>
+<option>USDCHF</option>
+<option>USDCAD</option>
 </select>
 
 <select id="tf">
@@ -239,26 +238,22 @@ color:#5e6781;
 <option>15min</option>
 </select>
 
-<button onclick="analyze()">ANALYZE</button>
+<button class="analyze" onclick="analyze()">ANALYZE</button>
 <button class="auto" onclick="toggleAuto()">AUTO ANALYZE</button>
 
-<div class="signalBox">
+<div class="panel" id="panel">
 
 <div class="signal wait" id="signal">WAIT</div>
 
-<div class="timer" id="timer"></div>
+<div class="info" id="price">PRICE: --</div>
 
-<div class="price" id="price">PRICE: --</div>
-
-<div class="expBar">
-<div class="expFill" id="expFill"></div>
-</div>
+<canvas id="chart"></canvas>
 
 <div class="grid">
 
 <div class="card">
-<div class="cardTitle">CONFIDENCE</div>
-<div class="cardValue" id="smc">0%</div>
+<div class="cardTitle">CONF</div>
+<div class="cardValue" id="conf">0%</div>
 </div>
 
 <div class="card">
@@ -267,8 +262,8 @@ color:#5e6781;
 </div>
 
 <div class="card">
-<div class="cardTitle">STRUCTURE</div>
-<div class="cardValue" id="macd">NEUTRAL</div>
+<div class="cardTitle">STRUCT</div>
+<div class="cardValue" id="structure">NEUTRAL</div>
 </div>
 
 <div class="card">
@@ -280,111 +275,84 @@ color:#5e6781;
 
 </div>
 
-<div class="footer">SMART MONEY ENGINE 3D</div>
+<div class="footer">INSTITUTIONAL TRADING UI V2</div>
 
 </div>
 
 <script>
 
-/* CLOCK */
 setInterval(()=>{
 document.getElementById("clock").innerText =
 new Date().toLocaleTimeString();
 },1000);
 
+let auto=false;
+let loop;
+
+/* MINI CHART */
+function drawChart(){
+
+const c = document.getElementById("chart");
+const ctx = c.getContext("2d");
+
+ctx.clearRect(0,0,400,140);
+
+let x=10;
+
+for(let i=0;i<20;i++){
+
+let h=Math.random()*120;
+
+ctx.fillStyle="#00ff9d";
+ctx.fillRect(x,140-h,8,h);
+
+x+=18;
+
+}
+
+}
+
 /* AUTO */
-let auto=false, loop;
-
-/* TIMER */
-let t;
-
-function startTimer(){
-
-clearInterval(t);
-
-let time=60;
-expFill.style.width="100%";
-
-t=setInterval(()=>{
-
-time--;
-
-timer.innerText="⏳ EXP "+time+"s";
-
-expFill.style.width=(time/60*100)+"%";
-
-if(time<=0){
-clearInterval(t);
-timer.innerText="EXPIRED";
-}
-
-},1000);
-
-}
-
-/* TOGGLE AUTO */
 function toggleAuto(){
+
 auto=!auto;
-if(auto) loop=setInterval(analyze,1500);
-else clearInterval(loop);
+
+if(auto){
+loop=setInterval(analyze,1500);
+}else{
+clearInterval(loop);
+}
+
 }
 
 /* ANALYZE */
 async function analyze(){
 
-const symbol = market.value.replace("/","");
-const res = await fetch(`/signal?symbol=${symbol}&tf=${tf.value}`);
+const res = await fetch(`/signal?symbol=${market.value}&tf=${tf.value}`);
 const data = await res.json();
 
+/* SIGNAL */
 signal.innerText = data.signal || "WAIT";
 signal.className =
 data.signal==="BUY"?"signal buy":
 data.signal==="SELL"?"signal sell":"signal wait";
 
+/* FLASH */
+panel.classList.remove("flash-buy","flash-sell");
+
+if(data.signal==="BUY") panel.classList.add("flash-buy");
+if(data.signal==="SELL") panel.classList.add("flash-sell");
+
+/* DATA */
 price.innerText = "PRICE: " + (data.price ?? "--");
+conf.innerText = (data.confidence ?? 0) + "%";
 rsi.innerText = data.rsi ?? "50";
-macd.innerText = data.structure ?? "NEUTRAL";
-smc.innerText = (data.confidence ?? 0) + "%";
+structure.innerText = data.structure ?? "NEUTRAL";
 quality.innerText = data.quality ?? "LOW";
 
-if(data.signal !== "WAIT") startTimer();
+drawChart();
 
 }
-
-/* PARTICLES */
-const c=document.getElementById("bg");
-const ctx=c.getContext("2d");
-
-c.width=window.innerWidth;
-c.height=window.innerHeight;
-
-let dots=[];
-
-for(let i=0;i<60;i++){
-dots.push({
-x:Math.random()*c.width,
-y:Math.random()*c.height,
-v:0.3+Math.random()
-});
-}
-
-function draw(){
-ctx.clearRect(0,0,c.width,c.height);
-ctx.fillStyle="#00ff9d";
-
-dots.forEach(d=>{
-ctx.beginPath();
-ctx.arc(d.x,d.y,1.5,0,Math.PI*2);
-ctx.fill();
-
-d.y-=d.v;
-if(d.y<0) d.y=c.height;
-});
-
-requestAnimationFrame(draw);
-}
-
-draw();
 
 </script>
 
