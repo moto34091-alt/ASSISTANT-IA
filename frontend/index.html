@@ -2,54 +2,43 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>D-FLAM SNIPER AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D-FLAM SNIPER AI PRO</title>
 
 <style>
-
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial;
-}
-
 body{
+margin:0;
 background:#050816;
 color:white;
+font-family:Arial;
 display:flex;
 justify-content:center;
 align-items:center;
 min-height:100vh;
-padding:12px;
 }
 
 .app{
 width:100%;
 max-width:420px;
 background:#0c1224;
-border-radius:20px;
 padding:15px;
-box-shadow:0 0 30px #000;
+border-radius:18px;
+box-shadow:0 0 20px #000;
 }
 
-.top{
+h1{
 text-align:center;
-font-size:26px;
-font-weight:bold;
 color:#00ff9d;
-margin-bottom:10px;
+font-size:22px;
 }
 
 select,button{
 width:100%;
-padding:13px;
+padding:12px;
 margin-top:10px;
+border-radius:10px;
 border:none;
-border-radius:12px;
 font-weight:bold;
-font-size:15px;
 }
 
 select{
@@ -60,104 +49,26 @@ color:white;
 button{
 background:#00ff9d;
 color:black;
+cursor:pointer;
 }
 
-.chart{
-height:140px;
-background:#09101f;
-border-radius:15px;
+.box{
 margin-top:15px;
-padding:10px;
-display:flex;
-align-items:flex-end;
-gap:3px;
-overflow:hidden;
-}
-
-.candle{
-width:100%;
-border-radius:3px;
-position:relative;
-}
-
-.green{
-background:#00ff9d;
-}
-
-.red{
-background:#ff3b5c;
-}
-
-.signalBox{
+padding:12px;
+background:#09101f;
+border-radius:12px;
 text-align:center;
-margin-top:18px;
-}
-
-.icon{
-font-size:60px;
 }
 
 .signal{
-font-size:42px;
+font-size:40px;
 font-weight:bold;
-margin-top:5px;
-}
-
-.buy{
-color:#00ff9d;
-text-shadow:0 0 15px #00ff9d;
-}
-
-.sell{
-color:#ff3b5c;
-text-shadow:0 0 15px #ff3b5c;
-}
-
-.wait{
-color:#facc15;
-}
-
-.info{
 margin-top:10px;
-text-align:center;
-font-size:16px;
 }
 
-.entry{
-color:#00ff9d;
-font-weight:bold;
-}
-
-.price{
-color:#ccc;
-}
-
-.timer{
-margin-top:12px;
-text-align:center;
-font-size:15px;
-display:none;
-}
-
-.bar{
-height:8px;
-background:#182341;
-border-radius:20px;
-margin-top:10px;
-overflow:hidden;
-}
-
-.fill{
-height:100%;
-width:100%;
-background:linear-gradient(90deg,#00ff9d,#00c3ff);
-}
-
-.autoOn{
-background:#ff3b5c !important;
-color:white !important;
-}
-
+.buy{color:#00ff9d;}
+.sell{color:#ff3b5c;}
+.wait{color:#facc15;}
 </style>
 </head>
 
@@ -165,429 +76,78 @@ color:white !important;
 
 <div class="app">
 
-<div class="top">
-🔥 SNIPER AI PRO
-</div>
+<h1>🔥 SNIPER AI PRO</h1>
 
 <select id="market">
-<option>EUR/USD</option>
-<option>GBP/USD</option>
-<option>USD/JPY</option>
-<option>EUR/JPY</option>
-<option>USD/CHF</option>
-<option>AUD/USD</option>
-<option>USD/CAD</option>
-<option>EUR/GBP</option>
-<option>GBP/JPY</option>
-<option>EUR/AUD</option>
-<option>EUR/CAD</option>
-<option>GBP/CHF</option>
-<option>CHF/JPY</option>
-<option>AUD/JPY</option>
-<option>NZD/USD</option>
-<option>BTC/USD</option>
-<option>ETH/USD</option>
-<option>US30</option>
-<option>NAS100</option>
-<option>XAU/USD</option>
+<option>EURUSD</option>
+<option>GBPUSD</option>
+<option>USDJPY</option>
+<option>BTCUSD</option>
+<option>ETHUSD</option>
+<option>XAUUSD</option>
 </select>
 
-<select id="time">
-<option value="60">1 MIN</option>
-<option value="300">5 MIN</option>
-<option value="900">15 MIN</option>
-</select>
+<button onclick="analyze()">ANALYZE</button>
 
-<button onclick="analyze()">
-📡 ANALYZE
-</button>
-
-<button id="autoBtn" onclick="autoMode()">
-🤖 AUTO MODE
-</button>
-
-<div class="chart" id="chart"></div>
-
-<div class="signalBox">
-
-<div id="icon" class="icon">
-🟡
-</div>
-
-<div id="signal" class="signal wait">
-WAIT
-</div>
-
-<div class="info entry" id="entry">
-ENTRY POINT: -
-</div>
-
-<div class="info price" id="price">
-PRICE: --
-</div>
-
-<div class="info" id="prob">
-PROBABILITY: 0%
-</div>
-
-<div class="info" id="winrate">
-WINRATE: 0%
-</div>
-
-</div>
-
-<div class="bar">
-<div id="fill" class="fill"></div>
-</div>
-
-<div id="timer" class="timer">
-READY
+<div class="box">
+<div id="signal" class="signal wait">WAIT</div>
+<div id="price">PRICE: --</div>
+<div id="rsi">RSI: --</div>
+<div id="conf">CONFIDENCE: 0%</div>
 </div>
 
 </div>
 
 <script>
 
-let timer=null;
-let autoInterval=null;
+const API = "/signal";
 
-/* =========================
-   💰 PRIX
-========================= */
+async function analyze(){
 
-function getPrice(m){
+try{
 
-let base = 1 + Math.random()*100;
+document.getElementById("signal").innerText = "ANALYZING...";
 
-if(m.includes("JPY"))
-base = 100 + Math.random()*50;
+const symbol = document.getElementById("market").value;
 
-if(m.includes("BTC"))
-base = 60000 + Math.random()*4000;
+const res = await fetch(`${API}?symbol=${symbol}&tf=1min`);
 
-if(m.includes("ETH"))
-base = 3000 + Math.random()*500;
+const data = await res.json();
 
-if(m.includes("XAU"))
-base = 2300 + Math.random()*80;
+console.log("DATA:", data);
 
-return base.toFixed(2);
-
-}
-
-/* =========================
-   📊 CHART
-========================= */
-
-function drawChart(){
-
-let chart=document.getElementById("chart");
-
-chart.innerHTML="";
-
-for(let i=0;i<25;i++){
-
-let candle=document.createElement("div");
-
-let h = 20 + Math.random()*90;
-
-let bullish = Math.random()>0.5;
-
-candle.className =
-"candle " + (bullish ? "green" : "red");
-
-candle.style.height = h+"px";
-
-chart.appendChild(candle);
-
-}
-
-}
-
-/* =========================
-   🧠 SNIPER ENGINE
-========================= */
-
-let cache={};
-
-function sniperAI(){
-
-/* IMPULSION */
-let impulse = Math.random()*100;
-
-/* REJET */
-let rejection = Math.random()*100;
-
-/* MOMENTUM */
-let momentum = Math.random()*100;
-
-/* RSI */
-let rsi = Math.random()*100;
-
-/* WICK */
-let wick = Math.random()*100;
-
-/* BREAKOUT FAKE */
-let fakeBreakout = Math.random()*100;
-
-/* STRUCTURE */
-let structure = Math.random()*100;
-
-/* BUY SCORE */
-let buyScore = 0;
-
-/* SELL SCORE */
-let sellScore = 0;
-
-/* =========================
-   BUY CONDITIONS
-========================= */
-
-if(rsi < 35) buyScore += 2;
-
-if(momentum > 60) buyScore += 2;
-
-if(wick > 70) buyScore += 2;
-
-if(structure > 60) buyScore += 1;
-
-if(fakeBreakout < 40) buyScore += 1;
-
-if(rejection > 65) buyScore += 1;
-
-/* =========================
-   SELL CONDITIONS
-========================= */
-
-if(rsi > 65) sellScore += 2;
-
-if(momentum < 40) sellScore += 2;
-
-if(wick < 30) sellScore += 2;
-
-if(structure < 40) sellScore += 1;
-
-if(fakeBreakout > 60) sellScore += 1;
-
-if(rejection < 35) sellScore += 1;
-
-/* =========================
-   FINAL SIGNAL
-========================= */
-
-let signal="WAIT";
-
-if(buyScore >= 6 && buyScore > sellScore)
-signal="BUY";
-
-if(sellScore >= 6 && sellScore > buyScore)
-signal="SELL";
-
-/* =========================
-   PROB
-========================= */
-
-let prob =
-50 + Math.max(buyScore,sellScore)*5;
-
-if(prob > 95)
-prob = 95;
-
-/* =========================
-   WINRATE
-========================= */
-
-let winrate =
-55 + Math.max(buyScore,sellScore)*4;
-
-if(winrate > 92)
-winrate = 92;
-
-/* =========================
-   ENTRY
-========================= */
-
-let entry =
-signal=="BUY"
-? "SNIPER BUY ENTRY 🔼"
-: signal=="SELL"
-? "SNIPER SELL ENTRY 🔽"
-: "-";
-
-return {
-signal,
-prob,
-winrate,
-entry
-};
-
-}
-
-/* =========================
-   ANALYZE
-========================= */
-
-function analyze(){
-
-drawChart();
-
-let market =
-document.getElementById("market").value;
-
-if(cache[market]){
-apply(cache[market],market);
+/* SAFE CHECK */
+if(!data || data.price == null){
+document.getElementById("signal").innerText = "NO DATA";
 return;
 }
 
-document.getElementById("icon").innerText="🧠";
-document.getElementById("signal").innerText="ANALYZING...";
+/* SIGNAL */
+const signalEl = document.getElementById("signal");
+signalEl.innerText = data.signal;
 
-setTimeout(()=>{
+signalEl.className =
+"signal " + (data.signal === "BUY" ? "buy" :
+data.signal === "SELL" ? "sell" : "wait");
 
-let data = sniperAI();
-
-cache[market]=data;
-
-apply(data,market);
-
-startTimer(data.signal);
-
-},700);
-
-}
-
-/* =========================
-   APPLY
-========================= */
-
-function apply(d,m){
-
-let icon =
-document.getElementById("icon");
-
-let signal =
-document.getElementById("signal");
-
-if(d.signal=="BUY"){
-
-icon.innerText="🟢";
-
-signal.innerText="BUY";
-
-signal.className="signal buy";
-
-}
-
-else if(d.signal=="SELL"){
-
-icon.innerText="🔴";
-
-signal.innerText="SELL";
-
-signal.className="signal sell";
-
-}
-
-else{
-
-icon.innerText="🟡";
-
-signal.innerText="WAIT";
-
-signal.className="signal wait";
-
-}
-
-document.getElementById("entry").innerText =
-"ENTRY POINT: " + d.entry;
-
+/* DATA */
 document.getElementById("price").innerText =
-"PRICE: " + getPrice(m);
+"PRICE: " + data.price;
 
-document.getElementById("prob").innerText =
-"PROBABILITY: " + d.prob + "%";
+document.getElementById("rsi").innerText =
+"RSI: " + data.rsi;
 
-document.getElementById("winrate").innerText =
-"WINRATE: " + d.winrate.toFixed(1) + "%";
+document.getElementById("conf").innerText =
+"CONFIDENCE: " + data.confidence + "%";
 
-}
+}catch(err){
 
-/* =========================
-   TIMER
-========================= */
-
-function startTimer(signal){
-
-clearInterval(timer);
-
-if(signal=="WAIT"){
-
-document.getElementById("timer").style.display="none";
-
-return;
+console.log(err);
+document.getElementById("signal").innerText = "ERROR";
 
 }
 
-document.getElementById("timer").style.display="block";
-
-let r=60;
-
-timer=setInterval(()=>{
-
-r--;
-
-document.getElementById("timer").innerText =
-r + " SEC";
-
-document.getElementById("fill").style.width =
-(r/60*100)+"%";
-
-if(r<=0){
-
-clearInterval(timer);
-
-document.getElementById("timer").style.display="none";
-
 }
-
-},1000);
-
-}
-
-/* =========================
-   AUTO MODE
-========================= */
-
-function autoMode(){
-
-let btn =
-document.getElementById("autoBtn");
-
-if(autoInterval){
-
-clearInterval(autoInterval);
-
-autoInterval=null;
-
-btn.classList.remove("autoOn");
-
-return;
-
-}
-
-btn.classList.add("autoOn");
-
-autoInterval=setInterval(()=>{
-
-analyze();
-
-},4000);
-
-}
-
-/* START */
-
-drawChart();
 
 </script>
 
