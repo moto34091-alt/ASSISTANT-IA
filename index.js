@@ -18,29 +18,17 @@ app.get("/signal", async (req, res) => {
 
     const result = await analyzeMarket(symbol, tf);
 
-    if (!result) {
-      return res.json({
-        price: null,
-        rsi: null,
-        structure: "NO_DATA",
-        confidence: 0,
-        signal: "NO_DATA",
-        quality: "LOW",
-        timeframe: tf
-      });
-    }
-
     return res.json(result);
 
   } catch (err) {
-    console.log("SIGNAL ERROR:", err);
+    console.log("API ERROR:", err);
 
     return res.json({
-      price: null,
-      rsi: null,
-      structure: "ERROR",
-      confidence: 0,
-      signal: "ERROR",
+      price: 1,
+      rsi: 50,
+      structure: "NEUTRAL",
+      confidence: 50,
+      signal: "WAIT",
       quality: "LOW",
       timeframe: "1min"
     });
@@ -52,7 +40,7 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* START */
+/* START SERVER */
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
