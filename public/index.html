@@ -22,49 +22,34 @@ min-height:100vh;
 width:100%;
 max-width:420px;
 background:#0c1224;
-border-radius:18px;
 padding:15px;
-box-shadow:0 0 25px #000;
+border-radius:18px;
+box-shadow:0 0 20px #000;
 }
 
-/* HEADER */
 .header{
 text-align:center;
 font-size:22px;
-font-weight:bold;
 color:#00ff9d;
-margin-bottom:10px;
+font-weight:bold;
 }
 
-/* SELECTS */
 select,button{
 width:100%;
 padding:12px;
 margin-top:10px;
-border-radius:10px;
 border:none;
+border-radius:10px;
 font-weight:bold;
 }
 
-select{
-background:#141d38;
-color:white;
-}
-
-button{
-background:#00ff9d;
-color:black;
-cursor:pointer;
-}
-
-/* SIGNAL */
-.signalBox{
-text-align:center;
-margin-top:15px;
-}
+select{background:#141d38;color:white;}
+button{background:#00ff9d;color:black;cursor:pointer;}
 
 .signal{
+text-align:center;
 font-size:42px;
+margin-top:10px;
 font-weight:bold;
 }
 
@@ -72,16 +57,16 @@ font-weight:bold;
 .sell{color:#ff3b5c;}
 .wait{color:#facc15;}
 
-/* INFO */
 .info{
-margin-top:8px;
+text-align:center;
+margin-top:6px;
 color:#ccc;
 }
 
-/* TIMER BAR */
-.timerContainer{
-margin-top:15px;
+/* TIMER */
+.timerBox{
 display:none;
+margin-top:15px;
 }
 
 .bar{
@@ -101,8 +86,13 @@ transition:width 1s linear;
 .timerText{
 text-align:center;
 margin-top:5px;
-font-size:14px;
 color:#aaa;
+}
+
+/* AUTO BUTTON */
+.autoOn{
+background:#ff3b5c !important;
+color:white !important;
 }
 
 </style>
@@ -114,7 +104,6 @@ color:#aaa;
 
 <div class="header">🔥 SNIPER AI PRO</div>
 
-<!-- MARKET -->
 <select id="market">
 <option>EURUSD</option>
 <option>GBPUSD</option>
@@ -124,7 +113,6 @@ color:#aaa;
 <option>XAUUSD</option>
 </select>
 
-<!-- TIMEFRAME -->
 <select id="tf">
 <option value="1min">1 MIN</option>
 <option value="5min">5 MIN</option>
@@ -133,7 +121,7 @@ color:#aaa;
 
 <button onclick="analyze()">📡 ANALYZE</button>
 
-<div class="signalBox">
+<button id="autoBtn" onclick="toggleAuto()">🤖 AUTO MODE</button>
 
 <div id="signal" class="signal wait">WAIT</div>
 
@@ -141,10 +129,8 @@ color:#aaa;
 <div class="info" id="rsi">RSI: --</div>
 <div class="info" id="conf">CONF: 0%</div>
 
-</div>
-
 <!-- TIMER -->
-<div class="timerContainer" id="timerBox">
+<div class="timerBox" id="timerBox">
 
 <div class="bar">
 <div class="fill" id="fill"></div>
@@ -159,53 +145,79 @@ color:#aaa;
 <script>
 
 let timer = null;
+let auto = null;
 
+/* ANALYZE */
 async function analyze(){
 
 const symbol = document.getElementById("market").value;
 const tf = document.getElementById("tf").value;
 
+try{
+
 const res = await fetch(`/signal?symbol=${symbol}&tf=${tf}`);
 const data = await res.json();
 
 /* UPDATE UI */
-document.getElementById("signal").innerText = data.signal;
+const signal = document.getElementById("signal");
+signal.innerText = data.signal;
+signal.className = "signal " + (data.signal.toLowerCase());
+
 document.getElementById("price").innerText = "PRICE: " + data.price;
 document.getElementById("rsi").innerText = "RSI: " + data.rsi;
 document.getElementById("conf").innerText = "CONF: " + data.confidence + "%";
 
-/* STYLE SIGNAL */
-let s = document.getElementById("signal");
-s.className = "signal " + (data.signal === "BUY" ? "buy" :
-                          data.signal === "SELL" ? "sell" : "wait"));
-
-/* START TIMER */
+/* TIMER START */
 startTimer();
+
+}catch(err){
+console.log("UI ERROR:", err);
+}
 
 }
 
-/* 60 SEC EXPIRATION BAR */
+/* TIMER 60 SEC */
 function startTimer(){
 
 clearInterval(timer);
 
-let time = 60;
+let t = 60;
 
 document.getElementById("timerBox").style.display = "block";
 
 timer = setInterval(()=>{
 
-time--;
+t--;
 
-document.getElementById("fill").style.width = (time/60*100) + "%";
-document.getElementById("timerText").innerText = time + " SEC EXPIRATION";
+document.getElementById("fill").style.width = (t/60*100)+"%";
+document.getElementById("timerText").innerText = t + " SEC EXPIRATION";
 
-if(time <= 0){
+if(t <= 0){
 clearInterval(timer);
 document.getElementById("timerBox").style.display = "none";
 }
 
 },1000);
+
+}
+
+/* AUTO MODE */
+function toggleAuto(){
+
+const btn = document.getElementById("autoBtn");
+
+if(auto){
+clearInterval(auto);
+auto = null;
+btn.classList.remove("autoOn");
+return;
+}
+
+btn.classList.add("autoOn");
+
+auto = setInterval(()=>{
+analyze();
+},4000);
 
 }
 
