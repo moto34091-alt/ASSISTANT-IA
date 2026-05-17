@@ -18,7 +18,7 @@ app.get("/signal", async (req, res) => {
 
     const result = await analyzeMarket(symbol, tf);
 
-    if (!result || result.price == null) {
+    if (!result) {
       return res.json({
         price: null,
         rsi: null,
